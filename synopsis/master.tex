@@ -1,0 +1,118 @@
+\documentclass[a4paper, oneside, 10pt, draft]{memoir}
+\input{packages}
+\chapterstyle{culver}
+
+\usepackage{fixme}
+\usepackage[english]{babel}
+%\usepackage[utopia]{mathdesign}
+
+\usepackage[osf,sc]{mathpazo}
+\linespread{1.05}
+%\usepackage{fourier}
+
+\usepackage{semantic}
+\author{Jesper Louis
+  Andersen\\jesper.louis.andersen@gmail.com\\140280-2029}
+\title{Formalizing Assembly Language}
+\date{\today}
+
+\newlength{\drop}
+\newcommand*{\titleM}{\begingroup% Misericords, T&H p 153
+  \drop = 0.08\textheight
+  \centering
+  {\Huge\bfseries Lambda}\\[\baselineskip]
+  {\scshape IR of exsml}\\[\baselineskip]
+  {\scshape by}\\[\baselineskip]
+  {\large\scshape Jesper Louis Andersen\\jesper.louis.andersen@gmail.com}\par
+  \endgroup}
+
+\bibliographystyle{plain}
+
+\begin{document}
+\maketitle{}
+\chapter*{Problem statement}
+
+Computers understands only machine code. While easy for computers,
+machine code is rather hard for humans to write programs in. The
+solution is then to write the program in a high-level language and
+then \emph{translate} the program by a compiler to a target
+language. In the recent years, it has been popular to target not the
+machine code of a CPU but an abstract \emph{Virtual Machine}.
+
+One such virtual machine is LLVM, the Low-level virtual machine. It is
+named as such since it provides a language which is almost in
+isomorphism with machine code, thus low-level. The LLVM language
+called the IR\footnote{A shorthand for Intermediate Representation}
+is, essentially, a typed assembly language with an
+SSA-form\cite{appel:modern} requirement.
+
+However, the LLVM IR has no formal semantics. It is specified by an
+informal text-description. In addition, it is not clear that the type
+system for the IR has the property of type safety\cite{pierce:types}.
+
+Our thesis is:
+
+``It is feasible and useful to produce an operational semantics for a
+subset of the LLVM IR''
+
+Our formalization will probably digress and not follow the LLVM IR
+blindly. Rather, we will let us inspire by the constructions in the IR
+but diverge where formalization will be too hard. Also we stress that
+we will analyze a subset of the IR. The full IR is too time-consuming
+to formalize and we do not know if the type system is type safe. We
+aim to produce an operational semantics which \emph{is} type-safe,
+even if this fragment is rather small.
+
+An operational semantics of the fragment is useful in the sense that
+formalizations often gives deeper insight than informal
+descriptions. We hope to gain some additional insights in the
+formalization work.
+
+To embrace the state-of-the-art of formalization, we plan we verify
+correctness by translating the semantics, and if time allows key
+proofs, into the Twelf Logical Framework. This will enable us to
+verify correctness by machine.
+
+At the project end, we will have produced:
+\begin{itemize}
+\item A typed assembly language (TAL), inspired by the rules of the LLVM
+  IR. This TAL will be given an operational semantics.
+\item An encoding of key parts of the semantics in Twelf; if time
+  allows, everything.
+\item A report describing the product.
+\end{itemize}
+
+\paragraph{Related work}
+
+Typed assembly languages have seen much work in the litterature, see
+\cite{crary:..}, \cite{morisett:...}. \fixme{Cite Crary, Morisett,
+  et. el}. There are even formalizations of some of these languages in
+Twelf. This allows us to use earlier experiences in working with
+assembly-style language. To our knowledge
+however, there has been no attempts at formalizing LLVM in Twelf.
+
+\chapter*{Learning goals}
+
+In this project, our primary goal is to become better at taking
+informal descriptions and formalizing them into logical systems. We
+note that no course at DIKU can teach you this skill currently as they
+all provide some skeleton-semantics for the students to work on. In
+this project, we begin with a black slate and inspiration in the
+existing litterature on the subject of typed assembly languages.
+
+Our second goal is the become better at working with the Twelf logical
+framework. In particular, we plan on constructing a bigger development
+than the Twelf toy-examples from the introductory course ``Computation
+and Deduction''. Getting proofs into a form which can be verified by
+the machine can be quite challenging, but we reap the benefits of
+added assurance on proof correctness.
+
+Finally, it is a goal to hone our report writing skills and improve
+our academic prose.
+
+\bibliography{biblio}
+% State what the goals of this project is.
+% State we focus on the operational semantics.
+% State we will use Twelf where applicable if time allows.
+
+\end{document}

@@ -50,11 +50,11 @@ named as such since it provides a language which is almost in
 isomorphism with machine code, thus low-level. The LLVM language
 called the IR\footnote{A shorthand for Intermediate Representation}
 is, essentially, a typed assembly language with an
-SSA-form\cite{appel:modern} requirement.
+SSA-form\cite{appel:1998:modern} requirement.
 
 However, the LLVM IR has no formal semantics. It is specified by an
 informal text-description. In addition, it is not clear that the type
-system for the IR has the property of type safety\cite{pierce:types}.
+system for the IR has the property of type safety\cite{pierce:2002:types}.
 
 Our thesis is:
 
@@ -91,10 +91,10 @@ At the project end, we will have produced:
 \paragraph{Related work}
 
 Typed assembly languages have seen much work in the litterature, see
-\cite{crary:..}, \cite{morisett:...}. \fixme{Cite Crary, Morisett,
-  et. el}. There are even formalizations of some of these languages in
-Twelf. This allows us to use earlier experiences in working with
-assembly-style language. To our knowledge
+for instance \cite{crary:2003:toward},
+\cite{morrisett.crary.ea:1999:talx86}. There are even formalizations
+of some of these languages in Twelf. This allows us to use earlier
+experiences in working with assembly-style language. To our knowledge
 however, there has been no attempts at formalizing LLVM in Twelf.
 
 \chapter*{Learning objectives}

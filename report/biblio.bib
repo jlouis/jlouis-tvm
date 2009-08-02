@@ -10,6 +10,18 @@
   annote =       "My bachelors thesis",
 }
 
+@Article{crary:2003:toward,
+  title={{Toward a foundational typed assembly language}},
+  author={Crary, K.},
+  journal={ACM SIGPLAN Notices},
+  volume={38},
+  number={1},
+  pages={198--212},
+  year={2003},
+  publisher={ACM New York, NY, USA},
+  annote="Still need to read this"
+}
+
 @Article{bennett:logical,
   author =       "C. H. Bennett",
   title =        "Logical Reversibility of Computation",
@@ -409,7 +421,7 @@
   annote =       "I have not read this one yet, but should!",
 }
 
-@Book{pierce:types,
+@Book{pierce:2002:types,
   abstract =     "A type system is a syntactic method for automatically
                  checking the absence of certain erroneous behaviors by
                  classifying program phrases according to the kinds of
@@ -467,7 +479,7 @@
   author =       "Carsten Sch{\"u}rmann and Frank Pfenning",
   title =        "The Twelf logical framework",
   howpublished = "available at \url{http://twelf.plparty.org}",
-  year =         "1999-2009",
+  year =         "1999--2009",
 }
 
 @Misc{team:coq,
@@ -480,7 +492,7 @@
   author =       "Coq development team",
   title =        "Coq Proof Assistant",
   howpublished = "available at \url{http://coq.inria.fr/}",
-  year =         "1989-2009",
+  year =         "1989--2009",
 }
 
 @Book{thorup:algebra,
@@ -536,10 +548,23 @@
   publisher =    "ACM",
 }
 
-@Book{appel:modern,
+@Book{appel:1998:modern,
   author =       "Andrew W. Appel",
   title =        "Modern Compiler Implementation in {ML}",
   publisher =    "Cambridge University Press",
   year =         "1998",
   ISBN =         "0-521-58274-1",
+}
+
+@inproceedings{morrisett.crary.ea:1999:talx86,
+  author = {Greg Morrisett and Karl Crary and Neal Glew and Dan Grossman and Richard Samuels and Frederick Smith and David Walker and Stephanie Weirich and Steve Zdancewic},
+  title = {TALx86: A realistic typed assembly language},
+  booktitle = {In Second Workshop on Compiler Support for System Software},
+  year = {1999},
+  pages = {25--35},
+  abstract = {The goal of typed assembly language (TAL) is to provide a low-level, statically typed target language that is better suited than Java bytecodes for supporting a wide variety of source languages and a number of important optimizations. In previous work, we formalized idealized versions of TAL and proved important safety properties about them. In this paper, we present our progress in defining and implementing a realistic typed assembly language called TALx86. The TALx86 instructions comprise a relatively complete fragment of the Intel IA32 (32-bit 80x86 flat model) assembly language and are thus executable on processors such as the Intel Pentium. The type system for the language incorporates a number of advanced features necessary for safely compiling large programs to good code.
+
+To motivate the design of the type system, we demonstrate how various high-level language features are compiled to TALx86. For this purpose, we present a type-safe C-like language called Popcorn.},
+  pdf = {http://www.eecs.harvard.edu/~greg/papers/talx86-wcsss.pdf},
+  annote = {Need to read this beast}
 }

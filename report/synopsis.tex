@@ -1,4 +1,4 @@
-\documentclass[a4paper, oneside, 10pt, draft]{memoir}
+\documentclass[a4paper, oneside, 10pt, final]{memoir}
 \input{packages}
 \chapterstyle{culver}
 
@@ -30,29 +30,26 @@
 
 \begin{document}
 \maketitle{}
-\listoffixmes{}
 \chapter*{Problem statement}
 
-\begin{afixme}[Rewrite introduction]
-  Rewrite this whole paragraph. The idea is to explain the reason for
-  virtual machines and give some high-level examples of virtual
-  machines. Eg. JVM, .NET CLI etc.
-\end{afixme}
-Computers understands only machine code. While easy for computers,
-machine code is rather hard for humans to write programs in. The
-solution is then to write the program in a high-level language and
-then \emph{translate} the program by a compiler to a target
-language. In the recent years, it has been popular to target not the
-machine code of a CPU but an abstract \emph{Virtual Machine}.
+\emph{Virtual Machines} (VMs) is a popular way to achieve hardware
+independence: one writes a compiler targetting the VM and then
+leverages on it to provide backends for different hardware
+architectures. There are several virtual machines, which are
+extensively used in todays computing-infrastructure. Prime examples
+are the Java JVM and the .NET framework CLR.
 
-One such virtual machine is LLVM, the Low-level virtual machine. It is
-named as such since it provides a language which is almost in
-isomorphism with machine code, thus low-level. The LLVM language
-called the IR\footnote{A shorthand for Intermediate Representation}
-is, essentially, a typed assembly language with an
+Both the JVM and CLR provides a high-level approach to the VM: the VM
+operations translate to several machine code instructions. Another
+approach is to provide a low-level VM where each instruction maps to
+few machine instructions. The Low-level Virtual Machine (LLVM) is one
+such machine.
+
+LLVM provides a VM-language called the LLVM IR. This language is,
+essentially, a typed assembly language with an
 SSA-form\cite{appel:1998:modern} requirement.
 
-However, the LLVM IR has no formal semantics. It is specified by an
+However, the LLVM IR language has no formal semantics. It is specified by an
 informal text-description. In addition, it is not clear that the type
 system for the IR has the property of type safety\cite{pierce:2002:types}.
 

@@ -13,7 +13,7 @@
 \usepackage{semantic}
 \author{Jesper Louis
   Andersen\\jesper.louis.andersen@gmail.com\\140280-2029}
-\title{Formalizing Assembly Language}
+\title{Formalizing a Virtual Machine}
 \date{\today}
 
 \newlength{\drop}
@@ -30,8 +30,14 @@
 
 \begin{document}
 \maketitle{}
+\listoffixmes{}
 \chapter*{Problem statement}
 
+\begin{afixme}[Rewrite introduction]
+  Rewrite this whole paragraph. The idea is to explain the reason for
+  virtual machines and give some high-level examples of virtual
+  machines. Eg. JVM, .NET CLI etc.
+\end{afixme}
 Computers understands only machine code. While easy for computers,
 machine code is rather hard for humans to write programs in. The
 solution is then to write the program in a high-level language and
@@ -52,8 +58,8 @@ system for the IR has the property of type safety\cite{pierce:types}.
 
 Our thesis is:
 
-``It is feasible and useful to produce an operational semantics for a
-subset of the LLVM IR''
+``It is feasible and useful to produce a formal semantics and type
+system for a subset of the LLVM IR''
 
 Our formalization will probably digress and not follow the LLVM IR
 blindly. Rather, we will let us inspire by the constructions in the IR
@@ -77,8 +83,8 @@ At the project end, we will have produced:
 \begin{itemize}
 \item A typed assembly language (TAL), inspired by the rules of the LLVM
   IR. This TAL will be given an operational semantics.
-\item An encoding of key parts of the semantics in Twelf; if time
-  allows, everything.
+\item An encoding of key parts of the semantics and its properties in
+  Twelf; if time allows, everything.
 \item A report describing the product.
 \end{itemize}
 
@@ -91,10 +97,15 @@ Twelf. This allows us to use earlier experiences in working with
 assembly-style language. To our knowledge
 however, there has been no attempts at formalizing LLVM in Twelf.
 
-\chapter*{Learning goals}
+\chapter*{Learning objectives}
 
+\begin{afixme}[Bulletpoints for Learning Objectives]
+  It has been suggested we use bullet points for the learning
+  objectives presented here.
+\end{afixme}
 In this project, our primary goal is to become better at taking
-informal descriptions and formalizing them into logical systems. We
+informal descriptions and formalizing them into logical
+systems. \fixme[inline]{Kill until the end of the paragraph here} We
 note that no course at DIKU can teach you this skill currently as they
 all provide some skeleton-semantics for the students to work on. In
 this project, we begin with a black slate and inspiration in the
@@ -106,9 +117,6 @@ than the Twelf toy-examples from the introductory course ``Computation
 and Deduction''. Getting proofs into a form which can be verified by
 the machine can be quite challenging, but we reap the benefits of
 added assurance on proof correctness.
-
-Finally, it is a goal to hone our report writing skills and improve
-our academic prose.
 
 \bibliography{biblio}
 % State what the goals of this project is.

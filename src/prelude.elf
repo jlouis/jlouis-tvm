@@ -28,9 +28,54 @@ void : type. %freeze void.
 
 %{
 
-TODO
+A boolean value is either true or false. We define abbreviations for
+these for convenience.
 
 }%
+
+bool : type.
+
+bool/true : bool.
+bool/false : bool.
+
+%abbrev true = bool/true.
+%abbrev false = bool/false.
+
+%{
+
+Booleans can be checked for equality and they admit negation. Also, they admit
+identity by reflection.
+
+}%
+
+bool-id : bool -> bool -> type.
+%mode bool-id +B1 -B2.
+
+bool-id/refl : bool-id B B.
+
+%worlds () (bool-id _ _).
+%total B (bool-id B _).
+
+
+
+bool-eq : bool -> bool -> bool -> type.
+%mode bool-eq +B1 +B2 -B3.
+
+bool-eq/refl : bool-eq B B true.
+
+bool-eq/true-false : bool-eq true false false.
+
+bool-eq/false-true : bool-eq false true false.
+
+
+
+bool-neg : bool -> bool -> type.
+%mode bool-neg +B1 -B2.
+
+bool-neg/true : bool-neg true false.
+
+bool-neg/false : bool-neg false true.
+
 
 
 
@@ -41,21 +86,17 @@ TODO
 It is often convenient to have access to natural numbers, peano style. We call
 the family 'nat' as per the usual convention.
 
-}%
-
-nat : type. %name nat N.
-
-nat/z : nat.
-nat/s : nat -> nat.
-
-%{
-
 For convenience, we define abbreviations on natural numbers so we can refer to
 them as 'z' and 's N' respectively. Note that this variant defines them such
 that they will retain their original name (nat/z and nat/s) in the Twelf output
 buffer
 
 }%
+
+nat : type. %name nat N.
+
+nat/z : nat.
+nat/s : nat -> nat.
 
 %abbrev z = nat/z.
 %abbrev s = nat/s.

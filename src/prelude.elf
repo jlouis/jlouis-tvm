@@ -1,0 +1,93 @@
+%% TAL Prelude.
+%% Jesper Louis Andersen 2009.
+
+%{
+
+This defines the prelude of the TAL project. In here, we define a basis in the
+same vein as the Haskell prelude or the Standard ML pervasives: A helper set of
+commonly used constructions.
+
+}%
+
+%%%%%{ Reasoning from false }%%%%%
+
+
+%{
+
+To reason from false, we use the constant 'void' which is uninhabited. This is
+in accordance with the Twelf naming conventions.
+
+}%
+
+void : type. %freeze void.
+
+
+
+
+%%%%%{ Booleans }%%%%%
+
+%{
+
+TODO
+
+}%
+
+
+
+%%%%%{ Natural numbers }%%%%%
+
+%{
+
+It is often convenient to have access to natural numbers, peano style. We call
+the family 'nat' as per the usual convention.
+
+}%
+
+nat : type. %name nat N.
+
+nat/z : nat.
+nat/s : nat -> nat.
+
+%{
+
+For convenience, we define abbreviations on natural numbers so we can refer to
+them as 'z' and 's N' respectively. Note that this variant defines them such
+that they will retain their original name (nat/z and nat/s) in the Twelf output
+buffer
+
+}%
+
+%abbrev z = nat/z.
+%abbrev s = nat/s.
+
+%{
+
+Numbers can be added to each other by a simple inference rule system. We call this
+operation 'nat-plus'. Similarly 'nat-mone' defines the well-known mone operation on
+natural numbers.
+
+}%
+
+nat-plus : nat -> nat -> nat -> type.
+%mode nat-plus +N1 +N2 -N3.
+
+nat-plus/z : nat-plus z N N.
+
+nat-plus/s : nat-plus (s N) K (s L)
+	      <- nat-plus N K L.
+
+
+
+nat-mone : nat -> nat -> nat -> type.
+%mode nat-mone +N1 +N2 -N3.
+
+nat-mone/z : nat-mone z N z.
+
+nat-mone/s-1 : nat-mone (s N) z (s N).
+
+nat-mone/s-2 : nat-mone (s N) (s L) K
+		<- nat-mone N L K.
+
+
+
+

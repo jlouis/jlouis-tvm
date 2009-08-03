@@ -380,7 +380,17 @@ taken here to do it correctly.
 
 }%
 
+%{
 
+The following applies a list of expressions to a basic-block header, effectively
+executing the basic block by substituting the values into the block.
+
+}%
+
+bb-apply/nil : bb-apply exp-list/nil (bb-header/body I) I.
+
+bb-apply/cons : bb-apply (exp-list/cons E EL) (bb-header/phi ([x] PHI x)) R
+		 <- bb-apply EL (PHI E) R.
 
 
 

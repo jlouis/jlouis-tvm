@@ -50,7 +50,19 @@ Perhaps we need more, but this is a start.
 
 }%
 
+%{
 
+>>> NOTE
+Currently, labels just are. I have not yet given them enough thought
+to wonder about them. Perhaps we can add them as a higher-order style
+entry and then refer them by this construction, but I'll rather
+postpone the decision until later for now
+<<<
+
+}%
+
+label : type.
+bb : type.
 bb-map : label -> bb -> type.
 
 
@@ -151,7 +163,7 @@ exp-eval : exp -> exp -> type.
 
 exp-eval/constant : exp-eval (exp/constant N) (exp/constant N).
 
-exp-eval/plus : exp-eval E1 E2 (exp/constant N3)
+exp-eval/plus : exp-eval (exp/plus E1 E2) (exp/constant N3)
 		 <- exp-eval E1 (exp/constant N1)
 		 <- exp-eval E2 (exp/constant N2)
 		 <- nat-plus N1 N2 N3.
@@ -209,8 +221,8 @@ define the basic operations of the language as being 'instruction's.
 
 instruction : type. %name instruction I.
 
-instruction/let : exp -> (exp -> com) -> com.
-instruction/return : exp -> com.
+instruction/let : exp -> (exp -> instruction) -> instruction.
+instruction/return : exp -> instruction.
 
 
 
@@ -241,20 +253,6 @@ instruction-eval/return : instruction-eval (instruction/return E) E'
 
 
 %%%%%{ Labels }%%%%%
-
-%{
-
->>> NOTE
-Currently, labels just are. I have not yet given them enough thought
-to wonder about them. Perhaps we can add them as a higher-order style
-entry and then refer them by this construction, but I'll rather
-postpone the decision until later for now
-<<<
-
-}%
-
-label : type.
-
 
 
 
@@ -361,6 +359,3 @@ bb-list : type.
 bb-list/nil : bb-list.
 bb-list/cons : bb -> bb-list -> bb-list.
 
-%{
-
-Fucn

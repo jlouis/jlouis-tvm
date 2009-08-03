@@ -1,0 +1,366 @@
+%% Definition of a LLVM-inspired Virtual Machine language
+%% Jesper Louis Andersen, 2009.
+
+
+
+%{
+
+>>> TODO
+This is a list of observations made while defining this part of the
+language.
+
+* It looks as if the LLVM IR defines expressions as
+
+exp : tp -> type.
+
+rather than
+
+exp : type.
+
+This is NICE. I hoped for being able to define expressions as
+type-dependent. Now it looks as if it is possible. At least it has to
+be tried. Preservation for free in expressions are always a nice thing
+to have.
+<<<
+
+* The two main desirable properties for this language is that of
+preservation and progress w.r.t. types.
+
+}%
+
+
+
+
+
+%%%%%{ Maps }%%%%%
+
+%{
+
+In this part of the file, we define some mappings so we can store
+things in the context. We hope this will make the development easier
+later on.
+
+We need:
+
+A mapping from labels into basic blocks.
+
+>>> NOTE
+Perhaps we need more, but this is a start.
+<<<
+
+}%
+
+
+bb-map : label -> bb -> type.
+
+
+
+
+%{
+
+The LLVM IR is a linear instruction set. Code in a function is split
+into basic blocks. A Basic block is defined as:
+
+label:
+  %i1 = phi(...);
+  ...
+  %in = phi(...);
+
+  insn_1;
+  ...
+  insn_n;
+
+  return/jump;
+
+That is, a basic block, or just block, is a label, followed by
+eventual phi-nodes, followed by instructions linearly until we reach
+either a jump or a function return. Then we either proceed along
+another basic block or return from the function in which the basic
+block is defined.
+
+This representation is easy to map into a graph-representation [Appel-SSA],
+but it is not an optimal representation for an inference rule system,
+nor Twelf. We want to utilize the ideas in [Appel-SSA] to rewrite this
+system into one which is amenable for definition in Twelf.
+
+>>> GOAL
+Our goal is to get a way to define the Example from [Appel] in our
+small toy-language here and use it to structure a skeleton for further
+work.
+<<<
+
+>>> TODO
+We do not explain anything about phi-nodes yet. We ought to.
+<<<
+
+Suppose we only have assignment instructions of the form
+
+%x = exp;
+
+where 'exp' is either a constant, or of the form %x + %y for variables
+x and y. For simplicity we will let the constants be natural numbers
+for the moment.
+
+}%
+
+
+
+
+
+
+%%%%%{ Expression Syntax }%%%%%
+
+%{
+
+Expressions are either constants or additions in this silly language.
+
+}%
+
+exp : type. %name exp E.
+
+exp/constant : nat -> exp.
+exp/plus : exp -> exp -> exp.
+
+%{
+
+>>> NOTE
+At this point we have already allowed too much. In LLVM we make the
+distinction between constant expressions, which are expression trees
+that can be constant folded, and ordinary expressions, which have
+the usual tri-operand RISC-assembly form.
+
+We will need to adapt the language into a form which reflects this,
+but for simplicity I allow the above form for now.
+<<<
+
+}%
+
+
+
+
+%%%%%{ Expression evaluation }%%%%%
+
+%{
+
+Expression evaluation is defined straightforwardly as a big-step
+semantics on expressions.
+
+}%
+
+exp-eval : exp -> exp -> type.
+
+exp-eval/constant : exp-eval (exp/constant N) (exp/constant N).
+
+exp-eval/plus : exp-eval E1 E2 (exp/constant N3)
+		 <- exp-eval E1 (exp/constant N1)
+		 <- exp-eval E2 (exp/constant N2)
+		 <- nat-plus N1 N2 N3.
+
+
+
+
+
+
+
+
+%%%%%{ Instruction syntax }%%%%%
+
+%{
+
+We have supposed assignment instructions are of the form
+
+%x = exp
+
+so a series of assignment instructions are of the form
+
+%x1 = exp1;
+%x2 = exp2;
+...
+%xn = expn;
+
+Note that we use an SSA-form. This means that an assignment to x1 is
+static. In other words, once x1 is assigned to in the first line, it
+is impossible to reassign another value to x1. This effectively makes
+x1 a constant in the following evaluation.
+
+As an example, suppose we have the following code segment:
+
+%x1 = 3;
+%x2 = 7;
+return %x1 + %x2;
+
+This can be transformed into a functionally styled program as
+
+let x1 = 3 in
+  let x2 = 7 in
+    return x1 + x2;
+
+Which we can then transform to an equivalent program by using
+lambda-abstractions for the let-body:
+
+let 3 in
+  (fn x1 => let 7 in
+    (fn x2 => return x1 + x2))
+
+The latter style is amenable to a HOAS Twelf encoding as follows. We will
+define the basic operations of the language as being 'instruction's.
+
+}%
+
+instruction : type. %name instruction I.
+
+instruction/let : exp -> (exp -> com) -> com.
+instruction/return : exp -> com.
+
+
+
+
+
+
+%%%%%{ Instruction evaluation }%%%%%
+
+%{
+
+Evaluation of Instructions utilizes beta-reduction. As soon as we know
+the value of a definition, we replace it into all uses by
+substitution.
+
+}%
+
+instruction-eval : instruction -> exp -> type.
+
+instruction-eval/let : instruction-eval (instruction/let E ([x] I x)) E'
+			<- exp-eval E E''
+			<- instruction-eval (I E'') E'.
+
+instruction-eval/return : instruction-eval (instruction/return E) E'
+			  <- exp-eval E E'.
+
+
+
+
+
+%%%%%{ Labels }%%%%%
+
+%{
+
+>>> NOTE
+Currently, labels just are. I have not yet given them enough thought
+to wonder about them. Perhaps we can add them as a higher-order style
+entry and then refer them by this construction, but I'll rather
+postpone the decision until later for now
+<<<
+
+}%
+
+label : type.
+
+
+
+
+%%%%%{ Basic Block Syntax }%%%%%
+
+%{
+
+Basic blocks are defined by a label and then a possible list of
+phi-nodes. These resembles the let-construction in instructions, but
+we can handle them more easily by building them into basic-blocks.
+
+>>> NOTE
+This also enforces phi-nodes to be the first thing in basic blocks by
+construction
+<<<
+
+We thus set out to define basic-block headers:
+
+}%
+
+bb-header : type.
+
+bb-header/phi : (exp -> bb-header) -> bb-header.
+bb-header/body : instruction -> bb-header.
+
+%abbrev phi = bb-header/phi.
+%abbrev body = bb-header/body.
+
+%{
+
+A basic block (bb) defines a label, identifying the basic block and
+then it contains a bb-header.
+
+}%
+
+bb : type.
+
+bb/def : label -> bb-header -> bb.
+
+
+%{
+
+Here is the notational idea. A set of LLVM instructions of the form
+
+foo:
+  %p1 = phi(..,..)
+  %x1 = 3;
+  %x2 = %p1;
+  return %x1 + %x2;
+
+is then translated into
+
+(bb "foo" (phi [p1]
+	     (body
+		(let 3 in
+		   [x1] let p1 in
+		     [x2] return (plus [x1] [x2])))))
+
+(We still need to take care of the "foo" part, but the idea is there)
+
+}%
+
+
+
+
+%%%%%{ Basic Block evaluation }%%%%%
+
+%{
+
+>>> TODO
+Define BB evaluation. To do this, one must define a set of rules for
+correctly handling the phi-node substitions. The definition ties in
+with ways to tail-call (jump) to another basic block, so care must be
+taken here to do it correctly.
+<<<
+
+}%
+
+
+
+
+
+%%%%%{ Function Syntax }%%%%%
+
+
+%{
+
+In functions, the body is a list of basic blocks. We note that if we
+have the code:
+
+label1:
+  ...
+  <no jump or return here>
+label2:
+  ...
+
+we can always fix it by an explicit jump just before label2. Thus, it
+seems ok to define lists of basic blocks as a primitive for functions.
+
+}%
+
+bb-list : type.
+
+bb-list/nil : bb-list.
+bb-list/cons : bb -> bb-list -> bb-list.
+
+%{
+
+Fucn

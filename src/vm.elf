@@ -134,7 +134,7 @@ exp : type. %name exp E.
 
 exp/constant : nat -> exp.
 exp/plus : exp -> exp -> exp.
-
+exp/lt : exp -> exp -> exp.
 
 
 %{
@@ -192,6 +192,13 @@ exp-step/plus : exp-step (exp/plus (exp/constant N1)
 			           (exp/constant N2))
 		     (exp/constant N3)
 		 <- nat-plus N1 N2 N3.
+
+exp-step/lt-true : exp-step (exp/lt (exp/constant N1) (exp/constant N2)) (exp/constant one)
+		    <- nat-lt N1 N2 true.
+
+exp-step/lt-false : exp-step (exp/lt (exp/constant N1) (exp/constant N2)) (exp/constant zero)
+		     <- nat-lt N1 N2 false.
+
 
 %{
 

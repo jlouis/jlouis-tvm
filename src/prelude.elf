@@ -107,6 +107,8 @@ Numbers can be added to each other by a simple inference rule system. We call th
 operation 'nat-plus'. Similarly 'nat-mone' defines the well-known mone operation on
 natural numbers.
 
+The nat-lt operation defines a straightforward less-than (<) operation.
+
 }%
 
 nat-plus : nat -> nat -> nat -> type.
@@ -131,4 +133,28 @@ nat-mone/s-2 : nat-mone (s N) (s L) K
 
 
 
+nat-lt : nat -> nat -> bool -> type.
+%mode nat-lt +N1 +N2 -B.
 
+nat-lt/z-z : nat-lt z z false.
+
+nat-lt/z-s : nat-lt z (s _) true.
+
+nat-lt/s-z : nat-lt (s _) z false.
+
+nat-lt/s-s : nat-lt (s N) (s K) B
+	      <- nat-lt N K B.
+
+
+
+%{
+
+Peano constants for convenience.
+
+}%
+
+zero = z.
+one = s zero.
+two = s one.
+three = s two.
+four = s three.

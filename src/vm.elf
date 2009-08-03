@@ -59,6 +59,8 @@ entry and then refer them by this construction, but I'll rather
 postpone the decision until later for now
 <<<
 
+A 'bb' designates a basic block. We will define their contents later on.
+
 }%
 
 label : type.
@@ -142,7 +144,12 @@ that can be constant folded, and ordinary expressions, which have
 the usual tri-operand RISC-assembly form.
 
 We will need to adapt the language into a form which reflects this,
-but for simplicity I allow the above form for now.
+but for simplicity I allow the above form for now and capture the
+limitation in the semantics.
+
+We ought to think about a way to rule out illegal operations in some
+way.
+
 <<<
 
 }%
@@ -150,24 +157,34 @@ but for simplicity I allow the above form for now.
 
 
 
-%%%%%{ Expression evaluation }%%%%%
+%%%%%{ Expression Semantics }%%%%%
 
 %{
 
-Expression evaluation is defined straightforwardly as a big-step
-semantics on expressions.
+I have decided on using small-step semantics rather than a big-step
+semantics. This choice is made somewhat haphazardly on the gut
+intuition that it will beneficial to have fine-grained control over
+what happens.
+
 
 }%
 
-exp-eval : exp -> exp -> type.
+exp-step : exp -> exp -> type.
 
-exp-eval/constant : exp-eval (exp/constant N) (exp/constant N).
+exp-step/constant : exp-step (exp/constant N) (exp/constant N).
 
-exp-eval/plus : exp-eval (exp/plus E1 E2) (exp/constant N3)
-		 <- exp-eval E1 (exp/constant N1)
-		 <- exp-eval E2 (exp/constant N2)
+exp-step/plus : exp-step (exp/plus (exp/constant N1)
+			           (exp/constant N2))
+		     (exp/constant N3)
 		 <- nat-plus N1 N2 N3.
 
+%{
+
+Note how the step-rule only allows addition among constants. This
+limitation is chosen to cope with the fact that we won't allow
+arbitrarily nested expression trees.
+
+}%
 
 
 
@@ -224,12 +241,13 @@ instruction : type. %name instruction I.
 instruction/let : exp -> (exp -> instruction) -> instruction.
 instruction/return : exp -> instruction.
 
+%abbrev let = instruction/let.
+%abbrev return = instruction/return.
 
 
 
 
-
-%%%%%{ Instruction evaluation }%%%%%
+%%%%%{ Instruction Semantics }%%%%%
 
 %{
 
@@ -237,22 +255,19 @@ Evaluation of Instructions utilizes beta-reduction. As soon as we know
 the value of a definition, we replace it into all uses by
 substitution.
 
+Again, we use a simple stepping relation, small-step style.
+
 }%
 
-instruction-eval : instruction -> exp -> type.
+instruction-step : instruction -> instruction -> type.
 
-instruction-eval/let : instruction-eval (instruction/let E ([x] I x)) E'
-			<- exp-eval E E''
-			<- instruction-eval (I E'') E'.
+instruction-step/let : instruction-step (instruction/let E ([x] I x)) (I E')
+			<- exp-step E E'.
 
-instruction-eval/return : instruction-eval (instruction/return E) E'
-			  <- exp-eval E E'.
-
+instruction-step/return : instruction-step (instruction/return E) (instruction/return E')
+			   <- exp-step E E'.
 
 
-
-
-%%%%%{ Labels }%%%%%
 
 
 
@@ -284,11 +299,9 @@ bb-header/body : instruction -> bb-header.
 %{
 
 A basic block (bb) defines a label, identifying the basic block and
-then it contains a bb-header.
+then it contains a bb-header. We have already introduced the bb type family.
 
 }%
-
-bb : type.
 
 bb/def : label -> bb-header -> bb.
 
@@ -318,7 +331,7 @@ is then translated into
 
 
 
-%%%%%{ Basic Block evaluation }%%%%%
+%%%%%{ Basic Block Semantics }%%%%%
 
 %{
 

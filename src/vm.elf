@@ -135,6 +135,8 @@ exp : type. %name exp E.
 exp/constant : nat -> exp.
 exp/plus : exp -> exp -> exp.
 
+
+
 %{
 
 >>> NOTE
@@ -153,6 +155,19 @@ way.
 <<<
 
 }%
+
+%{
+
+We will need lists of expressions when one makes function calls and when one
+jumps to other basic blocks. Hence, we define them here
+
+}%
+
+exp-list : type.
+
+exp-list/nil : exp-list.
+exp-list/cons : exp -> exp-list -> exp-list.
+
 
 
 
@@ -240,34 +255,11 @@ instruction : type. %name instruction I.
 
 instruction/let : exp -> (exp -> instruction) -> instruction.
 instruction/return : exp -> instruction.
+instruction/br : label -> exp-list -> instruction.
 
 %abbrev let = instruction/let.
 %abbrev return = instruction/return.
-
-
-
-
-%%%%%{ Instruction Semantics }%%%%%
-
-%{
-
-Evaluation of Instructions utilizes beta-reduction. As soon as we know
-the value of a definition, we replace it into all uses by
-substitution.
-
-Again, we use a simple stepping relation, small-step style.
-
-}%
-
-instruction-step : instruction -> instruction -> type.
-
-instruction-step/let : instruction-step (instruction/let E ([x] I x)) (I E')
-			<- exp-step E E'.
-
-instruction-step/return : instruction-step (instruction/return E) (instruction/return E')
-			   <- exp-step E E'.
-
-
+%abbrev br = instruction/br.
 
 
 
@@ -327,6 +319,43 @@ is then translated into
 (We still need to take care of the "foo" part, but the idea is there)
 
 }%
+
+
+
+
+%%%%%{ Instruction Semantics }%%%%%
+
+%{
+
+Evaluation of Instructions utilizes beta-reduction. As soon as we know
+the value of a definition, we replace it into all uses by
+substitution.
+
+Again, we use a simple stepping relation, small-step style.
+
+Finally, the bb-apply relation is defined here so we can refer to it in
+the step/br case, but we will handle it in the Basic Block Semantics section.
+
+}%
+
+bb-apply : exp-list -> bb-header -> instruction -> type.
+
+
+
+instruction-step : instruction -> instruction -> type.
+
+instruction-step/let : instruction-step (instruction/let E ([x] I x)) (I E')
+			<- exp-step E E'.
+
+instruction-step/return : instruction-step (instruction/return E) (instruction/return E')
+			   <- exp-step E E'.
+
+instruction-step/br : instruction-step (instruction/br L EL) IS
+		       <- bb-map L (bb/def _ BBH)
+		       <- bb-apply EL BBH IS.
+
+
+
 
 
 

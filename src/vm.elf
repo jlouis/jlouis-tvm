@@ -59,7 +59,9 @@ l_1 = label/n 1.
 l_2 = label/n 2.
 l_3 = label/n 3.
 l_4 = label/n 4.
-
+l_5 = label/n 5.
+l_6 = label/n 6.
+l_7 = label/n 7.
 
 
 %{

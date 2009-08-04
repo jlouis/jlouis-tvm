@@ -13,8 +13,8 @@ We also lowered to number of rounds on the while loop; it
 proves no point to keep iterating but to stress Twelfs (prolog)
 evaluator.
 
-The code is transscribed from AppelTest.sml, an implementation
-of the functional code in Standard ML.
+The code is from the [Appel-SSA] paper. It is the 'dumb' version,
+where each variable is explicitly passed on.
 
 }%
 

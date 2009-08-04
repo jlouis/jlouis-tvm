@@ -5,8 +5,8 @@
 
 GLOBAL TODO:
 
-- Define implementations of function bodies.
 - Implement the conditional branch instruction.
+- Define semantics of Basic Blocks
 - Implement the altered code from Appel's paper.
   TEST
 - Begin constructing a type system with nats (i32)
@@ -362,7 +362,7 @@ seems ok to define lists of basic blocks as a primitive for functions.
 bb-list : type.
 
 bb-list/nil : bb-list.
-bb-list/cons : bb -> bb-list -> bb-list.
+bb-list/cons : label -> bb -> bb-list -> bb-list.
 
 
 
@@ -435,11 +435,40 @@ bb-apply/cons : bb-apply (reg-list/cons REG RL) (bb-header/phi ([x] PHI x)) I
 
 %{
 
-The function body itself designates one basic block as the initial block.
-This is the block we run when asked.
+The function body itself designates one basic block as the initial block by
+its label. This is the block we run when asked.
 
 }%
 
 function-body : type.
 
-function-body/def : bb -> bb-list -> function-body.
+function-body/def : label -> bb-list -> function-body.
+
+
+
+
+
+
+
+%%%%%{ Function Semantics }%%%%%
+
+%{
+
+Currently, we use some very crippled function semantics. We just tell how a function
+body should be executed. The plan is to wrap this knowledge later on.
+
+First is the setup rules which allows us to set up before executing a function body. This
+amount to shuffling basic blocks into the context so we can refer them later.
+
+}%
+
+function-body-init : label -> bb-list -> bb -> type.
+
+function-body-init/nil : function-body-init L bb-list/nil BB
+			  <- bb-map L BB.
+
+function-body-init/cons : function-body-init L (bb-list/cons L BB REST) Q
+			   <- (bb-map L BB -> function-body-init L REST Q).
+
+
+

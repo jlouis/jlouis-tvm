@@ -84,11 +84,11 @@ label:
   ...
   insn_n;
 
-  return/jump;
+  return/br;
 
-That is, a basic block, or just block, is a label, followed by
+That is, a basic block, is a label, followed by
 eventual phi-nodes, followed by instructions linearly until we reach
-either a jump or a function return. Then we either proceed along
+either a br or a function return. Then we either proceed along
 another basic block or return from the function in which the basic
 block is defined.
 
@@ -126,31 +126,35 @@ for the moment.
 
 %{
 
-Expressions are either constants or additions in this silly language.
+Registers is a family of either constants or variables. But as variables
+are captured by HOAS, we do not need to specify them.
+
+Expressions are either additions or less-than comparisons in this silly
+language.
 
 }%
 
+reg : type. %name reg R.
+
+reg/constant : nat -> reg.
+
 exp : type. %name exp E.
 
-exp/constant : nat -> exp.
-exp/plus : exp -> exp -> exp.
-exp/lt : exp -> exp -> exp.
+exp/plus : reg -> reg -> exp.
+exp/lt : reg -> reg -> exp.
 
 
 %{
 
 >>> NOTE
-At this point we have already allowed too much. In LLVM we make the
-distinction between constant expressions, which are expression trees
-that can be constant folded, and ordinary expressions, which have
-the usual tri-operand RISC-assembly form.
+We stratify into 'reg' and 'exp' respectively to eliminate arbitrarily
+nested expression trees. In the LLVM IR we only have primitive operations
+or [constant expressions] which are expression trees that can be constant
+folded. They are omitted for now, and possibly forever because they don't
+provide anything interesting, in my humble opinion.
 
-We will need to adapt the language into a form which reflects this,
-but for simplicity I allow the above form for now and capture the
-limitation in the semantics.
-
-We ought to think about a way to rule out illegal operations in some
-way.
+To me, they were added as a convenience so one can do e.g. address
+calculations on a load word instruction.
 
 <<<
 
@@ -158,15 +162,15 @@ way.
 
 %{
 
-We will need lists of expressions when one makes function calls and when one
+We will need lists of registers when one makes function calls and when one
 jumps to other basic blocks. Hence, we define them here
 
 }%
 
-exp-list : type.
+reg-list : type.
 
-exp-list/nil : exp-list.
-exp-list/cons : exp -> exp-list -> exp-list.
+reg-list/nil : reg-list.
+reg-list/cons : reg -> reg-list -> reg-list.
 
 
 
@@ -184,19 +188,17 @@ what happens.
 
 }%
 
-exp-step : exp -> exp -> type.
+exp-step : exp -> reg -> type.
 
-exp-step/constant : exp-step (exp/constant N) (exp/constant N).
-
-exp-step/plus : exp-step (exp/plus (exp/constant N1)
-			           (exp/constant N2))
-		     (exp/constant N3)
+exp-step/plus : exp-step (exp/plus (reg/constant N1)
+			           (reg/constant N2))
+		     (reg/constant N3)
 		 <- nat-plus N1 N2 N3.
 
-exp-step/lt-true : exp-step (exp/lt (exp/constant N1) (exp/constant N2)) (exp/constant one)
+exp-step/lt-true : exp-step (exp/lt (reg/constant N1) (reg/constant N2)) (reg/constant one)
 		    <- nat-lt N1 N2 true.
 
-exp-step/lt-false : exp-step (exp/lt (exp/constant N1) (exp/constant N2)) (exp/constant zero)
+exp-step/lt-false : exp-step (exp/lt (reg/constant N1) (reg/constant N2)) (reg/constant zero)
 		     <- nat-lt N1 N2 false.
 
 
@@ -260,9 +262,9 @@ define the basic operations of the language as being 'instruction's.
 
 instruction : type. %name instruction I.
 
-instruction/let : exp -> (exp -> instruction) -> instruction.
-instruction/return : exp -> instruction.
-instruction/br : label -> exp-list -> instruction.
+instruction/let : exp -> (reg -> instruction) -> instruction.
+instruction/return : reg -> instruction.
+instruction/br : label -> reg-list -> instruction.
 
 %abbrev let = instruction/let.
 %abbrev return = instruction/return.
@@ -289,7 +291,7 @@ We thus set out to define basic-block headers:
 
 bb-header : type.
 
-bb-header/phi : (exp -> bb-header) -> bb-header.
+bb-header/phi : (reg -> bb-header) -> bb-header.
 bb-header/body : instruction -> bb-header.
 
 %abbrev phi = bb-header/phi.
@@ -369,7 +371,7 @@ the step/br case, but we will handle it in the Basic Block Semantics section.
 
 }%
 
-bb-apply : exp-list -> bb-header -> instruction -> type.
+bb-apply : reg-list -> bb-header -> instruction -> type.
 
 
 
@@ -378,8 +380,7 @@ instruction-step : instruction -> instruction -> type.
 instruction-step/let : instruction-step (instruction/let E ([x] I x)) (I E')
 			<- exp-step E E'.
 
-instruction-step/return : instruction-step (instruction/return E) (instruction/return E')
-			   <- exp-step E E'.
+instruction-step/return : instruction-step (instruction/return R) (instruction/return R).
 
 instruction-step/br : instruction-step (instruction/br L EL) IS
 		       <- bb-map L (bb/def _ BBH)
@@ -411,10 +412,10 @@ executing the basic block by substituting the values into the block.
 
 }%
 
-bb-apply/nil : bb-apply exp-list/nil (bb-header/body I) I.
+bb-apply/nil : bb-apply reg-list/nil (bb-header/body I) I.
 
-bb-apply/cons : bb-apply (exp-list/cons E EL) (bb-header/phi ([x] PHI x)) R
-		 <- bb-apply EL (PHI E) R.
+bb-apply/cons : bb-apply (reg-list/cons REG RL) (bb-header/phi ([x] PHI x)) I
+		 <- bb-apply RL (PHI REG) I.
 
 
 

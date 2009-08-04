@@ -26,12 +26,12 @@ f1_body = (let (constant 1)
 			    (reg-list/cons j1
 			       (reg-list/cons k1 reg-list/nil))))))).
 
-f1 = bb/def l_1 (bb-header/body f1_body).
+f1 = bb/def l_1 (body f1_body).
 
-f2 = bb/def l_2 (bb-header/phi [i2]
-		   (bb-header/phi [j2]
-		      (bb-header/phi [k2]
-			 (bb-header/body
+f2 = bb/def l_2 (phi [i2]
+		   (phi [j2]
+		      (phi [k2]
+			 (body
 			    (let (exp/lt k2 (reg/constant 10))
 			       ([tmp]
 				  brc tmp l_3 (reg-list/cons i2
@@ -41,10 +41,10 @@ f2 = bb/def l_2 (bb-header/phi [i2]
 						 (reg-list/cons j2
 						    (reg-list/cons k2 reg-list/nil))))))))).
 
-f3 = bb/def l_3 (bb-header/phi [i3]
-		   (bb-header/phi [j3]
-		      (bb-header/phi [k3]
-			 (bb-header/body
+f3 = bb/def l_3 (phi [i3]
+		   (phi [j3]
+		      (phi [k3]
+			 (body
 			    (let (exp/lt j3 (reg/constant 7))
 			       ([tmp]
 				  brc tmp l_5 (reg-list/cons i3
@@ -54,6 +54,11 @@ f3 = bb/def l_3 (bb-header/phi [i3]
 						 (reg-list/cons j3
 						    (reg-list/cons k3 reg-list/nil))))))))).
 
+f4 = bb/def l_4 (phi [i4]
+		   (phi [j4]
+		      (phi [k4]
+			 (body
+			    (return j4))))).
 
 
 

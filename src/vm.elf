@@ -5,8 +5,8 @@
 
 GLOBAL TODO:
 
-- Implement the altered code from Appel's paper.
-  TEST
+- Read through the comments in this file, correct them if they are wrong.
+
 - Begin constructing a type system with nats (i32)
   and booleans (i1).
 

@@ -5,35 +5,18 @@
 
 GLOBAL TODO:
 
-- Read through the comments in this file, correct them if they are wrong.
-
 - Begin constructing a type system with nats (i32)
   and booleans (i1).
 
-}%
+- See if it is possible to define
 
-%{
-
->>> TODO
-This is a list of observations made while defining this part of the
-language.
-
-* It looks as if the LLVM IR defines expressions as
-
+tp : type.
 exp : tp -> type.
 
 rather than
 
 exp : type.
-
-This is NICE. I hoped for being able to define expressions as
-type-dependent. Now it looks as if it is possible. At least it has to
-be tried. Preservation for free in expressions are always a nice thing
-to have.
-<<<
-
-* The two main desirable properties for this language is that of
-preservation and progress w.r.t. types.
+of : tp -> exp -> type.
 
 }%
 
@@ -55,6 +38,7 @@ label : type.
 
 label/n : nat -> label.
 
+%% Convenience shorthands.
 l_1 = label/n 1.
 l_2 = label/n 2.
 l_3 = label/n 3.
@@ -66,9 +50,8 @@ l_7 = label/n 7.
 
 %{
 
-In this part of the file, we define some mappings so we can store
-things in the context. We hope this will make the development easier
-later on.
+We define some mappings so we can store things in the context. We hope
+this will make the development easier later on.
 
 We need:
 
@@ -91,7 +74,7 @@ bb-map : label -> bb -> type.
 
 %{
 
-The LLVM IR is a linear instruction set. Code in a function is split
+The LLVM IR is a sequential instruction set. Code in a function is split
 into basic blocks. A Basic block is defined as:
 
 label:
@@ -105,11 +88,10 @@ label:
 
   return/br;
 
-That is, a basic block, is a label, followed by
-eventual phi-nodes, followed by instructions linearly until we reach
-either a br or a function return. Then we either proceed along
-another basic block or return from the function in which the basic
-block is defined.
+A basic block is a label, followed by eventual phi-nodes, followed by
+instructions sequentially until we reach either a br or a function
+return. Then we either proceed along another basic block or return
+from the function in which the basic block is defined.
 
 This representation is easy to map into a graph-representation [Appel-SSA],
 but it is not an optimal representation for an inference rule system,
@@ -120,19 +102,12 @@ system into one which is amenable for definition in Twelf.
 Our goal is to get a way to define the Example from [Appel] in our
 small toy-language here and use it to structure a skeleton for further
 work.
+
+We want a LLVM-inspired syntax however, so the primitive operations must
+stem from the LLVM IR system.
 <<<
 
->>> TODO
-We do not explain anything about phi-nodes yet. We ought to.
-<<<
-
-Suppose we only have assignment instructions of the form
-
-%x = exp;
-
-where 'exp' is either a constant, or of the form %x + %y for variables
-x and y. For simplicity we will let the constants be natural numbers
-for the moment.
+We will handle the phi-nodes when we define basic blocks and their syntax.
 
 }%
 
@@ -148,8 +123,8 @@ for the moment.
 Registers is a family of either constants or variables. But as variables
 are captured by HOAS, we do not need to specify them.
 
-Expressions are either additions or less-than comparisons in this silly
-language.
+Expressions are either constants, additions or less-than comparisons
+in this silly language.
 
 }%
 
@@ -171,13 +146,12 @@ constant = [n] (exp/constant (reg/constant n)).
 >>> NOTE
 We stratify into 'reg' and 'exp' respectively to eliminate arbitrarily
 nested expression trees. In the LLVM IR we only have primitive operations
-or [constant expressions] which are expression trees that can be constant
+and [constant expressions] which are expression trees that can be constant
 folded. They are omitted for now, and possibly forever because they don't
-provide anything interesting, in my humble opinion.
+provide anything interesting in my humble opinion.
 
-To me, they were added as a convenience so one can do e.g. address
+I think they were added as a convenience so one can do e.g. address
 calculations on a load word instruction.
-
 <<<
 
 }%
@@ -207,6 +181,9 @@ semantics. This choice is made somewhat haphazardly on the gut
 intuition that it will beneficial to have fine-grained control over
 what happens.
 
+Other parts of this development is actually big-step in its notion.
+Particular function-applications.
+
 
 }%
 
@@ -216,7 +193,8 @@ exp-step/constant : exp-step (exp/constant R) R.
 
 exp-step/plus : exp-step (exp/plus (reg/constant N1)
 			           (reg/constant N2))
-		     (reg/constant N3)
+%%
+		                   (reg/constant N3)
 		 <- nat-plus N1 N2 N3.
 
 exp-step/lt-true : exp-step (exp/lt (reg/constant N1) (reg/constant N2)) (reg/constant 1)
@@ -224,15 +202,6 @@ exp-step/lt-true : exp-step (exp/lt (reg/constant N1) (reg/constant N2)) (reg/co
 
 exp-step/lt-false : exp-step (exp/lt (reg/constant N1) (reg/constant N2)) (reg/constant 0)
 		     <- nat-lt N1 N2 false.
-
-
-%{
-
-Note how the step-rule only allows addition among constants. This
-limitation is chosen to cope with the fact that we won't allow
-arbitrarily nested expression trees.
-
-}%
 
 
 
@@ -303,7 +272,7 @@ instruction/brc : reg -> label -> reg-list -> label -> reg-list -> instruction. 
 %{
 
 Basic blocks are defined by a label and then a possible list of
-phi-nodes. These resembles the let-construction in instructions, but
+phi-nodes. These resemble the let-construction in instructions, but
 we can handle them more easily by building them into basic-blocks.
 
 >>> NOTE
@@ -326,7 +295,8 @@ bb-header/body : instruction -> bb-header.
 %{
 
 A basic block (bb) defines a label, identifying the basic block and
-then it contains a bb-header. We have already introduced the bb type family.
+then it contains a bb-header. We have already introduced the bb type family in the
+section on maps earlier en vm.elf.
 
 }%
 
@@ -345,13 +315,14 @@ foo:
 
 is then translated into
 
-(bb "foo" (phi [p1]
+(bb foo (phi [p1]
 	     (body
 		(let 3 in
-		   [x1] let p1 in
-		     [x2] return (plus [x1] [x2])))))
+		   ([x1] let p1 in
+		      ([x2] let (plus [x1] [x2])
+			 [tmp] return tmp))))
 
-(We still need to take care of the "foo" part, but the idea is there)
+Where foo is a valid label name.
 
 }%
 
@@ -393,6 +364,10 @@ Static notion of instruction values
 instruction-value : instruction -> type.
 
 instruction-value/return : instruction-value (instruction/return _).
+
+
+
+
 
 %{
 
@@ -437,7 +412,8 @@ instruction-step/brc-f : instruction-step (instruction/brc (reg/constant 0) _ _ 
 
 %{
 
-Iterated step relations
+Iterated step relations. 'instruction-steps' will step a series of 0 or more steps.
+'instruction-steps-to' will step until we reach something which is a value.
 
 }%
 
@@ -451,11 +427,15 @@ instruction-steps/s : instruction-steps I I'
 
 
 
+
+
 instruction-steps-to : instruction -> instruction -> type.
 
 instruction-steps-to/do : instruction-steps-to I I'
 			   <- instruction-steps I I'
 			   <- instruction-value I'.
+
+
 
 
 
@@ -497,16 +477,17 @@ function-body/def : label -> bb-list -> function-body.
 
 
 
-
 %%%%%{ Function Semantics }%%%%%
 
 %{
 
-Currently, we use some very crippled function semantics. We just tell how a function
-body should be executed. The plan is to wrap this knowledge later on.
+Currently, we use some very crippled function semantics. We just tell
+how a function body should be executed. The plan is to wrap this
+knowledge later on with the notion of real functions. The ideas are in
+the code however on how to handle this easily.
 
-First is the setup rules which allows us to set up before executing a function body. This
-amount to shuffling basic blocks into the context so we can refer them later.
+Function body execution amount to shuffling basic blocks into the
+context so we can refer them later when needed under BB execution.
 
 }%
 

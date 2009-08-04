@@ -157,9 +157,12 @@ reg/constant : nat -> reg.
 
 exp : type. %name exp E.
 
+exp/constant : reg -> exp.
 exp/plus : reg -> reg -> exp.
 exp/lt : reg -> reg -> exp.
 
+%% For convenience.
+constant = [n] (exp/constant (reg/constant n)).
 
 %{
 
@@ -206,6 +209,8 @@ what happens.
 }%
 
 exp-step : exp -> reg -> type.
+
+exp-step/constant : exp-step (exp/constant R) R.
 
 exp-step/plus : exp-step (exp/plus (reg/constant N1)
 			           (reg/constant N2))

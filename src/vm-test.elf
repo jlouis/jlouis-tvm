@@ -28,6 +28,20 @@ f1_body = (let (constant 1)
 
 f1 = bb/def l_1 (bb-header/body f1_body).
 
+f2 = bb/def l_2 (bb-header/phi [i2]
+		   (bb-header/phi [j2]
+		      (bb-header/phi [k2]
+			 (bb-header/body
+			    (let (exp/lt k2 (reg/constant 7))
+			       ([tmp]
+				  brc tmp l_3 (reg-list/cons i2
+						 (reg-list/cons j2
+						    (reg-list/cons k2 reg-list/nil)))
+				          l_4 (reg-list/cons i2
+						 (reg-list/cons j2
+						    (reg-list/cons k2 reg-list/nil))))))))).
+
+
 
 
 

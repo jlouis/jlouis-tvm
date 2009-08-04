@@ -1,0 +1,20 @@
+%% Various test functions for the VM
+%% Jesper Louis Andersen, 2009
+
+
+%{
+
+The following encodes a slightly altered version of Appels
+example in the [SSA is Functional Programming] paper. The
+changes ensures there are no dead basic blocks and it fixes
+a typo.
+
+We also lowered to number of rounds on the while loop; it
+proves no point to keep iterating but to stress Twelfs (prolog)
+evaluator.
+
+The code is transscribed from AppelTest.sml, an implementation
+of the functional code in Standard ML.
+
+}%
+

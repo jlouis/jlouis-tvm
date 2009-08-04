@@ -1,0 +1,12 @@
+%% Tests for the prelude.
+%% Jesper Louis Andersen, 2009.
+
+
+%query 1 1 (nat-plus 0 5 5).
+%query 1 1 (nat-plus 3 5 8).
+%query 1 1 (nat-lt 1 1 false).
+%query 1 1 (nat-lt 3 2 false).
+%query 1 1 (nat-lt 1 2 true).
+%query 1 1 (nat-lt 0 5 true).
+
+

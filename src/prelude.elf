@@ -119,8 +119,6 @@ nat-plus/z : nat-plus z N N.
 nat-plus/s : nat-plus (s N) K (s L)
 	      <- nat-plus N K L.
 
-
-
 nat-mone : nat -> nat -> nat -> type.
 %mode nat-mone +N1 +N2 -N3.
 
@@ -165,3 +163,4 @@ Peano constants for convenience.
 9 = s 8.
 10 = s 9.
 11 = s 10.
+

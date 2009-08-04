@@ -1,7 +1,18 @@
 %% Definition of a LLVM-inspired Virtual Machine language
 %% Jesper Louis Andersen, 2009.
 
+%{
 
+GLOBAL TODO:
+
+- Define implementations of function bodies.
+- Implement the conditional branch instruction.
+- Implement the altered code from Appel's paper.
+  TEST
+- Begin constructing a type system with nats (i32)
+  and booleans (i1).
+
+}%
 
 %{
 

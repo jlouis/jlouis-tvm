@@ -45,7 +45,7 @@ f3 = bb/def l_3 (phi [i3]
 		   (phi [j3]
 		      (phi [k3]
 			 (body
-			    (let (exp/lt j3 (reg/constant 7))
+			    (let (exp/lt k3 (reg/constant 7))
 			       ([tmp]
 				  brc tmp l_5 (reg-list/cons i3
 						 (reg-list/cons j3
@@ -59,6 +59,46 @@ f4 = bb/def l_4 (phi [i4]
 		      (phi [k4]
 			 (body
 			    (return j4))))).
+
+f5 = bb/def l_5 (phi [i5]
+		   (phi [j5]
+		      (phi [k5]
+			 (body
+			    (let (exp/constant k5)
+			       ([j8] let (exp/plus k5 (reg/constant 1))
+				  ([k8] br l_7 (reg-list/cons i5
+						  (reg-list/cons j8
+						     (reg-list/cons k8 reg-list/nil)))))))))).
+
+f6 = bb/def l_6 (phi [i6]
+		   (phi [j6]
+		      (phi [k6]
+			 (body
+			    (let (exp/constant k6)
+			       ([j9] let (exp/plus k6 (reg/constant 2))
+				  ([k9] br l_7 (reg-list/cons i6
+						  (reg-list/cons j9
+						     (reg-list/cons k9 reg-list/nil)))))))))).
+
+f7 = bb/def l_7 (phi [i7]
+		   (phi [j7]
+		      (phi [k7]
+			 (body
+			    (br l_2 (reg-list/cons i7
+				      (reg-list/cons j7
+					 (reg-list/cons k7 reg-list/nil)))))))).
+
+appel_test = function-body/def l_1 (bb-list/cons l_1 f1
+				      (bb-list/cons l_2 f2
+					 (bb-list/cons l_3 f3
+					    (bb-list/cons l_4 f4
+					       (bb-list/cons l_5 f5
+						  (bb-list/cons l_6 f6
+						     (bb-list/cons l_7 f7 bb-list/nil))))))).
+
+%query 1 1 (function-body-apply reg-list/nil appel_test I).
+
+
 
 
 

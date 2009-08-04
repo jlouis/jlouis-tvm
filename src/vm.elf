@@ -5,7 +5,8 @@
 
 GLOBAL TODO:
 
-- Define semantics of Basic Blocks
+- Add some way to differentiate labels.
+  A simple variant on natural numbers are probably the way to go.
 - Implement the altered code from Appel's paper.
   TEST
 - Begin constructing a type system with nats (i32)
@@ -372,6 +373,16 @@ bb-list/cons : label -> bb -> bb-list -> bb-list.
 
 %{
 
+Static notion of instruction values
+
+}%
+
+instruction-value : instruction -> type.
+
+instruction-value/return : instruction-value (instruction/return _).
+
+%{
+
 Evaluation of Instructions utilizes beta-reduction. As soon as we know
 the value of a definition, we replace it into all uses by
 substitution.
@@ -411,6 +422,27 @@ instruction-step/brc-f : instruction-step (instruction/brc (reg/constant zero) _
 
 
 
+%{
+
+Iterated step relations
+
+}%
+
+instruction-steps : instruction -> instruction -> type.
+
+instruction-steps/0 : instruction-steps I I.
+
+instruction-steps/s : instruction-steps I I'
+		       <- instruction-step I I''
+		       <- instruction-steps I'' I'.
+
+
+
+instruction-steps-to : instruction -> instruction -> type.
+
+instruction-steps-to/do : instruction-steps-to I I'
+			   <- instruction-steps I I'
+			   <- instruction-value I'.
 
 
 
@@ -419,19 +451,9 @@ instruction-step/brc-f : instruction-step (instruction/brc (reg/constant zero) _
 
 %{
 
->>> TODO
-Define BB evaluation. To do this, one must define a set of rules for
-correctly handling the phi-node substitions. The definition ties in
-with ways to tail-call (jump/branch) to another basic block, so care must be
-taken here to do it correctly.
-<<<
-
-}%
-
-%{
-
 The following applies a list of expressions to a basic-block header, effectively
-executing the basic block by substituting the values into the block.
+executing the basic block by substituting the values into the block and replacing
+current (small-step) execution context with the contents of the BB body.
 
 }%
 

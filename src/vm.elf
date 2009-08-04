@@ -329,6 +329,30 @@ is then translated into
 
 
 
+%{
+
+We will need lists of basic blocks. Note that if we
+have the code:
+
+label1:
+  ...
+  <no jump or return here>
+label2:
+  ...
+
+we can always fix it by an explicit jump just before label2. Thus, it
+seems ok to define lists of basic blocks as a primitive for functions.
+
+}%
+
+
+bb-list : type.
+
+bb-list/nil : bb-list.
+bb-list/cons : bb -> bb-list -> bb-list.
+
+
+
 
 %%%%%{ Instruction Semantics }%%%%%
 
@@ -399,22 +423,11 @@ bb-apply/cons : bb-apply (exp-list/cons E EL) (bb-header/phi ([x] PHI x)) R
 
 %{
 
-In functions, the body is a list of basic blocks. We note that if we
-have the code:
-
-label1:
-  ...
-  <no jump or return here>
-label2:
-  ...
-
-we can always fix it by an explicit jump just before label2. Thus, it
-seems ok to define lists of basic blocks as a primitive for functions.
+The function body itself designates one basic block as the initial block.
+This is the block we run when asked.
 
 }%
 
-bb-list : type.
+function-body : type.
 
-bb-list/nil : bb-list.
-bb-list/cons : bb -> bb-list -> bb-list.
-
+function-body/def : bb -> bb-list -> function-body.

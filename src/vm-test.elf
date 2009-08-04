@@ -18,3 +18,16 @@ of the functional code in Standard ML.
 
 }%
 
+f1_body = (let (constant 1)
+	     ([i1] let (constant 1)
+		([j1] (let (constant 0) [k1]
+			 br l_2
+			 (reg-list/cons i1
+			    (reg-list/cons j1
+			       (reg-list/cons k1 reg-list/nil))))))).
+
+f1 = bb/def l_1 (bb-header/body f1_body).
+
+
+
+

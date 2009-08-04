@@ -484,6 +484,7 @@ function-body/def : label -> bb-list -> function-body.
 
 
 
+
 %%%%%{ Function Semantics }%%%%%
 
 %{
@@ -496,13 +497,25 @@ amount to shuffling basic blocks into the context so we can refer them later.
 
 }%
 
-function-body-init : label -> bb-list -> bb -> type.
 
-function-body-init/nil : function-body-init L bb-list/nil BB
-			  <- bb-map L BB.
+%% Helper function for function-body-apply.
+function-body-app : reg-list -> label -> bb-list -> instruction -> type.
 
-function-body-init/cons : function-body-init L (bb-list/cons L' BB REST) Q
-			   <- (bb-map L' BB -> function-body-init L REST Q).
+function-body-app/nil : function-body-app REGS L bb-list/nil V
+			  <- bb-map L (bb/def _ BBH)
+			  <- bb-apply REGS BBH IS
+			  <- instruction-steps-to IS V.
+
+function-body-app/cons : function-body-app REGS L (bb-list/cons L' BB REST) Q
+			   <- (bb-map L' BB -> function-body-app REGS L REST Q).
+
+
+
+
+function-body-apply : reg-list -> function-body -> instruction -> type.
+
+function-body-apply/do : function-body-apply REGS (function-body/def L BBL) I
+			  <- function-body-app REGS L BBL I.
 
 
 

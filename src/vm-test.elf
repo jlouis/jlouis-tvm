@@ -96,7 +96,7 @@ appel_test = function-body/def l_1 (bb-list/cons l_1 f1
 						  (bb-list/cons l_6 f6
 						     (bb-list/cons l_7 f7 bb-list/nil))))))).
 
-%query 1 1 (function-body-apply reg-list/nil appel_test I).
+%query 1 1 (function-body-apply reg-list/nil appel_test (return (reg/constant 9))).
 
 
 

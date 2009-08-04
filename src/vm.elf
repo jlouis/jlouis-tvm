@@ -422,7 +422,7 @@ instruction-step/brc-f : instruction-step (instruction/brc (reg/constant zero) _
 >>> TODO
 Define BB evaluation. To do this, one must define a set of rules for
 correctly handling the phi-node substitions. The definition ties in
-with ways to tail-call (jump) to another basic block, so care must be
+with ways to tail-call (jump/branch) to another basic block, so care must be
 taken here to do it correctly.
 <<<
 
@@ -479,8 +479,8 @@ function-body-init : label -> bb-list -> bb -> type.
 function-body-init/nil : function-body-init L bb-list/nil BB
 			  <- bb-map L BB.
 
-function-body-init/cons : function-body-init L (bb-list/cons L BB REST) Q
-			   <- (bb-map L BB -> function-body-init L REST Q).
+function-body-init/cons : function-body-init L (bb-list/cons L' BB REST) Q
+			   <- (bb-map L' BB -> function-body-init L REST Q).
 
 
 

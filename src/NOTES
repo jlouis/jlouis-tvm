@@ -1,0 +1,44 @@
+
+GLOBAL TODO:
+
+- Begin constructing a type system with nats (i32)
+  and booleans (i1).
+
+- See if it is possible to define an intrinsic encoding
+  rather than an extrinsic one.
+
+The LLVM IR is a sequential instruction set. Code in a function is split
+into basic blocks. A Basic block is defined as:
+
+label:
+  %i1 = phi(...);
+  ...
+  %in = phi(...);
+
+  insn_1;
+  ...
+  insn_n;
+
+  return/br;
+
+A basic block is a label, followed by eventual phi-nodes, followed by
+instructions sequentially until we reach either a br or a function
+return. Then we either proceed along another basic block or return
+from the function in which the basic block is defined.
+
+This representation is easy to map into a graph-representation [Appel-SSA],
+but it is not an optimal representation for an inference rule system,
+nor Twelf. We want to utilize the ideas in [Appel-SSA] to rewrite this
+system into one which is amenable for definition in Twelf.
+
+>>> GOAL
+Our goal is to get a way to define the Example from [Appel] in our
+small toy-language here and use it to structure a skeleton for further
+work.
+
+We want a LLVM-inspired syntax however, so the primitive operations must
+stem from the LLVM IR system.
+<<<
+
+We will handle the phi-nodes when we define basic blocks and their syntax.
+

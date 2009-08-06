@@ -1,0 +1,16 @@
+%% Various static semantics of the VM.
+%%  Jesper Louis Andersen, 2009.
+
+
+%{
+
+Static notion of instruction values
+
+}%
+
+instruction-value : instruction -> type.
+
+instruction-value/return : instruction-value (instruction/return _).
+
+
+%% TODO: Type system.

@@ -41,11 +41,11 @@ in this silly language.
 
 }%
 
-reg : type. %name reg R.
+reg : type. %name reg R r.
 
 reg/constant : nat -> reg.
 
-exp : type. %name exp E.
+exp : type. %name exp E e.
 
 exp/constant : reg -> exp.
 exp/plus : reg -> reg -> exp.
@@ -127,7 +127,7 @@ define the basic operations of the language as being 'instruction's.
 
 }%
 
-instruction : type. %name instruction I.
+instruction : type. %name instruction I i.
 
 instruction/let : exp -> (reg -> instruction) -> instruction.
 instruction/return : reg -> instruction.
@@ -158,7 +158,7 @@ We thus set out to define basic-block headers:
 
 }%
 
-bb-header : type.
+bb-header : type. %name bb-header BBH bbh.
 
 bb-header/phi : (reg -> bb-header) -> bb-header.
 bb-header/body : instruction -> bb-header.
@@ -174,7 +174,7 @@ section on maps earlier en vm.elf.
 
 }%
 
-bb : type.
+bb : type. %name bb BB.
 
 bb/def : label -> bb-header -> bb.
 

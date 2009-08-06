@@ -45,6 +45,22 @@ reg : type. %name reg R r.
 
 reg/constant : nat -> reg.
 
+%{
+
+We will need lists of registers when one makes function calls and when one
+jumps to other basic blocks. Hence, we define them here
+
+}%
+
+reg-list : type.
+
+reg-list/nil : reg-list.
+reg-list/cons : reg -> reg-list -> reg-list.
+
+
+
+
+
 exp : type. %name exp E e.
 
 exp/constant : reg -> exp.
@@ -69,17 +85,6 @@ calculations on a load word instruction.
 
 }%
 
-%{
-
-We will need lists of registers when one makes function calls and when one
-jumps to other basic blocks. Hence, we define them here
-
-}%
-
-reg-list : type.
-
-reg-list/nil : reg-list.
-reg-list/cons : reg -> reg-list -> reg-list.
 
 
 

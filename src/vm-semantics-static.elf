@@ -13,4 +13,71 @@ instruction-value : instruction -> type.
 instruction-value/return : instruction-value (instruction/return _).
 
 
-%% TODO: Type system.
+%%%%%{ Type system }%%%%%
+
+%{
+
+We define a very simple type system for the VM, again loosely modeled
+on the type system of LLVM.
+
+}%
+
+tp : type. %name tp T t.
+
+tp/i32 : tp.
+tp/i1  : tp.
+
+%abbrev i32 = tp/i32.
+%abbrev i1  = tp/i1.
+
+
+
+%%%%%{ Register Typing }%%%%%
+
+%{
+
+We need a way to construct types for registers
+
+}%
+
+of-reg : reg -> tp -> type.
+
+of-reg/i32 : of-reg R i32.
+
+of-reg/i1  : of-reg R i1.
+
+
+
+
+%%%%%{ Expression Typing }%%%%%
+
+of-exp : exp -> tp -> type.
+
+of-exp/constant : of-exp (exp/constant R) T
+		   <- of-reg R T.
+
+of-exp/plus : of-exp (exp/plus R1 R2) i32
+	       <- of-reg R1 i32
+	       <- of-reg R2 i32.
+
+of-exp/lt : of-exp (exp/lt R1 R2) i1
+	     <- of-reg R1 i32
+	     <- of-reg R2 i32.
+
+
+
+
+%%%%%{ Instruction Typing }%%%%%
+
+of-instruction : instruction -> tp -> type.
+
+of-instruction/let : of-instruction (let E ([r] I r)) T
+		      <- of-exp E T1
+		      <- ({r} of-reg r T1 -> of-instruction (I r) T).
+
+of-instruction/return : of-instruction (return R) T
+			 <- of-reg R T.
+
+%% TODO: br and brc.
+
+

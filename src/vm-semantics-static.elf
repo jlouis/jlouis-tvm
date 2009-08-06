@@ -31,6 +31,19 @@ tp/i1  : tp.
 %abbrev i1  = tp/i1.
 
 
+%{
+
+The type system also defines the following first-order list of
+types. We use it for defining types for lists of registers and phi-nodes.
+
+}%
+
+tp-list : type. %name tp-list TL tl.
+
+tp-list/nil : tp-list.
+tp-list/cons : tp -> tp-list -> tp-list.
+
+
 
 %%%%%{ Register Typing }%%%%%
 
@@ -45,6 +58,22 @@ of-reg : reg -> tp -> type.
 of-reg/i32 : of-reg R i32.
 
 of-reg/i1  : of-reg R i1.
+
+
+%{
+
+Similarly, we define types for lists of registers
+
+}%
+
+of-reg-list : reg-list -> tp-list -> type.
+
+of-reg-list/nil : of-reg-list reg-list/nil tp-list/nil.
+
+of-reg-list/cons : of-reg-list (reg-list/cons R RL) (tp-list/cons T TL)
+		    <- of-reg R T
+		    <- of-reg-list RL TL.
+
 
 
 
@@ -69,6 +98,26 @@ of-exp/lt : of-exp (exp/lt R1 R2) i1
 
 %%%%%{ Instruction Typing }%%%%%
 
+%{
+
+To type branch instructions, we assume the following map in the
+context, from labels to the phi-node types of said label.
+
+}%
+
+map-label-tp : label       %% Function label
+		-> tp-list %% Phi-node parameter types
+		-> tp      %% Return type (TODO: We might not have any need for this)
+		-> type.
+
+
+
+%{
+
+Instructions are then typed by the use of this map in branch instructions
+
+}%
+
 of-instruction : instruction -> tp -> type.
 
 of-instruction/let : of-instruction (let E ([r] I r)) T
@@ -78,6 +127,31 @@ of-instruction/let : of-instruction (let E ([r] I r)) T
 of-instruction/return : of-instruction (return R) T
 			 <- of-reg R T.
 
-%% TODO: br and brc.
+of-instruction/br : of-instruction (br L RL) RET
+		     <- map-label-tp L TPL RET
+		     <- of-reg-list RL TPL.
+
+of-instruction/brc-t : of-instruction (brc R L1 RL1 L2 RL2) RET
+			<- of-reg R i1
+			<- map-label-tp L1 TPL1 RET
+			<- of-reg-list RL1 TPL1
+			<- map-label-tp L2 TLP2 RET
+			<- of-reg-list RL2 TPL2. %% TODO: Check this one. It is odd.
+
+
+
+%%%%%{ Basic Block Header Typing }%%%%%
+
+of-bb-header : bb-header -> tp -> tp-list -> type.
+
+of-bb-header/body : of-bb-header (bb-header/body I) T tp-list/nil
+		     <- of-instruction I T.
+
+of-bb-header/phi : of-bb-header (bb-header/phi ([r] BBH r)) T (tp-list/cons T1 TL)
+		    <- ({r} of-reg r T1 -> of-bb-header (BBH r) T TL). %% TODO: Check this bastard as well.
+
+
+
+
 
 

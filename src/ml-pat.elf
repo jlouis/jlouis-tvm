@@ -13,7 +13,6 @@ Type system
 tp : type.
 
 tp/nat : tp.
-tp/unit : tp.
 tp/pair : tp -> tp -> tp.
 tp/arrow : tp -> tp -> tp.
 
@@ -27,24 +26,23 @@ This very simple language have the following syntax structure
 
 }%
 
-%{ The vars should die to a HOAS encoding when we figure out
-   how to handle them }%
-var : tp -> type.
-
 pattern : tp -> type.
-
-pattern/nil : pattern tp/unit.
-pattern/pair : var T -> pattern T' -> pattern (tp/pair T T').
-
 term : tp -> type.
+
+
+pattern/s : term T -> pattern T.
+pattern/pair : (term T ->  pattern T' -> term T'')
+		-> pattern (tp/arrow (tp/pair T T') T'').
+
+
 
 term/nat : nat -> term tp/nat.
 term/plus : term tp/nat -> term tp/nat -> term tp/nat.
 term/if : term tp/nat -> term T -> term T -> term T.
-term/let : term T -> (pattern T -> term T') -> term T'.
+term/let : term T -> pattern (tp/arrow T T') -> term T'.
 term/app : term (tp/arrow T T') -> term T -> term T'.
 term/lam : (term T -> term T') -> term (tp/arrow T T').
-term/letrec : term T -> (pattern T -> term T') -> term T'.
+term/letrec : term T -> pattern (tp/arrow T T') -> term T'.
 
 
 

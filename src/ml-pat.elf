@@ -1,0 +1,47 @@
+%% A minimalistic ML with patterns
+%%  Jesper Louis Andersen, 2009.
+
+
+%%%%%{ PML Type system }%%%%%
+
+%{
+
+Type system
+
+}%
+
+tp : type.
+
+tp/nat : tp.
+tp/pair : tp -> tp -> tp.
+tp/arrow : tp -> tp -> tp.
+
+
+
+%%%%%{ PML Syntax }%%%%%
+
+%{
+
+This very simple language have the following syntax structure
+
+}%
+
+var : type.
+
+pattern : type.
+
+pattern/nil : pattern.
+pattern/pair : var -> pattern -> pattern.
+%{ Something is wrong here. We have no way to handle binders via HOAS }%
+
+term : type.
+
+term/nat : nat -> term.
+term/plus : term -> term -> term.
+term/if : term -> term -> term -> term.
+term/let : term -> (pattern -> term) -> term.
+term/app : term -> term -> term.
+term/lam : (term -> term) -> term.
+term/letrec : term -> (pattern -> term) -> term.
+
+

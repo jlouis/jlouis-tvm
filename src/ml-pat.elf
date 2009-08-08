@@ -30,8 +30,8 @@ pattern : tp -> type.
 term : tp -> type.
 
 
-pattern/s : term T -> pattern T.
-pattern/pair : (term T ->  pattern T' -> term T'')
+pattern/s : (term T -> term T) -> pattern T.
+pattern/pair : (term T ->  pattern T')
 		-> pattern (tp/arrow (tp/pair T T') T'').
 
 

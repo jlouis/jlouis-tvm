@@ -39,11 +39,81 @@ pattern/pair : (term T ->  pattern T')
 term/nat : nat -> term tp/nat.
 term/plus : term tp/nat -> term tp/nat -> term tp/nat.
 term/if : term tp/nat -> term T -> term T -> term T.
-term/let : term T -> pattern (tp/arrow T T') -> term T'.
+term/pair : term T -> term T' -> term (tp/pair T T').
 term/app : term (tp/arrow T T') -> term T -> term T'.
 term/lam : (term T -> term T') -> term (tp/arrow T T').
+term/let : term T -> pattern (tp/arrow T T') -> term T'.
 term/letrec : term T -> pattern (tp/arrow T T') -> term T'.
 
 
+
+
+%%%%%{ PML Semantics }%%%%%
+
+
+%{
+
+Notion of value for PML
+
+}%
+
+value : term T -> type.
+
+value/nat : value (term/nat _).
+
+value/lam : value (term/lam _).
+
+value/pair : value (term/pair T1 T2)
+	      <- value T1
+	      <- value T2.
+
+
+%{
+
+(Primitive) evaluation contexts for PML.
+
+}%
+
+pctx : (term T -> term T') -> type.
+
+pctx/plus-1 : pctx ([x] term/plus x _).
+
+pctx/plus-2 : pctx ([x] term/plus V x)
+	       <- value V.
+
+pctx/if-test : pctx ([x] term/if x _ _).
+
+pctx/pair-fst : pctx ([x] term/pair x _).
+
+pctx/pair-snd : pctx ([x] term/pair V x)
+		 <- value V.
+
+pctx/app-1 : pctx ([x] term/app x _).
+
+pctx/app-2 : pctx ([x] term/app V x)
+	      <- value V.
+
+pctx/let : pctx ([x] term/let x _).
+
+
+%{
+
+Small-step relation for PML
+
+}%
+
+step : term T -> term T -> type.
+
+step/ctx : step (EC E) (EC E')
+	    <- pctx EC
+	    <- step E E'.
+
+step/nat : step (term/nat N) (term/nat N).
+
+step/plus : step (term/plus (term/nat N1) (term/nat N2)) (term/nat N3)
+	     <- nat-plus N1 N2 N3. %% Values are redundant here.
+
+step/app-lam : step (term/app (term/lam [x] E1 x) V2) (E1 V2)
+		<- value V2.
 
 

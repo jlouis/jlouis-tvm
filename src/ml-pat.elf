@@ -30,8 +30,8 @@ pattern : tp -> type.
 term : tp -> type.
 
 
-pattern/s : (term T -> term T) -> pattern T.
-pattern/pair : (term T ->  pattern T')
+pattern/s : (term T -> term T') -> pattern (tp/arrow T T').
+pattern/pair : (term T ->  pattern (tp/arrow T' T''))
 		-> pattern (tp/arrow (tp/pair T T') T'').
 
 
@@ -113,7 +113,16 @@ step/nat : step (term/nat N) (term/nat N).
 step/plus : step (term/plus (term/nat N1) (term/nat N2)) (term/nat N3)
 	     <- nat-plus N1 N2 N3. %% Values are redundant here.
 
+step/if-false : step (term/if (term/nat z) _ E) E.
+
+step/if-true  : step (term/if (term/nat (s _)) E _) E.
+
 step/app-lam : step (term/app (term/lam [x] E1 x) V2) (E1 V2)
 		<- value V2.
 
+step/let-s : step (term/let V (pattern/s [x] B x)) (B V)
+	      <- value V.
 
+step/let-p : step (term/let (term/pair V1 V2) (pattern/pair ([x] P x))) (term/let V2 (P V1))
+		     <- value V1
+		     <- value V2.

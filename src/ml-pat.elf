@@ -42,8 +42,8 @@ term/if : term tp/nat -> term T -> term T -> term T.
 term/pair : term T -> term T' -> term (tp/pair T T').
 term/app : term (tp/arrow T T') -> term T -> term T'.
 term/lam : (term T -> term T') -> term (tp/arrow T T').
-term/let : term T -> pattern (tp/arrow T T') -> term T'.
-term/letrec : term T -> pattern (tp/arrow T T') -> term T'.
+term/let : term T -> (term T -> term T') -> term T'.
+term/letrec : (term T -> term T) -> (term T -> term T') -> term T'.
 
 
 
@@ -120,11 +120,9 @@ step/if-true  : step (term/if (term/nat (s _)) E _) E.
 step/app-lam : step (term/app (term/lam [x] E1 x) V2) (E1 V2)
 		<- value V2.
 
-step/let-s : step (term/let V (pattern/s [x] B x)) (B V)
-	      <- value V.
 
-%% Unfold a pair a single step.
-step/let-p : step (term/let (term/pair V1 V2) (pattern/pair ([x] P x))) (term/let V2 (P V1))
-		     <- value V1
-		     <- value V2.
+step/let-body : step (term/let V B) (B V)
+		 <- value V.
 
+step/letrec-body : step (term/letrec ([f] FB f) ([f] B f))
+		    (B (FB (term/letrec ([f] FB f) ([f] f)))).

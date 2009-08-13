@@ -43,6 +43,7 @@ term/if : term tp/nat -> term T -> term T -> term T.
 term/pair : term T -> term T' -> term (tp/pair T T').
 term/app : term (tp/arrow T T') -> term T -> term T'.
 term/lam : (term T -> term T') -> term (tp/arrow T T').
+term/fix : (term T -> term T) -> term T.
 term/let : term T -> (term T -> term T') -> term T'.
 term/letrec : (term T -> term T) -> (term T -> term T') -> term T'.
 
@@ -100,7 +101,7 @@ pctx/pair-fst : pctx ([x] term/pair x _).
 pctx/pair-snd : pctx ([x] term/pair V x)
 		 <- value V.
 
-pctx/app-1 : pctx ([x] term/app x _).
+pctx/app-1 : pctx ([x] term/app x E).
 
 pctx/app-2 : pctx ([x] term/app V x)
 	      <- value V.
@@ -134,11 +135,14 @@ step/app-lam : step (term/app (term/lam [x] E1 x) V2) (E1 V2)
 		<- value V2.
 
 
+step/fix : step (term/fix [f] E f) (E (term/fix [f] E f)).
+
 step/let-body : step (term/let V B) (B V)
 		 <- value V.
 
-step/letrec-body : step (term/letrec ([f] FB f) ([f] B f))
-		    (B (FB (term/letrec ([f] FB f) ([f] f)))).
+step/letrec-body : step (term/letrec ([f] FB f) B)
+		    (B (FB (term/fix [f] FB f))).
+
 
 
 %% Iterated step relation
@@ -159,15 +163,20 @@ steps-to/i : steps-to T T'
 	      <- value T'.
 
 %query 1 1 (steps-to (letrec ([a] (lam [x] if x (term/nat z) (term/nat (s z))))
-			([f : term (tp/arrow tp/nat tp/nat)] app f (term/nat z))) (term/nat (s z))).
+			([f : term (tp/arrow tp/nat tp/nat)] app f (term/nat z))) X).
+%query 1 1 (step (app
+		    (term/fix
+		       ([f:term (tp/arrow tp/nat tp/nat)]
+			  lam
+			  ([x:term tp/nat] if x (term/nat nat/z) (term/nat (nat/s nat/z)))))
+		    (term/nat nat/z)) X).
+
 %query 1 1 (steps-to (letrec ([a] (lam [x] if x (term/nat z) (term/nat (s z))))
-		    ([f : term (tp/arrow tp/nat tp/nat)] app f (term/nat (s z)))) (term/nat z)).
+		    ([f : term (tp/arrow tp/nat tp/nat)] app f (term/nat (s z)))) X).
 
-%{
+%query 1 1 (steps-to (app (term/fix
+			   ([m] (lam [x]
+				   if x (plus (term/nat (s (s z)))
+					   (app m (mone x (term/nat (s z)))))
+				   (term/nat z)))) (term/nat (s (s (s z))))) X).
 
-%query 1 1 (steps-to (letrec ([m] (lam [x]
-				     if x (plus (term/nat (s (s z))) (app m (mone x (term/nat (s z)))))
-				          (term/nat z)))
-			([f] app f (term/nat (s (s (s z)))))) X).
-
-}%

@@ -26,22 +26,22 @@ This very simple language have the following syntax structure
 
 }%
 
-pattern : type.
-term : type.
+pattern : tp -> tp -> type.
+term : tp -> type.
 
 
-pattern/s : (term -> term) -> pattern.
-pattern/p : (term -> pattern) -> pattern.
+pattern/s : (term T -> term T') -> pattern T T'.
+pattern/p : (term T -> pattern T' T'') -> pattern (tp/pair T T') T''.
 
-term/nat : nat -> term.
-term/plus : term -> term -> term.
-term/mone : term -> term -> term.
-term/if : term -> term -> term -> term.
-term/pair : term -> term -> term.
-term/app : term -> term -> term.
-term/lam : (term -> term) -> term. % (pattern -> term) -> term ???
-term/let : term -> pattern -> term.
-term/letrec : pattern -> pattern -> term.
+term/nat : nat -> term tp/nat.
+term/plus : term tp/nat -> term tp/nat -> term tp/nat.
+term/mone : term tp/nat -> term tp/nat -> term tp/nat.
+term/if : term tp/nat -> term T -> term T -> term T.
+term/pair : term T1 -> term T2 -> term (tp/pair T1 T2).
+term/app : term (tp/arrow T T') -> term T -> term T'.
+term/lam : (term T -> term T') -> term (tp/arrow T T'). % (pattern -> term) -> term ???
+term/let : (term T) -> pattern T T' -> term T'.
+term/letrec : pattern T T -> pattern T T' -> term T'.
 
 plus = term/plus.
 mone = term/mone.
@@ -61,7 +61,7 @@ Notion of value for PML
 
 }%
 
-value : term -> type.
+value : term T -> type.
 
 value/nat : value (term/nat _).
 
@@ -78,7 +78,7 @@ value/pair : value (term/pair T1 T2)
 
 }%
 
-pctx : (term -> term) -> type.
+pctx : (term T -> term T') -> type.
 
 pctx/plus-1 : pctx ([x] term/plus x _).
 
@@ -110,9 +110,9 @@ Application of patterns for PML
 
 }%
 
-pattern-apply : pattern -> term -> term -> type.
+pattern-apply : pattern T T' -> term T -> term T' -> type.
 
-pattern-letrec-apply : pattern -> pattern -> term -> type.
+pattern-letrec-apply : pattern T T -> pattern T T' -> term T' -> type.
 
 %{
 
@@ -120,7 +120,7 @@ Small-step relation for PML
 
 }%
 
-step : term -> term -> type.
+step : term T -> term T -> type.
 
 step/ctx : step (EC E) (EC E')
 	    <- pctx EC
@@ -154,7 +154,7 @@ step/letrec-body : step (term/letrec ([f] FB f) B)
 
 %% Iterated step relation
 
-step-s : term -> term -> type.
+step-s : term T -> term T -> type.
 
 step-s/0 : step-s T T.
 
@@ -163,7 +163,7 @@ step-s/s : step-s T T'
 	    <- step T'' T'.
 
 %% Stepping to value.
-steps-to : term -> term -> type.
+steps-to : term T -> term T -> type.
 
 steps-to/i : steps-to T T'
 	      <- step-s T T'

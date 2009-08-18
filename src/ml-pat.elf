@@ -26,26 +26,22 @@ This very simple language have the following syntax structure
 
 }%
 
-pattern : tp -> type.
-term : tp -> type.
+pattern : type.
+term : type.
 
 
-pattern/s : (term T -> term T) -> pattern (tp/arrow T T).
-pattern/pair : (term T ->  pattern (tp/arrow T' T''))
-		-> pattern (tp/arrow (tp/pair T T') T'').
+pattern/s : (term -> term) -> pattern.
+pattern/p : (term -> pattern) -> pattern.
 
-
-
-term/nat : nat -> term tp/nat.
-term/plus : term tp/nat -> term tp/nat -> term tp/nat.
-term/mone : term tp/nat -> term tp/nat -> term tp/nat.
-term/if : term tp/nat -> term T -> term T -> term T.
-term/pair : term T -> term T' -> term (tp/pair T T').
-term/app : term (tp/arrow T T') -> term T -> term T'.
-term/lam : (term T -> term T') -> term (tp/arrow T T').
-term/fix : (term T -> term T) -> term T.
-term/let : term T -> (term T -> term T') -> term T'.
-term/letrec : pattern (tp/arrow T T) -> (term T -> term T') -> term T'.
+term/nat : nat -> term.
+term/plus : term -> term -> term.
+term/mone : term -> term -> term.
+term/if : term -> term -> term -> term.
+term/pair : term -> term -> term.
+term/app : term -> term -> term.
+term/lam : (term -> term) -> term. % (pattern -> term) -> term ???
+term/let : term -> pattern -> term.
+term/letrec : pattern -> pattern -> term.
 
 plus = term/plus.
 mone = term/mone.
@@ -65,7 +61,7 @@ Notion of value for PML
 
 }%
 
-value : term T -> type.
+value : term -> type.
 
 value/nat : value (term/nat _).
 
@@ -82,7 +78,7 @@ value/pair : value (term/pair T1 T2)
 
 }%
 
-pctx : (term T -> term T') -> type.
+pctx : (term -> term) -> type.
 
 pctx/plus-1 : pctx ([x] term/plus x _).
 
@@ -108,6 +104,15 @@ pctx/app-2 : pctx ([x] term/app V x)
 
 pctx/let : pctx ([x] term/let x _).
 
+%{
+
+Application of patterns for PML
+
+}%
+
+pattern-apply : pattern -> term -> term -> type.
+
+pattern-letrec-apply : pattern -> pattern -> term -> type.
 
 %{
 
@@ -115,7 +120,7 @@ Small-step relation for PML
 
 }%
 
-step : term T -> term T -> type.
+step : term -> term -> type.
 
 step/ctx : step (EC E) (EC E')
 	    <- pctx EC
@@ -134,14 +139,12 @@ step/if-true  : step (term/if (term/nat (s _)) E _) E.
 step/app-lam : step (term/app (term/lam [x] E1 x) V2) (E1 V2)
 		<- value V2.
 
+step/let-body : step (term/let V B) E
+		 <- value V
+		 <- pattern-apply B V E.
 
-step/fix : step (term/fix [f] E f) (E (term/fix [f] E f)).
-
-step/let-body : step (term/let V B) (B V)
-		 <- value V.
-
-step/letrec-body : step (term/letrec (pattern/s ([f] FB f)) B)
-		    (B (FB (term/letrec (pattern/s [f] FB f) ([x] x)))).
+step/let-body : step (term/letrec P B) E
+		 <- pattern-letrec-apply P B E.
 
 %{
 step/letrec-body : step (term/letrec ([f] FB f) B)
@@ -151,7 +154,7 @@ step/letrec-body : step (term/letrec ([f] FB f) B)
 
 %% Iterated step relation
 
-step-s : term T -> term T -> type.
+step-s : term -> term -> type.
 
 step-s/0 : step-s T T.
 
@@ -160,32 +163,20 @@ step-s/s : step-s T T'
 	    <- step T'' T'.
 
 %% Stepping to value.
-steps-to : term T -> term T -> type.
+steps-to : term -> term -> type.
 
 steps-to/i : steps-to T T'
 	      <- step-s T T'
 	      <- value T'.
 
+%{
 %query 1 1 (steps-to (letrec (pattern/s ([a] (lam [x] if x (term/nat z) (term/nat (s z)))))
-			([f : term (tp/arrow tp/nat tp/nat)] app f (term/nat z))) X).
-%query 1 1 (step (app
-		    (term/fix
-		       ([f:term (tp/arrow tp/nat tp/nat)]
-			  lam
-			  ([x:term tp/nat] if x (term/nat nat/z) (term/nat (nat/s nat/z)))))
-		    (term/nat nat/z)) X).
+			([f] app f (term/nat z))) X).
 
 %query 1 1 (step
 	      (letrec (pattern/s ([a] (lam [x]
 			      if x (term/nat z) (term/nat (s z)))))
 		 ([f] app f (term/nat (s z)))) X).
-
-%query 1 1 (steps-to
-	      (app (term/fix
-		      ([m] (lam [x]
-			      if x (plus (term/nat (s (s z)))
-				      (app m (mone x (term/nat (s z)))))
-			      (term/nat z)))) (term/nat (s (s (s z))))) X).
 
 %query 1 1 (steps-to
 	      (letrec (pattern/s
@@ -195,3 +186,4 @@ steps-to/i : steps-to T T'
 			      (term/nat z))))
 		 ([f] app f (term/nat (s (s (s z)))))) X).
 
+}%

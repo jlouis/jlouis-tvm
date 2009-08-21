@@ -5,25 +5,66 @@ VM language
 
 }%
 
+%{
+
+Syntax
+
+}%
+
 tm : type.
 fname : nat -> type.
 
 lr-declist : type.
 
-lr-declist/z : lr-declist.
+lr-declist/z : tm -> lr-declist.
 lr-declist/s : lr-declist -> fname K -> lr-declist.
 
 lr-deflist : type.
 
-lr-deflist/z : lr-deflist.
+lr-deflist/z : lr-declist -> lr-deflist.
 lr-deflist/s : lr-deflist -> (tm -> tm) -> lr-declist.
-
-
 
 tm/nat : nat -> tm.
 tm/plus : tm -> tm -> tm.
 tm/let : tm -> (tm -> tm) -> tm.
 tm/fcall : fname 1 -> tm -> tm.
-tm/letrec : lr-declist -> lr-deflist -> tm.
+tm/letrec : lr-deflist -> tm.
 
+%{ Static Semantics }%
+
+value : tm -> type.
+
+value/nat : value (tm/nat _).
+
+%{ Small-step relation }%
+
+func-map : fname 1 -> (tm -> tm) -> type.
+
+pctx : (tm -> tm) -> type.
+
+pctx/plus-1 : pctx ([x] tm/plus x _).
+
+pctx/plus-2 : pctx ([x] tm/plus V x)
+	       <- value V.
+
+pctx/let : pctx ([x] tm/let x _).
+
+pctx/fcall : pctx ([x] tm/fcall _ x).
+
+
+
+step : tm -> tm -> type.
+
+step/pctx : step (EC E) (EC E')
+	     <- pctx EC
+	     <- step E E'.
+
+step/nat : step (tm/nat N) (tm/nat N).
+
+step/let : step (tm/let V B) (B V)
+	    <- value V.
+
+step/fcall : step (tm/fcall FN V) (B V)
+	      <- value V
+	      <- func-map FN B.
 

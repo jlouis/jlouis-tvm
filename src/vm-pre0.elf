@@ -7,11 +7,23 @@ VM language
 
 tm : type.
 fname : type.
-lr-deflist : type.
+
 lr-declist : type.
+
+lr-declist/z : lr-declist.
+lr-declist/s : lr-declist -> fname -> nat -> lr-declist.
+
+lr-deflist : type.
+
+lr-deflist/z : lr-deflist.
+lr-deflist/s : lr-deflist -> (tm -> tm) -> lr-declist.
+
+
 
 tm/nat : nat -> tm.
 tm/plus : tm -> tm -> tm.
 tm/let : tm -> (tm -> tm) -> tm.
 tm/fcall : fname -> tm -> tm.
-tm/letrec : lr-deflist -> tm.
+tm/letrec : lr-declist -> lr-deflist -> tm.
+
+

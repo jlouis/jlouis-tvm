@@ -1,0 +1,17 @@
+%{
+
+The VM pre0 code is an attempt at formalizing the simple basics of a functional
+VM language
+
+}%
+
+tm : type.
+fname : type.
+lr-deflist : type.
+lr-declist : type.
+
+tm/nat : nat -> tm.
+tm/plus : tm -> tm -> tm.
+tm/let : tm -> (tm -> tm) -> tm.
+tm/fcall : fname -> tm -> tm.
+tm/letrec : lr-deflist -> tm.

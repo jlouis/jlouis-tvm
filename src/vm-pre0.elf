@@ -6,9 +6,15 @@ VM language
 
 TODO list:
 
-- Arbitrary depth arguments, indexed by a K arity.
 - Enough for a couple of query-tests.
+    Mone is nice to have as well.
+    If-then-else.
+- Query tests.
+    Do a gauss-sum.
+    Do an even-odd.
+
 - Simple type system, intrinsic if possible.
+    Two types at least. Try to formalize this.
 
 }%
 
@@ -145,6 +151,12 @@ step/fcall-apply : step (tm/fcall FN VS) E
 step/fcall-eval : step (tm/fcall FN TS) (tm/fcall FN TS')
 		   <- step-tm-list TS TS'.
 
+step/letrec-1 : step (tm/letrec B) V
+		 <- value-decls B V.
+
+step/letret-2 : step (tm/letrec B) (tm/letrec B')
+		 <- bind-decls B B'.
+
 
 
 
@@ -158,10 +170,3 @@ step-tm-list/s-2 : step-tm-list (tm-list/s V R) (tm-list/s V R')
 		    <- value V
 		    <- step-tm-list R R'.
 
-%{
-step/letrec-1 : step (tm/letrec B) V
-		 <- value-decls B V.
-
-step/letret-2 : step (tm/letrec B) (tm/letrec B')
-		 <- bind-decls B B'.
-}%

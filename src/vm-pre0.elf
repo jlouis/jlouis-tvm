@@ -37,19 +37,22 @@ fpar/s : (tm -> fpar K) -> fpar (s K).
 tm/nat : nat -> tm.
 tm/plus : tm -> tm -> tm.
 tm/let : tm -> (tm -> tm) -> tm.
-tm/fcall : fname K -> tm -> tm.
+tm/fcall : fname K -> tm-list K -> tm.
 tm/letrec : decls -> tm.
 
 tm-list/z : tm-list z.
 tm-list/s : tm -> tm-list K -> tm-list (s K).
 
 %{ Static Semantics }%
-
 value : tm -> type.
-value-decls : decls -> tm -> type.
-value-defs : defs -> tm -> type.
 
 value/nat : value (tm/nat _).
+
+
+
+
+value-decls : decls -> tm -> type.
+value-defs  : defs -> tm -> type.
 
 value-decls/z : value-decls (decls/z D) T
 		 <- value-defs D T.
@@ -58,33 +61,56 @@ value-decls/s : value-decls (decls/s [f : fname K] D f) T
 		 <- ({f : fname K} value-decls (D f) T).
 
 
+
 value-defs/s : value-defs (defs/s D _ _) T
 		<- value-defs D T.
 
 value-defs/z : value-defs (defs/z T) T
 		<- value T.
 
+
+
+value-list : tm-list K -> type.
+
+value-list/z : value-list tm-list/z.
+
+value-list/s : value-list (tm-list/s V R)
+		<- value V
+		<- value-list R.
+
 %{ Small-step relation }%
 
+%% Mapping from function names into the body of the function.
 func-map : fname K -> fpar K -> type.
 
+
+%% Applying a function to its parameters.
+func-apply : fpar K -> tm-list K -> tm -> type.
+
+
+func-apply/z : func-apply (fpar/z T) tm-list/z T.
+
+func-apply/s : func-apply (fpar/s [x] E x) (tm-list/s T R) T'
+		<- func-apply (E T) R T'.
+
+%% Evaluation context for terms.
 pctx : (tm -> tm) -> type.
 
 pctx/plus-1 : pctx ([x] tm/plus x _).
 
 pctx/plus-2 : pctx ([x] tm/plus V x)
-
 	       <- value V.
 
 pctx/let : pctx ([x] tm/let x _).
 
-pctx/fcall : pctx ([x] tm/fcall _ x).
-
-
+pctx-list : (tm -> tm-list K) -> type.
 
 step : tm -> tm -> type.
+step-tm-list : tm-list K -> tm-list K -> type.
 bind-decls : decls -> decls -> type.
 bind-defs : defs -> defs -> type.
+
+
 
 bind-decls/z : bind-decls (decls/z D) (decls/z D')
 	    <- bind-defs D D'.
@@ -92,11 +118,15 @@ bind-decls/z : bind-decls (decls/z D) (decls/z D')
 bind-decls/s : bind-decls (decls/s [f : fname K] D f) (decls/s [f : fname K] D' f)
 	    <- ({f : fname K} bind-decls (D f) (D' f)).
 
+
+
 bind-defs/z : bind-defs (defs/z T) (defs/z T')
 	       <- step T T'.
 
 bind-defs/s : bind-defs (defs/s D F T) (defs/s D' F T)
 	       <- (func-map F T -> bind-defs D D').
+
+
 
 step/pctx : step (EC E) (EC E')
 	     <- pctx EC
@@ -107,11 +137,28 @@ step/nat : step (tm/nat N) (tm/nat N).
 step/let : step (tm/let V B) (B V)
 	    <- value V.
 
-%{
-step/fcall : step (tm/fcall FN V) (B V)
-	      <- value V
-	      <- func-map FN B.
+step/fcall-apply : step (tm/fcall FN VS) E
+		    <- value-list VS
+		    <- func-map FN B
+		    <- func-apply B VS E.
 
+step/fcall-eval : step (tm/fcall FN TS) (tm/fcall FN TS')
+		   <- step-tm-list TS TS'.
+
+
+
+
+
+step-tm-list/z : step-tm-list tm-list/z tm-list/z.
+
+step-tm-list/s-1 : step-tm-list (tm-list/s T R) (tm-list/s T' R)
+		    <- step T T'.
+
+step-tm-list/s-2 : step-tm-list (tm-list/s V R) (tm-list/s V R')
+		    <- value V
+		    <- step-tm-list R R'.
+
+%{
 step/letrec-1 : step (tm/letrec B) V
 		 <- value-decls B V.
 

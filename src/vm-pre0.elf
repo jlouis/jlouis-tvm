@@ -6,9 +6,6 @@ VM language
 
 TODO list:
 
-- Enough for a couple of query-tests.
-    Mone is nice to have as well.
-    If-then-else.
 - Query tests.
     Do a gauss-sum.
     Do an even-odd.
@@ -40,11 +37,17 @@ defs/s : defs -> fname K -> fpar K -> defs.
 fpar/z : tm -> fpar z.
 fpar/s : (tm -> fpar K) -> fpar (s K).
 
+
+
 tm/nat : nat -> tm.
 tm/plus : tm -> tm -> tm.
+tm/mone : tm -> tm -> tm.
+tm/ifte : tm -> tm -> tm -> tm.
 tm/let : tm -> (tm -> tm) -> tm.
 tm/fcall : fname K -> tm-list K -> tm.
 tm/letrec : decls -> tm.
+
+
 
 tm-list/z : tm-list z.
 tm-list/s : tm -> tm-list K -> tm-list (s K).
@@ -107,9 +110,18 @@ pctx/plus-1 : pctx ([x] tm/plus x _).
 pctx/plus-2 : pctx ([x] tm/plus V x)
 	       <- value V.
 
+pctx/mone-1 : pctx ([x] tm/mone x _).
+
+pctx/mone-2 : pctx ([x] tm/mone V x)
+	       <- value V.
+
+pctx/ifte   : pctx ([x] tm/ifte x _ _).
+
 pctx/let : pctx ([x] tm/let x _).
 
-pctx-list : (tm -> tm-list K) -> type.
+
+
+
 
 step : tm -> tm -> type.
 step-tm-list : tm-list K -> tm-list K -> type.
@@ -139,6 +151,18 @@ step/pctx : step (EC E) (EC E')
 	     <- step E E'.
 
 step/nat : step (tm/nat N) (tm/nat N).
+
+step/plus : step (tm/plus (tm/nat N1) (tm/nat N2)) (tm/nat N3)
+	     <- nat-plus N1 N2 N3.
+
+
+step/mone : step (tm/mone (tm/nat N1) (tm/nat N2)) (tm/nat N3)
+	     <- nat-mone N1 N2 N3.
+
+
+step/if-true : step (tm/ifte (tm/nat (s _)) E _) E.
+
+step/if-false : step (tm/ifte (tm/nat z) _ E) E.
 
 step/let : step (tm/let V B) (B V)
 	    <- value V.

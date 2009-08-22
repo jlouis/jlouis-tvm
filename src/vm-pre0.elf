@@ -3,6 +3,13 @@
 The VM pre0 code is an attempt at formalizing the simple basics of a functional
 VM language
 
+
+TODO list:
+
+- Arbitrary depth arguments, indexed by a K arity.
+- Enough for a couple of query-tests.
+- Simple type system, intrinsic if possible.
+
 }%
 
 %{
@@ -11,24 +18,30 @@ Syntax
 
 }%
 
-tm : type.
-fname : type.
-
+tm : type. %name tm T.
+fname : nat -> type. %name fname F.
 decls : type.
 defs : type.
+fpar : nat -> type. %% Function parameters, carrying the number of parameters.
+tm-list : nat -> type. %% List of terms, carrying the number of terms.
 
 decls/z : defs -> decls.
-decls/s : (fname -> decls) -> decls.
+decls/s : (fname K -> decls) -> decls.
 
 defs/z : tm -> defs.
-defs/s : defs -> fname -> (tm -> tm) -> defs.
+defs/s : defs -> fname K -> fpar K -> defs.
 
+fpar/z : tm -> fpar z.
+fpar/s : (tm -> fpar K) -> fpar (s K).
 
 tm/nat : nat -> tm.
 tm/plus : tm -> tm -> tm.
 tm/let : tm -> (tm -> tm) -> tm.
-tm/fcall : fname -> tm -> tm.
+tm/fcall : fname K -> tm -> tm.
 tm/letrec : decls -> tm.
+
+tm-list/z : tm-list z.
+tm-list/s : tm -> tm-list K -> tm-list (s K).
 
 %{ Static Semantics }%
 
@@ -41,8 +54,8 @@ value/nat : value (tm/nat _).
 value-decls/z : value-decls (decls/z D) T
 		 <- value-defs D T.
 
-value-decls/s : value-decls (decls/s [f] D f) T
-		 <- ({f : fname} value-decls (D f) T).
+value-decls/s : value-decls (decls/s [f : fname K] D f) T
+		 <- ({f : fname K} value-decls (D f) T).
 
 
 value-defs/s : value-defs (defs/s D _ _) T
@@ -53,7 +66,7 @@ value-defs/z : value-defs (defs/z T) T
 
 %{ Small-step relation }%
 
-func-map : fname -> (tm -> tm) -> type.
+func-map : fname K -> fpar K -> type.
 
 pctx : (tm -> tm) -> type.
 
@@ -76,8 +89,8 @@ bind-defs : defs -> defs -> type.
 bind-decls/z : bind-decls (decls/z D) (decls/z D')
 	    <- bind-defs D D'.
 
-bind-decls/s : bind-decls (decls/s [f] D f) (decls/s [f] D' f)
-	    <- ({f : fname} bind-decls (D f) (D' f)).
+bind-decls/s : bind-decls (decls/s [f : fname K] D f) (decls/s [f : fname K] D' f)
+	    <- ({f : fname K} bind-decls (D f) (D' f)).
 
 bind-defs/z : bind-defs (defs/z T) (defs/z T')
 	       <- step T T'.
@@ -94,6 +107,7 @@ step/nat : step (tm/nat N) (tm/nat N).
 step/let : step (tm/let V B) (B V)
 	    <- value V.
 
+%{
 step/fcall : step (tm/fcall FN V) (B V)
 	      <- value V
 	      <- func-map FN B.
@@ -103,3 +117,4 @@ step/letrec-1 : step (tm/letrec B) V
 
 step/letret-2 : step (tm/letrec B) (tm/letrec B')
 		 <- bind-decls B B'.
+}%

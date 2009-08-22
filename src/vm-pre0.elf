@@ -178,7 +178,7 @@ step/fcall-eval : step (tm/fcall FN TS) (tm/fcall FN TS')
 step/letrec-1 : step (tm/letrec B) V
 		 <- value-decls B V.
 
-step/letret-2 : step (tm/letrec B) (tm/letrec B')
+step/letrec-2 : step (tm/letrec B) (tm/letrec B')
 		 <- bind-decls B B'.
 
 

@@ -14,46 +14,38 @@ Syntax
 tm : type.
 fname : type.
 
-nbind : type.
+decls : type.
 defs : type.
 
-nbind/z : defs -> nbind.
-nbind/s : (fname -> nbind) -> nbind.
+decls/z : defs -> decls.
+decls/s : (fname -> decls) -> decls.
 
 defs/z : tm -> defs.
-defs/s : fname -> (tm -> tm) -> defs -> defs.
+defs/s : defs -> fname -> (tm -> tm) -> defs.
+
 
 tm/nat : nat -> tm.
 tm/plus : tm -> tm -> tm.
 tm/let : tm -> (tm -> tm) -> tm.
 tm/fcall : fname -> tm -> tm.
-tm/letrec : nbind -> tm.
+tm/letrec : decls -> tm.
 
 %{ Static Semantics }%
 
 value : tm -> type.
-value-nbind : nbind -> tm -> type.
+value-decls : decls -> tm -> type.
 value-defs : defs -> tm -> type.
 
 value/nat : value (tm/nat _).
 
-%{
-value-decls/s : value-decls (decls/s D _)
-		 <- value-decls D.
-
-value-decls/z : value-decls (decls/z D)
-		 <- value-defs D.
-
-}%
-
-value-nbind/z : value-nbind (nbind/z D) T
+value-decls/z : value-decls (decls/z D) T
 		 <- value-defs D T.
 
-value-nbind/s : value-nbind (nbind/s [f] D f) T
-		 <- ({f : fname} value-nbind (D f) T).
+value-decls/s : value-decls (decls/s [f] D f) T
+		 <- ({f : fname} value-decls (D f) T).
 
 
-value-defs/s : value-defs (defs/s _ _ D) T
+value-defs/s : value-defs (defs/s D _ _) T
 		<- value-defs D T.
 
 value-defs/z : value-defs (defs/z T) T
@@ -68,6 +60,7 @@ pctx : (tm -> tm) -> type.
 pctx/plus-1 : pctx ([x] tm/plus x _).
 
 pctx/plus-2 : pctx ([x] tm/plus V x)
+
 	       <- value V.
 
 pctx/let : pctx ([x] tm/let x _).
@@ -77,19 +70,19 @@ pctx/fcall : pctx ([x] tm/fcall _ x).
 
 
 step : tm -> tm -> type.
-bind-n : nbind -> nbind -> type.
+bind-decls : decls -> decls -> type.
 bind-defs : defs -> defs -> type.
 
-bind-n/z : bind-n (nbind/z D) (nbind/z D')
+bind-decls/z : bind-decls (decls/z D) (decls/z D')
 	    <- bind-defs D D'.
 
-bind-n/s : bind-n (nbind/s [f] D f) (nbind/s [f] D' f)
-	    <- ({f : fname} bind-n (D f) (D' f)).
+bind-decls/s : bind-decls (decls/s [f] D f) (decls/s [f] D' f)
+	    <- ({f : fname} bind-decls (D f) (D' f)).
 
 bind-defs/z : bind-defs (defs/z T) (defs/z T')
 	       <- step T T'.
 
-bind-defs/s : bind-defs (defs/s F T D) (defs/s F T D')
+bind-defs/s : bind-defs (defs/s D F T) (defs/s D' F T)
 	       <- (func-map F T -> bind-defs D D').
 
 step/pctx : step (EC E) (EC E')
@@ -106,7 +99,7 @@ step/fcall : step (tm/fcall FN V) (B V)
 	      <- func-map FN B.
 
 step/letrec-1 : step (tm/letrec B) V
-		 <- value-nbind B V.
+		 <- value-decls B V.
 
 step/letret-2 : step (tm/letrec B) (tm/letrec B')
-		 <- bind-n B B'.
+		 <- bind-decls B B'.

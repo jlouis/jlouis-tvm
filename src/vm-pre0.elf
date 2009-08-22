@@ -12,33 +12,44 @@ Syntax
 }%
 
 tm : type.
-fname : nat -> type.
+fname : type.
 
-lr-declist : type.
+defs : type.
 
-lr-declist/z : tm -> lr-declist.
-lr-declist/s : lr-declist -> fname K -> lr-declist.
-
-lr-deflist : type.
-
-lr-deflist/z : lr-declist -> lr-deflist.
-lr-deflist/s : lr-deflist -> (tm -> tm) -> lr-declist.
+defs/z : tm -> defs.
+defs/s : (fname -> (tm -> tm)) -> defs -> defs.
 
 tm/nat : nat -> tm.
 tm/plus : tm -> tm -> tm.
 tm/let : tm -> (tm -> tm) -> tm.
-tm/fcall : fname 1 -> tm -> tm.
-tm/letrec : lr-deflist -> tm.
+tm/fcall : fname -> tm -> tm.
+tm/letrec : defs -> tm.
 
 %{ Static Semantics }%
 
 value : tm -> type.
+value-defs : defs -> tm -> type.
 
 value/nat : value (tm/nat _).
 
+%{
+value-decls/s : value-decls (decls/s D _)
+		 <- value-decls D.
+
+value-decls/z : value-decls (decls/z D)
+		 <- value-defs D.
+
+}%
+
+value-defs/s : value-defs (defs/s _ D) T
+		<- value-defs D T.
+
+value-defs/z : value-defs (defs/z T) T
+		<- value T.
+
 %{ Small-step relation }%
 
-func-map : fname 1 -> (tm -> tm) -> type.
+func-map : fname -> (tm -> tm) -> type.
 
 pctx : (tm -> tm) -> type.
 
@@ -68,3 +79,8 @@ step/fcall : step (tm/fcall FN V) (B V)
 	      <- value V
 	      <- func-map FN B.
 
+step/letrec-1 : step (tm/letrec D) V
+		 <- value-defs D V.
+
+step/letrec-2 : step (tm/letrec (defs/s ([f] T f) D)) (tm/letrec (defs/s ([f] T f) D'))
+		 <- ({f} func-map f (T f) -> step (tm/letrec D) (tm/letrec D')).

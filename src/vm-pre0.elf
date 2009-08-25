@@ -248,7 +248,7 @@ gauss = [n] (letrec (decls/s [g : fname 1] decls/z
 					     (tm/nat 0))))
 			 (defs/z (fcall g (cons n nil)))))).
 
-%query 1 1 (steps-to (gauss (tm/nat 3)) X).
+%query 1 1 (steps-to (gauss (tm/nat 3)) (tm/nat 6)).
 
 even = [n] (letrec (decls/s [even : fname 1]
 		       decls/s [odd  : fname 1]
@@ -262,3 +262,9 @@ even = [n] (letrec (decls/s [even : fname 1]
 						      (fcall even (cons (mone x (tm/nat 1)) nil))
 						      (tm/nat 0))))
 			    (defs/z (fcall even (cons n nil)))))))).
+
+%query 1 1 (steps-to (even (tm/nat 0)) (tm/nat 1)).
+%query 1 1 (steps-to (even (tm/nat 1)) (tm/nat 0)).
+%query 1 1 (steps-to (even (tm/nat 2)) (tm/nat 1)).
+%query 1 1 (steps-to (even (tm/nat 3)) (tm/nat 0)).
+

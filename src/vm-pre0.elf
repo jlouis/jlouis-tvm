@@ -57,6 +57,7 @@ tm/ifte : tm tp/bool -> tm T -> tm T -> tm T.
 tm/let : tm T -> (tm T -> tm T') -> tm T'.
 tm/fcall : fname TS T -> tm-list TS -> tm T.
 tm/letrec : decls T -> tm T.
+tm/isz : tm tp/nat -> tm tp/bool.
 
 nat    = tm/nat.
 plus   = tm/plus.
@@ -65,6 +66,8 @@ ifte   = tm/ifte.
 let    = tm/let.
 fcall  = tm/fcall.
 letrec = tm/letrec.
+isz    = tm/isz.
+
 
 true = tm/bool 1.
 false = tm/bool 0.
@@ -141,6 +144,7 @@ pctx/ifte   : pctx ([x] tm/ifte x _ _).
 
 pctx/let : pctx ([x] tm/let x _).
 
+pctx/isz : pctx ([x] tm/isz x).
 
 
 
@@ -190,6 +194,8 @@ step/if-false : step (tm/ifte (tm/bool z) E1 E2) E2.
 step/let : step (tm/let V B) (B V)
 	    <- value V.
 
+step/isz-t : step (tm/isz (tm/nat 0)) (tm/bool 1).
+step/isz-f : step (tm/isz (tm/nat (s _))) (tm/bool 0).
 
 step/fcall-apply : step (tm/fcall FN VS) E
 		    <- value-list VS
@@ -251,29 +257,28 @@ ifte-test2 = (ifte (tm/bool 3) (tm/nat 1) (tm/nat 2)).
 %query 1 1 (step ifte-test1 (tm/nat 2)).
 %query 1 1 (step ifte-test2 (tm/nat 1)).
 
-%{
 gauss = [n] (letrec (decls/s [g : fname (tp-list/s tp/nat tp-list/z) tp/nat] decls/z
 		      (defs/s g (fpar/s [x]
-				  (fpar/z (ifte x
+				  (fpar/z (ifte (isz x)
+					     (tm/nat 0)
 					     (plus
 						x
-						(fcall g (cons (mone x (tm/nat 1)) nil)))
-					     (tm/nat 0))))
+						(fcall g (cons (mone x (tm/nat 1)) nil))))))
 			 (defs/z (fcall g (cons n nil)))))).
 
 %query 1 1 (steps-to (gauss (tm/nat 3)) (tm/nat 6)).
 
-even = [n] (letrec (decls/s [even : fname 1]
-		       decls/s [odd  : fname 1]
+even = [n] (letrec (decls/s [even : fname (tp-list/s tp/nat tp-list/z) tp/nat]
+		       decls/s [odd  : fname (tp-list/s tp/nat tp-list/z) tp/nat]
 			 (decls/z
 			    (defs/s even (fpar/s [x]
-					    (fpar/z (ifte x
-						       (fcall odd (cons (mone x (tm/nat 1)) nil))
-						       (tm/nat 1))))
+					    (fpar/z (ifte (isz x)
+						       (tm/nat 1)
+						       (fcall odd (cons (mone x (tm/nat 1)) nil)))))
 			    (defs/s odd (fpar/s [x]
-					   (fpar/z (ifte (mone x (tm/nat 1))
-						      (fcall even (cons (mone x (tm/nat 1)) nil))
-						      (tm/nat 0))))
+					   (fpar/z (ifte (isz (mone x (tm/nat 1)))
+						      (tm/nat 0)
+						      (fcall even (cons (mone x (tm/nat 1)) nil)))))
 			    (defs/z (fcall even (cons n nil)))))))).
 
 %query 1 1 (steps-to (even (tm/nat 0)) (tm/nat 1)).
@@ -281,4 +286,3 @@ even = [n] (letrec (decls/s [even : fname 1]
 %query 1 1 (steps-to (even (tm/nat 2)) (tm/nat 1)).
 %query 1 1 (steps-to (even (tm/nat 3)) (tm/nat 0)).
 
-}%

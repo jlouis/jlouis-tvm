@@ -32,7 +32,7 @@ decls/z : defs -> decls.
 decls/s : (fname K -> decls) -> decls.
 
 defs/z : tm -> defs.
-defs/s : defs -> fname K -> fpar K -> defs.
+defs/s : fname K -> fpar K -> defs -> defs.
 
 fpar/z : tm -> fpar z.
 fpar/s : (tm -> fpar K) -> fpar (s K).
@@ -47,16 +47,26 @@ tm/let : tm -> (tm -> tm) -> tm.
 tm/fcall : fname K -> tm-list K -> tm.
 tm/letrec : decls -> tm.
 
+nat    = tm/nat.
+plus   = tm/plus.
+mone   = tm/mone.
+ifte   = tm/ifte.
+let    = tm/let.
+fcall  = tm/fcall.
+letrec = tm/letrec.
+
 
 
 tm-list/z : tm-list z.
 tm-list/s : tm -> tm-list K -> tm-list (s K).
 
+nil = tm-list/z.
+cons = tm-list/s.
+
 %{ Static Semantics }%
 value : tm -> type.
 
 value/nat : value (tm/nat _).
-
 
 
 
@@ -71,7 +81,7 @@ value-decls/s : value-decls (decls/s [f : fname K] D f) T
 
 
 
-value-defs/s : value-defs (defs/s D _ _) T
+value-defs/s : value-defs (defs/s _ _ D) T
 		<- value-defs D T.
 
 value-defs/z : value-defs (defs/z T) T
@@ -141,7 +151,7 @@ bind-decls/s : bind-decls (decls/s [f : fname K] D f) (decls/s [f : fname K] D' 
 bind-defs/z : bind-defs (defs/z T) (defs/z T')
 	       <- step T T'.
 
-bind-defs/s : bind-defs (defs/s D F T) (defs/s D' F T)
+bind-defs/s : bind-defs (defs/s F T D) (defs/s F T D')
 	       <- (func-map F T -> bind-defs D D').
 
 
@@ -194,3 +204,32 @@ step-tm-list/s-2 : step-tm-list (tm-list/s V R) (tm-list/s V R')
 		    <- value V
 		    <- step-tm-list R R'.
 
+
+
+%{
+
+Query tests of the system
+
+}%
+
+gauss = [n] (letrec (decls/s [g : fname 1] decls/z
+		      (defs/s g (fpar/s [x]
+				  (fpar/z (ifte x
+					     (tm/nat 0)
+					     (plus
+						x
+						(fcall g (cons (mone x (tm/nat 1)) nil))))))
+			 (defs/z (fcall g (cons n nil)))))).
+
+even = [n] (letrec (decls/s [even : fname 1]
+		       decls/s [odd  : fname 1]
+			 (decls/z
+			    (defs/s even (fpar/s [x]
+					    (fpar/z (ifte x
+						       (fcall odd (cons (mone x (tm/nat 1)) nil))
+						       (tm/nat 1))))
+			    (defs/s odd (fpar/s [x]
+					   (fpar/z (ifte (mone x (tm/nat 1))
+						      (fcall even (cons (mone x (tm/nat 1)) nil))
+						      (tm/nat 0))))
+			    (defs/z (fcall even (cons n nil)))))))).

@@ -6,10 +6,6 @@ VM language
 
 TODO list:
 
-- Query tests.
-    Do a gauss-sum.
-    Do an even-odd.
-
 - Simple type system, intrinsic if possible.
     Two types at least. Try to formalize this.
 
@@ -21,31 +17,46 @@ Syntax
 
 }%
 
-tm : type. %name tm T.
-fname : nat -> type. %name fname F.
-decls : type.
-defs : type.
-fpar : nat -> type. %% Function parameters, carrying the number of parameters.
-tm-list : nat -> type. %% List of terms, carrying the number of terms.
+%{ Type system }%
 
-decls/z : defs -> decls.
-decls/s : (fname K -> decls) -> decls.
+tp : type. %name tp TP.
 
-defs/z : tm -> defs.
-defs/s : fname K -> fpar K -> defs -> defs.
+tp/nat : tp.
+tp/bool : tp.
 
-fpar/z : tm -> fpar z.
-fpar/s : (tm -> fpar K) -> fpar (s K).
+tp-list : type.
+
+tp-list/z : tp-list. %name tp-list TPL.
+tp-list/s : tp -> tp-list -> tp-list.
+
+%{ Language syntax }%
+tm : tp -> type. %name tm T.
+%% Function names, with intrinsicly defined parameter and return types.
+fname : tp-list -> tp -> type. %name fname F.
+decls : tp -> type. %% Type of letrec body
+defs : tp -> type. %% Type of letrec body.
+fpar : tp-list -> tp -> type. %% Function parameters.
+tm-list : tp-list -> type. %% List of terms
+
+decls/z : defs T -> decls T.
+decls/s : (fname TS T -> decls T) -> decls T.
+
+defs/z : tm T -> defs T.
+defs/s : fname TS T -> fpar TS T -> defs T' -> defs T'.
+
+fpar/z : tm T -> fpar tp-list/z T.
+fpar/s : (tm T -> fpar TS T') -> fpar (tp-list/s T TS) T'.
 
 
 
-tm/nat : nat -> tm.
-tm/plus : tm -> tm -> tm.
-tm/mone : tm -> tm -> tm.
-tm/ifte : tm -> tm -> tm -> tm.
-tm/let : tm -> (tm -> tm) -> tm.
-tm/fcall : fname K -> tm-list K -> tm.
-tm/letrec : decls -> tm.
+tm/nat : nat -> tm tp/nat.
+tm/bool : nat -> tm tp/bool.
+tm/plus : tm tp/nat -> tm tp/nat -> tm tp/nat.
+tm/mone : tm tp/nat -> tm tp/nat -> tm tp/nat.
+tm/ifte : tm tp/bool -> tm T -> tm T -> tm T.
+tm/let : tm T -> (tm T -> tm T') -> tm T'.
+tm/fcall : fname TS T -> tm-list TS -> tm T.
+tm/letrec : decls T -> tm T.
 
 nat    = tm/nat.
 plus   = tm/plus.
@@ -55,29 +66,30 @@ let    = tm/let.
 fcall  = tm/fcall.
 letrec = tm/letrec.
 
+true = tm/bool 1.
+false = tm/bool 0.
 
-
-tm-list/z : tm-list z.
-tm-list/s : tm -> tm-list K -> tm-list (s K).
+tm-list/z : tm-list tp-list/z.
+tm-list/s : tm T -> tm-list TS -> tm-list (tp-list/s T TS).
 
 nil = tm-list/z.
 cons = tm-list/s.
 
 %{ Static Semantics }%
-value : tm -> type.
+value : tm T -> type.
 
 value/nat : value (tm/nat _).
 
 
 
-value-decls : decls -> tm -> type.
-value-defs  : defs -> tm -> type.
+value-decls : decls T -> tm T -> type.
+value-defs  : defs T -> tm T -> type.
 
 value-decls/z : value-decls (decls/z D) T
 		 <- value-defs D T.
 
-value-decls/s : value-decls (decls/s [f : fname K] D f) T
-		 <- ({f : fname K} value-decls (D f) T).
+value-decls/s : value-decls (decls/s [f : fname TS T] D f) T'
+		 <- ({f : fname TS T} value-decls (D f) T').
 
 
 
@@ -89,7 +101,7 @@ value-defs/z : value-defs (defs/z T) T
 
 
 
-value-list : tm-list K -> type.
+value-list : tm-list TS -> type.
 
 value-list/z : value-list tm-list/z.
 
@@ -100,11 +112,11 @@ value-list/s : value-list (tm-list/s V R)
 %{ Small-step relation }%
 
 %% Mapping from function names into the body of the function.
-func-map : fname K -> fpar K -> type.
+func-map : fname TS T -> fpar TS T -> type.
 
 
 %% Applying a function to its parameters.
-func-apply : fpar K -> tm-list K -> tm -> type.
+func-apply : fpar TS T -> tm-list TS -> tm T -> type.
 
 
 func-apply/z : func-apply (fpar/z T) tm-list/z T.
@@ -113,7 +125,7 @@ func-apply/s : func-apply (fpar/s [x] E x) (tm-list/s T R) T'
 		<- func-apply (E T) R T'.
 
 %% Evaluation context for terms.
-pctx : (tm -> tm) -> type.
+pctx : (tm T -> tm T') -> type.
 
 pctx/plus-1 : pctx ([x] tm/plus x _).
 
@@ -133,19 +145,19 @@ pctx/let : pctx ([x] tm/let x _).
 
 
 
-step : tm -> tm -> type.
-step-tm-list : tm-list K -> tm-list K -> type.
+step : tm T -> tm T -> type.
+step-tm-list : tm-list TS -> tm-list TS -> type.
 
-bind-decls : decls -> decls -> type.
-bind-defs : defs -> defs -> type.
+bind-decls : decls T -> decls T -> type.
+bind-defs : defs T -> defs T -> type.
 
 
 
 bind-decls/z : bind-decls (decls/z D) (decls/z D')
 	    <- bind-defs D D'.
 
-bind-decls/s : bind-decls (decls/s [f : fname K] D f) (decls/s [f : fname K] D' f)
-	    <- ({f : fname K} bind-decls (D f) (D' f)).
+bind-decls/s : bind-decls (decls/s [f : fname TS T] D f) (decls/s [f : fname TS T] D' f)
+	    <- ({f : fname TS T} bind-decls (D f) (D' f)).
 
 
 
@@ -171,9 +183,9 @@ step/mone : step (tm/mone (tm/nat N1) (tm/nat N2)) (tm/nat N3)
 	     <- nat-mone N1 N2 N3.
 
 
-step/if-true : step (tm/ifte (tm/nat (s _)) E1 E2) E1.
+step/if-true : step (tm/ifte (tm/bool (s _)) E1 E2) E1.
 
-step/if-false : step (tm/ifte (tm/nat z) E1 E2) E2.
+step/if-false : step (tm/ifte (tm/bool z) E1 E2) E2.
 
 step/let : step (tm/let V B) (B V)
 	    <- value V.
@@ -212,7 +224,7 @@ Iterated step relations
 
 }%
 
-steps : tm -> tm -> type. %name steps Dsteps.
+steps : tm T -> tm T -> type. %name steps Dsteps.
 
 steps/0 : steps T T.
 
@@ -221,7 +233,7 @@ steps/s : steps T T''
 	   <- steps T' T''.
 
 
-steps-to : tm -> tm -> type. %name steps-to Dsteps-to.
+steps-to : tm T -> tm T -> type. %name steps-to Dsteps-to.
 
 steps-to/i : steps-to T V
 	      <- steps T V
@@ -233,13 +245,14 @@ Query tests of the system
 
 }%
 
-ifte-test1 = (ifte (tm/nat 0) (tm/nat 1) (tm/nat 2)).
-ifte-test2 = (ifte (tm/nat 3) (tm/nat 1) (tm/nat 2)).
+ifte-test1 = (ifte (tm/bool 0) (tm/nat 1) (tm/nat 2)).
+ifte-test2 = (ifte (tm/bool 3) (tm/nat 1) (tm/nat 2)).
 
 %query 1 1 (step ifte-test1 (tm/nat 2)).
 %query 1 1 (step ifte-test2 (tm/nat 1)).
 
-gauss = [n] (letrec (decls/s [g : fname 1] decls/z
+%{
+gauss = [n] (letrec (decls/s [g : fname (tp-list/s tp/nat tp-list/z) tp/nat] decls/z
 		      (defs/s g (fpar/s [x]
 				  (fpar/z (ifte x
 					     (plus
@@ -268,3 +281,4 @@ even = [n] (letrec (decls/s [even : fname 1]
 %query 1 1 (steps-to (even (tm/nat 2)) (tm/nat 1)).
 %query 1 1 (steps-to (even (tm/nat 3)) (tm/nat 0)).
 
+}%

@@ -6,8 +6,7 @@ VM language
 
 TODO list:
 
-- Simple type system, intrinsic if possible.
-    Two types at least. Try to formalize this.
+- Split the terms into an LLVM-like construction.
 
 }%
 

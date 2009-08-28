@@ -6,8 +6,7 @@ VM language
 
 TODO list:
 
-- Merge pctx down to step.
-- Try to mode the step relation.
+- Trace execution of the infinite loop and find the problem.
 - Rewrite Decls to contain a typing relation and check it
   such that each declaration has EXACTLY one definition.
 
@@ -82,13 +81,16 @@ cons = tm-list/s.
 
 %{ Static Semantics }%
 value : tm T -> type.
+%mode value +T.
 
 value/nat : value (tm/nat _).
 
 
 
 value-decls : decls T -> tm T -> type.
+%mode value-decls +T -T'.
 value-defs  : defs T -> tm T -> type.
+%mode value-defs +T -T'.
 
 value-decls/z : value-decls (decls/z D) T
 		 <- value-defs D T.
@@ -107,6 +109,7 @@ value-defs/z : value-defs (defs/z T) T
 
 
 value-list : tm-list TS -> type.
+%mode value-list +TML.
 
 value-list/z : value-list tm-list/z.
 
@@ -118,11 +121,11 @@ value-list/s : value-list (tm-list/s V R)
 
 %% Mapping from function names into the body of the function.
 func-map : fname TS T -> fpar TS T -> type.
-
+%mode func-map +F -FP.
 
 %% Applying a function to its parameters.
 func-apply : fpar TS T -> tm-list TS -> tm T -> type.
-
+%mode func-apply +FP +TML -T.
 
 func-apply/z : func-apply (fpar/z T) tm-list/z T.
 
@@ -130,32 +133,16 @@ func-apply/s : func-apply (fpar/s [x] E x) (tm-list/s T R) T'
 		<- func-apply (E T) R T'.
 
 %% Evaluation context for terms.
-pctx : (tm T -> tm T') -> type.
-
-pctx/plus-1 : pctx ([x] tm/plus x _).
-
-pctx/plus-2 : pctx ([x] tm/plus V x)
-	       <- value V.
-
-pctx/mone-1 : pctx ([x] tm/mone x _).
-
-pctx/mone-2 : pctx ([x] tm/mone V x)
-	       <- value V.
-
-pctx/ifte   : pctx ([x] tm/ifte x _ _).
-
-pctx/let : pctx ([x] tm/let x _).
-
-pctx/isz : pctx ([x] tm/isz x).
-
-
-
-
 step : tm T -> tm T -> type.
+%mode step +T -T'.
+
 step-tm-list : tm-list TS -> tm-list TS -> type.
+%mode step-tm-list +TL -TL'.
 
 bind-decls : decls T -> decls T -> type.
+%mode bind-decls +D -D'.
 bind-defs : defs T -> defs T -> type.
+%mode bind-defs +D -D'.
 
 
 
@@ -175,9 +162,28 @@ bind-defs/s : bind-defs (defs/s F T D) (defs/s F T D')
 
 
 
-step/pctx : step (EC E) (EC E')
-	     <- pctx EC
-	     <- step E E'.
+step/isz : step (tm/isz E) (tm/isz E')
+	    <- step E E'.
+
+step/let : step (tm/let E B) (tm/let E' B)
+	    <- step E E'.
+
+step/ifte-tst : step (tm/ifte E K1 K2) (tm/ifte E' K1 K2)
+		 <- step E E'.
+
+step/plus-1 : step (tm/plus E K) (tm/plus E' K)
+	       <- step E E'.
+
+step/plus-2 : step (tm/plus V E) (tm/plus V E')
+	       <- value V
+	       <- step E E'.
+
+step/mone-1 : step (tm/mone E K) (tm/mone E' K)
+	       <- step E E'.
+
+step/mone-2 : step (tm/mone V E) (tm/mone V E')
+	       <- value V
+	       <- step E E'.
 
 %%step/nat : step (tm/nat N) (tm/nat N).
 
@@ -253,6 +259,8 @@ Query tests of the system
 
 }%
 
+%{
+
 ifte-test1 = (ifte (tm/bool 0) (tm/nat 1) (tm/nat 2)).
 ifte-test2 = (ifte (tm/bool 3) (tm/nat 1) (tm/nat 2)).
 
@@ -288,3 +296,4 @@ even = [n] (letrec (decls/s [even : fname (tp-list/s tp/nat tp-list/z) tp/nat]
 %query 1 1 (steps-to (even (tm/nat 2)) (tm/nat 1)).
 %query 1 1 (steps-to (even (tm/nat 3)) (tm/nat 0)).
 
+}%

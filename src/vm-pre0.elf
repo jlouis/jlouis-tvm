@@ -6,7 +6,10 @@ VM language
 
 TODO list:
 
-- Split the terms into an LLVM-like construction.
+- Merge pctx down to step.
+- Try to mode the step relation.
+- Rewrite Decls to contain a typing relation and check it
+  such that each declaration has EXACTLY one definition.
 
 }%
 

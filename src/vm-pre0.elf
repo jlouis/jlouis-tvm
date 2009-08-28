@@ -259,14 +259,22 @@ Query tests of the system
 
 }%
 
-%{
 
+%% Test if-then-else
 ifte-test1 = (ifte (tm/bool 0) (tm/nat 1) (tm/nat 2)).
 ifte-test2 = (ifte (tm/bool 3) (tm/nat 1) (tm/nat 2)).
 
 %query 1 1 (step ifte-test1 (tm/nat 2)).
 %query 1 1 (step ifte-test2 (tm/nat 1)).
 
+%% Test isz
+%query 1 1 (step (isz (tm/nat 3)) false).
+%query 0 1 (step (isz (tm/nat 3)) true).
+%query 1 1 (step (isz (tm/nat 0)) true).
+%query 0 1 (step (isz (tm/nat 0)) false).
+
+
+%{
 gauss = [n] (letrec (decls/s [g : fname (tp-list/s tp/nat tp-list/z) tp/nat] decls/z
 		      (defs/s g (fpar/s [x]
 				  (fpar/z (ifte (isz x)
@@ -277,6 +285,10 @@ gauss = [n] (letrec (decls/s [g : fname (tp-list/s tp/nat tp-list/z) tp/nat] dec
 			 (defs/z (fcall g (cons n nil)))))).
 
 %query 1 1 (steps-to (gauss (tm/nat 3)) (tm/nat 6)).
+%query 0 1 (steps-to (gauss (tm/nat 3)) (tm/nat 1)).
+%}
+
+%{
 
 even = [n] (letrec (decls/s [even : fname (tp-list/s tp/nat tp-list/z) tp/nat]
 		       decls/s [odd  : fname (tp-list/s tp/nat tp-list/z) tp/nat]

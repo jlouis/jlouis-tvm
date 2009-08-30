@@ -136,9 +136,6 @@ func-apply/s : func-apply (fpar/s [x] E x) (tm-list/s T R) T'
 step : tm T -> tm T -> type.
 %mode step +T -T'.
 
-step-tm-list : tm-list TS -> tm-list TS -> type.
-%mode step-tm-list +TL -TL'.
-
 bind-decls : decls T -> decls T -> type.
 %mode bind-decls +D -D'.
 bind-defs : defs T -> defs T -> type.
@@ -206,12 +203,8 @@ step/isz-t : step (tm/isz (tm/nat 0)) (tm/bool 1).
 step/isz-f : step (tm/isz (tm/nat (s _))) (tm/bool 0).
 
 step/fcall-apply : step (tm/fcall FN VS) E
-		    <- value-list VS
 		    <- func-map FN B
 		    <- func-apply B VS E.
-
-step/fcall-eval : step (tm/fcall FN TS) (tm/fcall FN TS')
-		   <- step-tm-list TS TS'.
 
 step/letrec-1 : step (tm/letrec B) V
 		 <- value-decls B V.
@@ -221,16 +214,6 @@ step/letrec-2 : step (tm/letrec B) (tm/letrec B')
 
 
 
-
-
-step-tm-list/z : step-tm-list tm-list/z tm-list/z.
-
-step-tm-list/s-1 : step-tm-list (tm-list/s T R) (tm-list/s T' R)
-		    <- step T T'.
-
-step-tm-list/s-2 : step-tm-list (tm-list/s V R) (tm-list/s V R')
-		    <- value V
-		    <- step-tm-list R R'.
 
 %{
 
@@ -293,7 +276,7 @@ letrec-test4 = letrec (decls/s [g : fname (tp-list/s tp/nat tp-list/z) tp/nat] d
 %query 1 2 (steps-to letrec-test1 (tm/nat 0)).
 %query 1 2 (steps-to letrec-test2 (tm/nat 3)).
 %query 0 3 (steps-to letrec-test2 (tm/nat 0)).
-%query 1 2 (steps-to letrec-test4 (tm/nat 2)).
+%query 1 2 (steps-to letrec-test4 X).
 %query 1 2 (steps-to letrec-test3 X). %% This one is wrong pt.
 
 %{

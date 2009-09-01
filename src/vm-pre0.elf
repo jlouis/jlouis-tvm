@@ -39,22 +39,26 @@ tp-sig/s : tp-list -> tp -> tp-sig -> tp-sig.
 tm : tp -> type. %name tm T.
 %% Function names, with intrinsicly defined parameter and return types.
 fname : tp-list -> tp -> type. %name fname F.
-decls+defs : tp-sig -> tp-sig -> tp -> type. %% Type of letrec body
+decls : tp-sig -> type.
 defs : tp-sig -> type. %% Type of letrec body.
 fpar : tp-list -> tp -> type. %% Function parameters.
 tm-list : tp-list -> type. %% List of terms
 
-decls+defs/z : defs TSig -> tm T -> decls+defs tp-sig/z TSig T.
-decls+defs/s : (fname TS T -> decls+defs TSig' TSig T)
-		-> decls+defs (tp-sig/s TS T TSig') TSig T.
+decls/z : decls tp-sig/z.
+decls/s : decls TSig -> fname TS T -> decls (tp-sig/s TS T TSig).
 
 defs/z : defs tp-sig/z.
-defs/s : defs TSig' -> fpar TS T -> defs (tp-sig/s TS T TSig').
+defs/s : defs TSig -> fpar TS T -> defs (tp-sig/s TS T TSig).
 
 fpar/z : tm T -> fpar tp-list/z T.
 fpar/s : (tm T -> fpar TS T') -> fpar (tp-list/s T TS) T'.
 
+lr-bind : tp-sig -> tp-sig -> tp -> type.
 
+lr-bind/s : (fname TS T -> lr-bind TSig' TSig TMT)
+	     -> lr-bind TSig' (tp-sig/s TS T TSig ) TMT.
+lr-bind/z : decls TSig' -> defs TSig'
+			-> tm T -> lr-bind TSig' tp-sig/z T.
 
 tm/nat : nat -> tm tp/nat.
 tm/bool : nat -> tm tp/bool.
@@ -63,7 +67,7 @@ tm/mone : tm tp/nat -> tm tp/nat -> tm tp/nat.
 tm/ifte : tm tp/bool -> tm T -> tm T -> tm T.
 tm/let : tm T -> (tm T -> tm T') -> tm T'.
 tm/fcall : fname TS T -> tm-list TS -> tm T.
-tm/letrec : decls+defs TS TS T -> tm T.
+tm/letrec : lr-bind TSig TSig T -> tm T.
 tm/isz : tm tp/nat -> tm tp/bool.
 
 nat    = tm/nat.
@@ -93,25 +97,15 @@ value : tm T -> type.
 value/nat : value (tm/nat _).
 
 
+value-lr-bind : lr-bind _ _ T -> tm T -> type.
 
-value-decls+defs : decls+defs _ _ T -> tm T -> type.
-%mode value-decls+defs +T -T'.
+%mode value-lr-bind +LRB -T.
 
-value-decls+defs/z : value-decls+defs (decls+defs/z DZ T) T
-		      <- value T.
-value-decls+defs/s : value-decls+defs (decls+defs/s [f] D f) T'
-		      <- ({f} value-decls+defs (D f) T').
+value-lr-bind/z : value-lr-bind (lr-bind/z _ _ T) T
+		   <- value T.
 
-
-%{
-value-list : tm-list TS -> type.
-%mode value-list +TML.
-
-value-list/z : value-list tm-list/z.
-
-value-list/s : value-list (tm-list/s V R)
-		<- value V
-		<- value-list R.
+value-lr-bind/s : value-lr-bind (lr-bind/s [f] D f) T
+		   <- ({f} value-lr-bind (D f) T).
 
 %{ Small-step relation }%
 
@@ -132,28 +126,23 @@ func-apply/s : func-apply (fpar/s [x] E x) (tm-list/s T R) T'
 step : tm T -> tm T -> type.
 %mode step +T -T'.
 
-bind-decls : decls T -> decls T -> type.
-%mode bind-decls +D -D'.
-bind-defs : defs T -> defs T -> type.
-%mode bind-defs +D -D'.
+step-lr-bind : lr-bind TS1 TS2 T -> lr-bind TS1 TS2 T -> type.
+%mode step-lr-bind +B -B'.
 
+step-decls+defs : decls TS -> defs TS -> tm T -> tm T -> type.
+%mode step-decls+defs +D +De +T -T'.
 
+step-decls+defs/z : step-decls+defs decls/z defs/z T T'
+		     <- step T T'.
 
-bind-decls/z : bind-decls (decls/z D) (decls/z D')
-	    <- bind-defs D D'.
+step-decls+defs/s : step-decls+defs (decls/s RDecls F) (defs/s RDefs FB) T T'
+		     <- (func-map F FB -> step-decls+defs RDecls RDefs T T').
 
-bind-decls/s : bind-decls (decls/s [f : fname TS T] D f) (decls/s [f : fname TS T] D' f)
-	    <- ({f : fname TS T} bind-decls (D f) (D' f)).
+step-lr-bind/z : step-lr-bind (lr-bind/z Decls Defs T) (lr-bind/z Decls Defs T')
+		  <- step-decls+defs Decls Defs T T'.
 
-
-
-bind-defs/z : bind-defs (defs/z T) (defs/z T')
-	       <- step T T'.
-
-bind-defs/s : bind-defs (defs/s F T D) (defs/s F T D')
-	       <- (func-map F T -> bind-defs D D').
-
-
+step-lr-bind/s : step-lr-bind (lr-bind/s [f : fname TS T] D f) (lr-bind/s [f] D' f)
+		  <- ({f : fname TS T} step-lr-bind (D f) (D' f)).
 
 step/isz : step (tm/isz E) (tm/isz E')
 	    <- step E E'.
@@ -178,8 +167,6 @@ step/mone-2 : step (tm/mone V E) (tm/mone V E')
 	       <- value V
 	       <- step E E'.
 
-%%step/nat : step (tm/nat N) (tm/nat N).
-
 step/plus : step (tm/plus (tm/nat N1) (tm/nat N2)) (tm/nat N3)
 	     <- nat-plus N1 N2 N3.
 
@@ -203,14 +190,13 @@ step/fcall-apply : step (tm/fcall FN VS) E
 		    <- func-apply B VS E.
 
 step/letrec-1 : step (tm/letrec B) V
-		 <- value-decls B V.
+		 <- value-lr-bind B V.
 
 step/letrec-2 : step (tm/letrec B) (tm/letrec B')
-		 <- bind-decls B B'.
+		 <- step-lr-bind B B'.
 
 
-
-
+%{
 %{
 
 Iterated step relations

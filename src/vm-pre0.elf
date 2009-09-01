@@ -30,19 +30,25 @@ tp-list : type.
 tp-list/z : tp-list. %name tp-list TPL.
 tp-list/s : tp -> tp-list -> tp-list.
 
+tp-sig : type.
+
+tp-sig/z : tp-sig.
+tp-sig/s : tp-list -> tp -> tp-sig -> tp-sig.
+
 %{ Language syntax }%
 tm : tp -> type. %name tm T.
 %% Function names, with intrinsicly defined parameter and return types.
 fname : tp-list -> tp -> type. %name fname F.
-decls : tp -> type. %% Type of letrec body
-defs : tp -> type. %% Type of letrec body.
+decls+defs : tp-sig -> tp-sig -> tp -> type. %% Type of letrec body
+defs : tp-sig -> type. %% Type of letrec body.
 fpar : tp-list -> tp -> type. %% Function parameters.
 tm-list : tp-list -> type. %% List of terms
 
-decls/z : defs T -> decls T.
-decls/s : (fname TS T -> decls T) -> decls T.
+decls+defs/z : defs TSig -> tm T -> decls+defs tp-sig/z TSig T.
+decls+defs/s : (fname TS T -> decls+defs TSig' TSig T)
+		-> decls+defs (tp-sig/s TS T TSig') TSig T.
 
-defs/z : tm T -> defs T.
+defs/z : defs tp-sig/z.
 defs/s : fname TS T -> fpar TS T -> defs T' -> defs T'.
 
 fpar/z : tm T -> fpar tp-list/z T.
@@ -57,7 +63,7 @@ tm/mone : tm tp/nat -> tm tp/nat -> tm tp/nat.
 tm/ifte : tm tp/bool -> tm T -> tm T -> tm T.
 tm/let : tm T -> (tm T -> tm T') -> tm T'.
 tm/fcall : fname TS T -> tm-list TS -> tm T.
-tm/letrec : decls T -> tm T.
+tm/letrec : decls+defs TS TS T -> tm T.
 tm/isz : tm tp/nat -> tm tp/bool.
 
 nat    = tm/nat.
@@ -79,6 +85,7 @@ tm-list/s : tm T -> tm-list TS -> tm-list (tp-list/s T TS).
 nil = tm-list/z.
 cons = tm-list/s.
 
+%{
 %{ Static Semantics }%
 value : tm T -> type.
 %mode value +T.
@@ -323,4 +330,5 @@ even = [n] (letrec (decls/s [even : fname (tp-list/s tp/nat tp-list/z) tp/nat]
 %query 1 1 (steps-to (even (tm/nat 2)) (tm/nat 1)).
 %query 1 1 (steps-to (even (tm/nat 3)) (tm/nat 0)).
 
+}%
 }%

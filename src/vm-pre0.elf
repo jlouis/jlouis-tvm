@@ -49,7 +49,7 @@ decls+defs/s : (fname TS T -> decls+defs TSig' TSig T)
 		-> decls+defs (tp-sig/s TS T TSig') TSig T.
 
 defs/z : defs tp-sig/z.
-defs/s : fname TS T -> fpar TS T -> defs T' -> defs T'.
+defs/s : defs TSig' -> fpar TS T -> defs (tp-sig/s TS T TSig').
 
 fpar/z : tm T -> fpar tp-list/z T.
 fpar/s : (tm T -> fpar TS T') -> fpar (tp-list/s T TS) T'.
@@ -85,7 +85,7 @@ tm-list/s : tm T -> tm-list TS -> tm-list (tp-list/s T TS).
 nil = tm-list/z.
 cons = tm-list/s.
 
-%{
+
 %{ Static Semantics }%
 value : tm T -> type.
 %mode value +T.
@@ -94,27 +94,16 @@ value/nat : value (tm/nat _).
 
 
 
-value-decls : decls T -> tm T -> type.
-%mode value-decls +T -T'.
-value-defs  : defs T -> tm T -> type.
-%mode value-defs +T -T'.
+value-decls+defs : decls+defs _ _ T -> tm T -> type.
+%mode value-decls+defs +T -T'.
 
-value-decls/z : value-decls (decls/z D) T
-		 <- value-defs D T.
-
-value-decls/s : value-decls (decls/s [f : fname TS T] D f) T'
-		 <- ({f : fname TS T} value-decls (D f) T').
+value-decls+defs/z : value-decls+defs (decls+defs/z DZ T) T
+		      <- value T.
+value-decls+defs/s : value-decls+defs (decls+defs/s [f] D f) T'
+		      <- ({f} value-decls+defs (D f) T').
 
 
-
-value-defs/s : value-defs (defs/s _ _ D) T
-		<- value-defs D T.
-
-value-defs/z : value-defs (defs/z T) T
-		<- value T.
-
-
-
+%{
 value-list : tm-list TS -> type.
 %mode value-list +TML.
 

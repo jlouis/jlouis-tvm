@@ -10,61 +10,137 @@ Jesper Louis Andersen, 2009
 
 %{ **** Type System **** }%
 
+%% Primitive types
 tp : type.
 
 tp/nat : tp.
 tp/bool : tp.
 
+%% Lists of primitive types
 tp-list : type.
 
 tp-list/z : tp-list.
 tp-list/s : tp -> tp-list -> tp-list.
 
 
+%% "Type signatures". Describes a set of parameters and a
+%%   return type for the system.
+tp-sig : type.
+
+tp-sig/z : tp-sig.
+tp-sig/s : tp-list -> tp -> tp-sig -> tp-sig.
+
+
 %{ **** Syntax **** }%
 
-fbundle : type.
-fb-def : type.
+fbundle : tp-sig -> type.
+fb-def : tp -> type.
 
 
-tm : type.
-tm-list : type.
+tm : tp -> type.
+tm-list : tp-list -> type.
+fpar : tp-list -> tp -> type.
+
+fpar/z : tm T -> fpar tp-list/z T.
+fpar/s : (tm T -> fpar TS Tb) -> fpar (tp-list/s T TS) Tb.
 
 
-tm/nat : nat -> tm.
-tm/bool : nat -> tm.
-tm/isz : tm -> tm.
-tm/plus : tm -> tm -> tm.
-tm/mone : tm -> tm -> tm.
-tm/ifte : tm -> tm -> tm.
-tm/let : tm -> (tm -> tm) -> tm.
-tm/fcall : fbundle -> nat -> tm-list -> tm.
-tm/letrec : fb-def -> tm.
+tm/nat : nat -> tm tp/nat.
+tm/bool : nat -> tm tp/bool.
+tm/isz : tm tp/nat -> tm tp/bool.
+tm/plus : tm tp/nat -> tm tp/nat -> tm tp/nat.
+tm/mone : tm tp/nat -> tm tp/nat -> tm tp/nat.
+tm/ifte : tm tp/bool -> tm T -> tm T -> tm T.
+tm/let : tm T -> (tm T -> tm T') -> tm T'.
+%% This one needs some work for progress
+tm/fcall : fbundle TP-sig -> nat -> tm-list TS -> tm T.
+tm/letrec : fb-def T -> tm T.
 
 
-tm-list/z : tm-list.
-tm-list/s : tm -> tm-list -> tm-list.
+tm-list/z : tm-list tp-list/z.
+tm-list/s : tm T -> tm-list TS -> tm-list (tp-list/s T TS).
 
 
 %{ **** Static semantics **** }%
 
 %% Concept of values
-value : tm -> type.
+value : tm T -> type.
 %mode value +T.
 
 value/nat : value (tm/nat _).
 
+value-fb-def : fb-def T -> tm T -> type.
+
 
 %{ **** Dynamic Semantics **** }%
 
-step : tm -> tm -> type.
+%% Main step relation, given below
+step : tm T -> tm T -> type.
+%% Stepping underneath letrec bodies.
+step-letrec : fb-def T -> fb-def T -> type.
+%% Applying functions to arguments
+func-apply : fpar TS T -> tm-list TS -> tm T -> type.
+%% Find a function in a function bundle
+fbundle-find : fbundle TSig -> nat -> fpar TS T -> type.
+
+%% Define a context-oriented language definition.
+pctx : (tm T -> tm T') -> type.
 
 
+
+pctx/isz : pctx ([x] tm/isz x).
+
+pctx/plus-1 : pctx ([x] tm/plus x _).
+
+pctx/plus-2 : pctx ([x] tm/plus V x)
+	       <- value V.
+
+pctx/mone-1 : pctx ([x] tm/mone x _).
+
+pctx/mone-2 : pctx ([x] tm/mone V x)
+	       <- value V.
+
+pctx/ifte : pctx ([x] (tm/ifte x _ _)).
+
+pctx/let : pctx ([x] (tm/let x _)).
+
+
+
+
+step/ctx : step (EC E) (EC E')
+	    <- pctx EC
+	    <- step E E'.
+
+step/plus : step (tm/plus (tm/nat N1) (tm/nat N2)) (tm/nat N3)
+	     <- nat-plus N1 N2 N3.
+
+step/mone : step (tm/mone (tm/nat N1) (tm/nat N2)) (tm/nat N3)
+	     <- nat-mone N1 N2 N3.
+
+step/if-true : step (tm/ifte (tm/bool (s _)) E1 E2) E1.
+
+step/if-false : step (tm/ifte (tm/bool z) E1 E2) E2.
+
+step/let : step (tm/let V B) (B V)
+	    <- value V.
+
+step/isz-true  : step (tm/isz (tm/nat 0)) (tm/bool 1).
+step/isz-false : step (tm/isz (tm/nat (s _))) (tm/bool 0).
+
+step/fcall-apply : step (tm/fcall FB N TS) E
+		    <- fbundle-find FB N FP
+		    <- func-apply FP TS E.
+
+step/letrec-value : step (tm/letrec B) V
+		 <- value-fb-def B V.
+
+step/letrec-step : step (tm/letrec B) (tm/letrec B')
+		    <- step-letrec B B'.
 
 
 %{ **** Properties **** }%
 
-progress-good : tm -> type.
+progress-good : tm T -> type.
 
 progress-good/value : progress-good T
 		       <- value T.
@@ -73,7 +149,7 @@ progress-good/step : progress-good T
 		      <- step T _.
 
 
-progress : {T : tm} progress-good T.
+progress : {T : tm Ty} progress-good T.
 
 
 

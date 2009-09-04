@@ -1,0 +1,80 @@
+%{
+
+This is version (s z) of our pre-vm version.
+
+Jesper Louis Andersen, 2009
+
+}%
+
+
+
+%{ **** Type System **** }%
+
+tp : type.
+
+tp/nat : tp.
+tp/bool : tp.
+
+tp-list : type.
+
+tp-list/z : tp-list.
+tp-list/s : tp -> tp-list -> tp-list.
+
+
+%{ **** Syntax **** }%
+
+fbundle : type.
+fb-def : type.
+
+
+tm : type.
+tm-list : type.
+
+
+tm/nat : nat -> tm.
+tm/bool : nat -> tm.
+tm/isz : tm -> tm.
+tm/plus : tm -> tm -> tm.
+tm/mone : tm -> tm -> tm.
+tm/ifte : tm -> tm -> tm.
+tm/let : tm -> (tm -> tm) -> tm.
+tm/fcall : fbundle -> nat -> tm-list -> tm.
+tm/letrec : fb-def -> tm.
+
+
+tm-list/z : tm-list.
+tm-list/s : tm -> tm-list -> tm-list.
+
+
+%{ **** Static semantics **** }%
+
+%% Concept of values
+value : tm -> type.
+%mode value +T.
+
+value/nat : value (tm/nat _).
+
+
+%{ **** Dynamic Semantics **** }%
+
+step : tm -> tm -> type.
+
+
+
+
+%{ **** Properties **** }%
+
+progress-good : tm -> type.
+
+progress-good/value : progress-good T
+		       <- value T.
+
+progress-good/step : progress-good T
+		      <- step T _.
+
+
+progress : {T : tm} progress-good T.
+
+
+
+

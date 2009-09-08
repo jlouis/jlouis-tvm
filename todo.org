@@ -1,0 +1,46 @@
+##
+## TODO list for this project.
+
+* How do we type letrec-constructions?
+  It has become clear that the hard part here is to get a syntax down
+  which can drive a type system. The idea is that well-typed programs
+  must necessarily be in a state such we can show the safety
+  properties.
+
+  The complicating factor is that we ought to use an intrinsic type
+  system and we want to use a HOAS-style implementation. This makes
+  the system far harder to construct
+
+** How should the HOAS representation look?
+   We must define a proper HOAS-style system. This means we should
+   think long and hard about the binders and where they should be. The
+   problem with introduced binders is that they might complicate the
+   proofs later on so we should check that they actually do the right
+   thing.
+
+** What would a system calling by natural numbers look like?
+   With NAT types, many things should or ought to be trivial, but the
+   type system looks particularly nasty. Specifically, we need a way
+   to type function calls properly.
+
+** What does the twelf plparty letrec construction do?
+   Look up what the letrec construction does, especially with respect
+   to types:
+
+   [http://twelf.plparty.org/wiki/Letrec]
+
+** Will an extrinsic encoding do?
+   We can check whether or not an extrinsic encoding makes the
+   decision easier.
+
+* Ponder on a translation of the original system
+  Define a simple system in the backend and define a total translation
+  from the frontal system to the backend system. Perhaps this is an
+  easier solution than the current one.
+
+* Ponder on the structure of the progress-proof.
+  The point is that the progress-proof must hold. To make this hold,
+  certain parts of the proof must be true. The proof structure
+  mandates how the system should work, so it is important.
+
+

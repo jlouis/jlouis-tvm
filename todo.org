@@ -11,6 +11,21 @@
   system and we want to use a HOAS-style implementation. This makes
   the system far harder to construct
 
+** What are function bundles?
+   Function bundles are collections of function bodies. These
+   collections need the ability to project out a single function body
+   based on some domain, be it natural numbers or f-names. When the
+   projection is being done, we must be sure to also get the types of
+   the resulting projection right.
+
+   Function bundles are introduced in the context when we process them
+   in the semantics. Projection out of the bundle happens when we call
+   a function inside them at which point we substitute the right
+   function body for the call. It that point it is important that
+   function body substitution happens in an effective way: In the
+   progress-proof we need that if the program is well-typed, then such
+   a substitution can *always* happen, so we can step on it.
+
 ** How should the HOAS representation look?
    We must define a proper HOAS-style system. This means we should
    think long and hard about the binders and where they should be. The
@@ -18,25 +33,83 @@
    proofs later on so we should check that they actually do the right
    thing.
 
-** What would a system calling by natural numbers look like?
+** DONE What would a system calling by natural numbers look like?
    With NAT types, many things should or ought to be trivial, but the
    type system looks particularly nasty. Specifically, we need a way
    to type function calls properly.
 
-** What does the twelf plparty letrec construction do?
+   ----
+   A Natural number system would use an extrinsic encoding and look
+   much like the Letrec-example from the plparty web page. The crucial
+   point in the representation is at the point where one defines a
+   relation
+
+   : nat -> tp-list -> tp -> type.
+
+   which can be used to look up the type of function number N in the
+   list. If this holds, you know that you eventually get a hit in the
+   type list and thus you can drive an effectiveness lemma on this.
+
+   It also forces an extrinsic encoding.
+
+** DONE What does the twelf plparty letrec construction do?
    Look up what the letrec construction does, especially with respect
    to types:
 
    [http://twelf.plparty.org/wiki/Letrec]
 
+   ----
+   Here is what they do:
+
+   We define the type system extrinsically. We can define
+   a type-list-get construction which lets us extract the nth element
+   from the type list and use it in the extrinsic encoding and then
+   function lookup is easy. After some work, we then have a type
+   system which can ensure the type of a function call is correct by
+   looking up the right type.
+
+   To show progress, they define a large number of effectiveness
+   lemmas. One such is:
+
+   : can-expand-oexplist _ _ _ DNP DX.
+
+   Note the large number of automatically filled values given by
+   wild-cards. A typical situation of effectiveness lemmas I guess.
+
 ** Will an extrinsic encoding do?
    We can check whether or not an extrinsic encoding makes the
    decision easier.
+
+   I think that an extrinsic encoding works together with natural
+   numbers. You basically run a 'type-list-get' as in the plparty
+   version, get the right type and then run the progress and
+   preservation proofs based on effectiveness of these.
+
+   It is more unclear what happens if we use an f-name approach to the
+   problem. We must be sure that a lookup will happen correctly. In
+   the NAT-version this is achieved by means of type-list-get. If such
+   a derivation exists, we know that the natural number is somewhere
+   in there. Idea: Store this fact in the context and utilize it in
+   the proof.
+
+   For an intrinsic encoding, it becomes clear that we must do without
+   a relation like 'type-list-get' which is used for the NAT-case. The
+   type safety must be bound to the f-name and we must have a proof
+   that if some f-name is introduced, then we can find its function
+   body in the appropriate f-bundle.
+
+** Question: Intrinsic/Extrinsic AND f-name/NAT
+   4 bits of options. But if we choose a NAT representation, then we
+   MUST use an Extrinsic encoding it seems. This gives 3
+   possibilities: NAT/Ext, f-name/Int and f-name/Ext. An open question
+   is how the f-name representations would look like, so target this.
 
 * Ponder on a translation of the original system
   Define a simple system in the backend and define a total translation
   from the frontal system to the backend system. Perhaps this is an
   easier solution than the current one.
+
+  This might be the only way to get a quite beautiful system.
 
 * Ponder on the structure of the progress-proof.
   The point is that the progress-proof must hold. To make this hold,

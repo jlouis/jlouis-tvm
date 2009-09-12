@@ -101,9 +101,9 @@ tm/letrec : (fbundle FTL -> fun-def-list FTL)
 value : tm T -> type.
 
 
-value/cst-n : value (tm/cst-n X).
+value/cst-n : value (tm/cst-n _).
 
-value/cst-n : value (tm/cst-b X).
+value/cst-b : value (tm/cst-b _).
 
 
 
@@ -144,4 +144,36 @@ step/letrec : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
 step/call : step (tm/call FN EL) E
 	     <- fbundle-lookup FN (fun-def-list/cons FDef _)
 	     <- fun-apply FDef EL E.
+
+
+%{
+
+********* PROPERTIES *********
+
+}%
+
+progress-good : tm T -> type.
+
+progress-good/value : progress-good V
+		       <- value V.
+
+progress-good/step : progress-good E
+		      <- step E E'.
+
+
+
+progress : {E : tm T} progress-good E -> type.
+%mode progress +E -PG.
+
+
+- : progress (tm/cst-n _) (progress-good/value value/cst-n).
+
+- : progress (tm/cst-b _) (progress-good/value value/cst-b).
+
+- : progress (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (progress-good/step (step/plus NPP))
+     <- can-nat-plus N1 N2 NPP.
+
+
+%worlds () (progress _ _).
+%%total E (progress E _).
 

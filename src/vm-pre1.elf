@@ -8,7 +8,11 @@ Jesper Louis Andersen, 2009
 
 
 
-%{ **** Type System **** }%
+%{
+
+******** Type System ********
+
+}%
 
 %% Primitive types
 tp : type.
@@ -19,138 +23,119 @@ tp/bool : tp.
 %% Lists of primitive types
 tp-list : type.
 
-tp-list/z : tp-list.
-tp-list/s : tp -> tp-list -> tp-list.
+tp-list/nil : tp-list.
+tp-list/cons : tp -> tp-list -> tp-list.
 
+%% Function types
+fun-tp : type.
+%% There is only way to introduce a function type.
+fun-tp/ : tp-list -> tp -> fun-tp.
 
-%% "Type signatures". Describes a set of parameters and a
-%%   return type for the system.
-tp-sig : type.
+fun-tp-list : type.
+fun-tp-list/nil : fun-tp-list.
+fun-tp-list/cons : fun-tp -> fun-tp-list -> fun-tp-list.
 
-tp-sig/z : tp-sig.
-tp-sig/s : tp-list -> tp -> tp-sig -> tp-sig.
+%{
 
+******** Syntax ********
 
-%{ **** Syntax **** }%
+}%
 
-fbundle : tp-sig -> type.
-fb-def : tp -> type.
+%{ Introduction of function bundles.
+
+   Function names
+   Function bundles
+
+   TODO: DOCUMENT FOR GODS SAKE!
+}%
+
+fname : fun-tp -> type.
+fbundle : fun-tp-list -> type.
+
+f-hd : fbundle (fun-tp-list/cons FT FTL) -> fname FT.
+f-tl : fbundle (fun-tp-list/cons FT FTL) -> fbundle FTL.
+
 
 
 tm : tp -> type.
 tm-list : tp-list -> type.
-fpar : tp-list -> tp -> type.
 
-fpar/z : tm T -> fpar tp-list/z T.
-fpar/s : (tm T -> fpar TS Tb) -> fpar (tp-list/s T TS) Tb.
-
-
-tm/nat : nat -> tm tp/nat.
-tm/bool : nat -> tm tp/bool.
-tm/isz : tm tp/nat -> tm tp/bool.
-tm/plus : tm tp/nat -> tm tp/nat -> tm tp/nat.
-tm/mone : tm tp/nat -> tm tp/nat -> tm tp/nat.
-tm/ifte : tm tp/bool -> tm T -> tm T -> tm T.
-tm/let : tm T -> (tm T -> tm T') -> tm T'.
-%% This one needs some work for progress
-tm/fcall : fbundle TP-sig -> nat -> tm-list TS -> tm T.
-tm/letrec : fb-def T -> tm T.
+tm-list/nil : tm-list tp-list/nil.
+tm-list/cons : tm T -> tm-list TL -> tm-list (tp-list/cons T TL).
 
 
-tm-list/z : tm-list tp-list/z.
-tm-list/s : tm T -> tm-list TS -> tm-list (tp-list/s T TS).
+fun-def : fun-tp -> type.
+
+fun-def/body : tm T -> (fun-def (fun-tp/ tp-list/nil T)).
+fun-def/parm : (tm T0 -> fun-def (fun-tp/ TL T)) -> fun-def (fun-tp/ (tp-list/cons T0 TL) T).
+
+fun-def-list : fun-tp-list -> type.
+
+fun-def-list/nil : fun-def-list fun-tp-list/nil.
+fun-def-list/cons : fun-def FT -> fun-def-list FTL -> fun-def-list (fun-tp-list/cons FT FTL).
+
+fun-list : fun-tp-list -> type.
+
+fun-list/nil : fun-list fun-tp-list/nil.
+fun-list/cons : fun-def FT -> fun-list FTL -> fun-list (fun-tp-list/cons FT FTL).
 
 
-%{ **** Static semantics **** }%
+%{ Primitive constants }%
+tm/cst-n : nat -> tm tp/nat.
+tm/cst-b : nat -> tm tp/bool.
+tm/plus  : tm tp/nat -> tm tp/nat -> tm tp/nat.
 
-%% Concept of values
+
+tm/call : fname (fun-tp/ TL T) -> tm-list TL -> tm T.
+tm/letrec : (fbundle FTL -> fun-def-list FTL)
+               -> (fbundle FTL -> tm T) -> tm T.
+
+
+
+%{
+
+******** STATIC SEMANTICS ********
+
+}%
+
 value : tm T -> type.
-%mode value +T.
-
-value/nat : value (tm/nat _).
-
-value-fb-def : fb-def T -> tm T -> type.
 
 
-%{ **** Dynamic Semantics **** }%
+value/cst-n : value (tm/cst-n X).
 
-%% Main step relation, given below
-step : tm T -> tm T -> type.
-%% Stepping underneath letrec bodies.
-step-letrec : fb-def T -> fb-def T -> type.
-%% Applying functions to arguments
-func-apply : fpar TS T -> tm-list TS -> tm T -> type.
-%% Find a function in a function bundle
-fbundle-find : fbundle TSig -> nat -> fpar TS T -> type.
+value/cst-n : value (tm/cst-b X).
 
-%% Define a context-oriented language definition.
+
+
 pctx : (tm T -> tm T') -> type.
-
-
-
-pctx/isz : pctx ([x] tm/isz x).
 
 pctx/plus-1 : pctx ([x] tm/plus x _).
 
 pctx/plus-2 : pctx ([x] tm/plus V x)
 	       <- value V.
 
-pctx/mone-1 : pctx ([x] tm/mone x _).
 
-pctx/mone-2 : pctx ([x] tm/mone V x)
-	       <- value V.
+step : tm T -> tm T -> type.
 
-pctx/ifte : pctx ([x] (tm/ifte x _ _)).
-
-pctx/let : pctx ([x] (tm/let x _)).
+%% Binding construct for function-bundles
+fb-bind : fbundle FTL -> fun-def-list FTL -> type.
+fbundle-lookup : fname FT -> fun-def FT -> type.
 
 
-
+fun-apply : fun-def (fun-tp/ TL T) -> tm-list TL -> tm T -> type.
 
 step/ctx : step (EC E) (EC E')
 	    <- pctx EC
 	    <- step E E'.
 
-step/plus : step (tm/plus (tm/nat N1) (tm/nat N2)) (tm/nat N3)
+step/plus : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
 	     <- nat-plus N1 N2 N3.
 
-step/mone : step (tm/mone (tm/nat N1) (tm/nat N2)) (tm/nat N3)
-	     <- nat-mone N1 N2 N3.
+step/letrec : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
+	       <- ({fb} fb-bind fb (Defs fb) ->
+			  step (Body fb) E).
 
-step/if-true : step (tm/ifte (tm/bool (s _)) E1 E2) E1.
-
-step/if-false : step (tm/ifte (tm/bool z) E1 E2) E2.
-
-step/let : step (tm/let V B) (B V)
-	    <- value V.
-
-step/isz-true  : step (tm/isz (tm/nat 0)) (tm/bool 1).
-step/isz-false : step (tm/isz (tm/nat (s _))) (tm/bool 0).
-
-step/fcall-apply : step (tm/fcall FB N TS) E
-		    <- fbundle-find FB N FP
-		    <- func-apply FP TS E.
-
-step/letrec-value : step (tm/letrec B) V
-		 <- value-fb-def B V.
-
-step/letrec-step : step (tm/letrec B) (tm/letrec B')
-		    <- step-letrec B B'.
-
-
-%{ **** Properties **** }%
-
-progress-good : tm T -> type.
-
-progress-good/value : progress-good T
-		       <- value T.
-
-progress-good/step : progress-good T
-		      <- step T _.
-
-
-progress : {T : tm Ty} progress-good T.
-
-
-
+step/call : step (tm/call FN EL) E
+	     <- fbundle-lookup FN FDef
+	     <- fun-apply FDef EL E.
 

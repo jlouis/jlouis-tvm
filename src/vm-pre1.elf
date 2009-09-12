@@ -119,7 +119,13 @@ step : tm T -> tm T -> type.
 
 %% Binding construct for function-bundles
 fb-bind : fbundle FTL -> fun-def-list FTL -> type.
-fbundle-lookup : fname FT -> fun-def FT -> type.
+fbundle-lookup : fname FT -> fun-def-list (fun-tp-list/cons FT _) -> type.
+
+fbundle-lookup/ctx-hit : fbundle-lookup (f-hd FB) FL
+			  <- fb-bind FB FL.
+
+fbundle-lookup/miss : fbundle-lookup (f-hd (f-tl FB)) R
+		       <- fbundle-lookup (f-hd FB) (fun-def-list/cons _ R).
 
 
 fun-apply : fun-def (fun-tp/ TL T) -> tm-list TL -> tm T -> type.
@@ -136,6 +142,6 @@ step/letrec : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
 			  step (Body fb) E).
 
 step/call : step (tm/call FN EL) E
-	     <- fbundle-lookup FN FDef
+	     <- fbundle-lookup FN (fun-def-list/cons FDef _)
 	     <- fun-apply FDef EL E.
 

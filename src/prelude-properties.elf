@@ -1,0 +1,18 @@
+%{
+
+PROPERTIES OF THE PRELUDE
+
+}%
+
+can-nat-plus : {N1} {N2} nat-plus N1 N2 N3 -> type.
+%mode can-nat-plus +N1 +N2 -NPP.
+
+- : can-nat-plus z z nat-plus/z.
+
+- : can-nat-plus z (s _) nat-plus/z.
+
+- : can-nat-plus (s K) L (nat-plus/s NPP')
+     <- can-nat-plus K L NPP'.
+
+%worlds () (can-nat-plus _ _ _).
+%total N (can-nat-plus N _ _).

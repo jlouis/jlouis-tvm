@@ -91,6 +91,10 @@ tm/letrec : (fbundle FTL -> fun-def-list FTL)
                -> (fbundle FTL -> tm T) -> tm T.
 
 
+%{ Equality on terms. Syntactical equal terms are equal }%
+tm-eq : tm T -> tm T -> type.
+
+tm-eq/refl : tm-eq E E.
 
 %{
 
@@ -105,6 +109,11 @@ value/cst-n : value (tm/cst-n _).
 
 value/cst-b : value (tm/cst-b _).
 
+value-letrec : tm T -> tm T -> type.
+%mode value-letrec +T -T'.
+
+value-letrec/cst-n : value-letrec (tm/cst-n N) (tm/cst-n N).
+value-letrec/cst-b : value-letrec (tm/cst-b B) (tm/cst-b B).
 
 step : tm T -> tm T -> type.
 
@@ -131,9 +140,13 @@ step/plus-2 : step (tm/plus V1 E2) (tm/plus V1 E2')
 step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
 	       <- nat-plus N1 N2 N3.
 
-step/letrec : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
-	       <- ({fb} fb-bind fb (Defs fb) ->
-			  step (Body fb) E).
+step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) V
+		 <- ({fb} fb-bind fb (Defs fb) ->
+		       value (Body fb) -> tm-eq (Body fb) V).
+
+step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
+		 <- ({fb} fb-bind fb (Defs fb) ->
+		       step (Body fb) E).
 
 step/call : step (tm/call FN EL) E
 	     <- fbundle-lookup FN (fun-def-list/cons FDef _)
@@ -158,8 +171,15 @@ progress-good/step : progress-good E
 
 
 %{ Lemma capturing Plus }%
+fbundle-progress-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
+%mode fbundle-progress-map +F -B.
 
-progress-plus : progress-good E1 -> progress-good E2 -> progress-good (tm/plus E1 E2) -> type.
+progress-plus :
+%%
+    progress-good E1 ->
+    progress-good E2 ->
+%%
+    progress-good (tm/plus E1 E2) -> type.
 %mode  +{E1} +{E2}
        +{PG1 : progress-good E1} +{PG2 : progress-good E2}
        -{PGG : progress-good (tm/plus E1 E2)}
@@ -178,6 +198,17 @@ progress-plus : progress-good E1 -> progress-good E2 -> progress-good (tm/plus E
 %worlds () (progress-plus _ _ _).
 %total N (progress-plus N _ _).
 
+
+progress-letrec : ({fb : fbundle FTL} progress-good (Body fb))
+		   -> progress-good (tm/letrec D ([fb] Body fb)).
+%mode +{FTL} +{T}
+      +{D : fbundle FTL -> fun-def-list FTL}
+      +{Body : fbundle FTL -> tm T}
+      +{PG : {fb : fbundle FTL} progress-good (Body fb)}
+      -{Q : progress-good (tm/letrec D ([fb] Body fb))}
+          progress-letrec PG Q.
+
+
 %{
 
 **** MAIN PROGRESS LEMMA ****
@@ -188,16 +219,41 @@ progress : {E : tm T} progress-good E -> type.
 %mode progress +E -PG.
 
 
-- : progress (tm/cst-n _) (progress-good/value value/cst-n).
+-/c1 : progress (tm/cst-n _) (progress-good/value value/cst-n).
 
-- : progress (tm/cst-b _) (progress-good/value value/cst-b).
+-/c2 : progress (tm/cst-b _) (progress-good/value value/cst-b).
 
-- : progress (tm/plus E1 E2) PGG
+-/p : progress (tm/plus E1 E2) PGG
      <- progress E1 PG1
      <- progress E2 PG2
      <- progress-plus PG1 PG2 PGG.
 
+-/lrv : progress (tm/letrec Defs Body) Q
+     <- ({fb : fbundle FTL} {fb_bind : fb-bind fb (Defs fb)}
+	   {fbundle_map : fbundle-progress-map fb fb_bind}
+	     progress (Body fb) (PG fb) ->
+	     progress-letrec (PG fb) Q).
 
-%%worlds () (progress _ _).
+%{
+
+The tm/call holds because of 2 effectiveness lemmas: can-lookup-fbundle
+and can-apply-function. I've thought about those and they look simple.
+
+}%
+
+%% We miss a case for when the body is a value up in the semantics.
+%{
+- : progress (tm/letrec ([fb] Defs fb) ([fb] Body fb))
+       (progress-good/step (step/letrec PP))
+     <- ({fb} fbundle-progress-map fb (Defs fb)
+	   -> progress (Body fb) PP).
+}%
+%block progress-1 : some {FTL} {Defs}
+                    block {fb : fbundle FTL}
+		          {fb_bind : fb-bind fb Defs}
+                          {fbundle_map : fbundle-progress-map fb fb_bind}.
+
+
+%worlds (progress-1) (progress _ _).
 %%total E (progress E _).
 

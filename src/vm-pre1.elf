@@ -204,9 +204,9 @@ progress-plus :
        (progress-good/step (step/plus-3 CNP))
      <- can-nat-plus _ _ CNP.
 
-progress-letrec : {Defs} ({F} progress-good (Body F))
+progress-letrec : ({F} progress-good (Body F))
 		   -> progress-good (tm/letrec Defs Body) -> type.
-%mode progress-letrec +Defs +PG -PGG.
+%mode progress-letrec +PG -PGG.
 
 
 
@@ -235,7 +235,7 @@ progress : {E : tm T} progress-good E -> type.
 	   progress (Body fb) (PG fb))
      <- ({fb : fbundle FTL} {fbind : fb-bind fb (D fb)}
 	   {fbmap : fb-bind-map fb fbind}
-	   progress-letrec Defs PG Q).
+	   progress-letrec PG Q).
 
 %{
 
@@ -249,7 +249,7 @@ and can-apply-function. I've thought about those and they look simple.
 		          {fb_bind : fb-bind fb (Defs fb)}
                           {fbundle_map : fb-bind-map fb fb_bind}.
 
-%worlds (progress-1) (progress-letrec _ _ _).
+%worlds (progress-1) (progress-letrec _ _).
 
 %worlds (progress-1) (progress-plus _ _ _).
 %total N (progress-plus N _ _).

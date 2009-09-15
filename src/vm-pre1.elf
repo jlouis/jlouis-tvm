@@ -119,6 +119,8 @@ step : tm T -> tm T -> type.
 
 %% Binding construct for function-bundles
 fb-bind : fbundle FTL -> fun-def-list FTL -> type.
+%mode fb-bind +FB -FDef.
+
 fbundle-lookup : fname FT -> fun-def-list (fun-tp-list/cons FT _) -> type.
 
 fbundle-lookup/ctx-hit : fbundle-lookup (f-hd FB) FL
@@ -140,11 +142,9 @@ step/plus-2 : step (tm/plus V1 E2) (tm/plus V1 E2')
 step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
 	       <- nat-plus N1 N2 N3.
 
-%{
 step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) V
 		 <- ({fb} fb-bind fb (Defs fb) ->
 		       value (Body fb) -> tm-eq (Body fb) V).
-}%
 
 step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
 		 <- ({fb} fb-bind fb (Defs fb) ->
@@ -173,8 +173,13 @@ progress-good/step : progress-good E
 
 
 %{ Lemma capturing Plus }%
-fbundle-progress-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
-%mode fbundle-progress-map +F -B.
+fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
+%mode +{FTL} +{D : fun-def-list FTL} +{F : fbundle FTL}
+      -{B : fb-bind F D}
+      fb-bind-map F B.
+
+%worlds () (fb-bind-map _ _).
+%%total F (fb-bind-map F _).
 
 progress-plus :
 %%
@@ -197,8 +202,10 @@ progress-plus :
        (progress-good/step (step/plus-3 CNP))
      <- can-nat-plus _ _ CNP.
 
-%worlds () (progress-plus _ _ _).
-%total N (progress-plus N _ _).
+progress-letrec : {Defs} ({F} progress-good (Body F))
+		   -> progress-good (tm/letrec Defs Body) -> type.
+%mode progress-letrec +Defs +PG -PGG.
+
 
 
 %{
@@ -206,11 +213,6 @@ progress-plus :
 **** MAIN PROGRESS LEMMA ****
 
 }%
-
-progress-letrec : progress-good (B FB) -> progress-good (tm/letrec D B) -> type.
-%mode progress-letrec +PG -PGG.
-
-%worlds () (progress-letrec _ _).
 
 progress : {E : tm T} progress-good E -> type.
 %mode progress +E -PG.
@@ -226,12 +228,12 @@ progress : {E : tm T} progress-good E -> type.
      <- progress-plus PG1 PG2 PGG.
 
 -/lrv : progress (tm/letrec Defs Body) Q
-     <- ({fb : fbundle FTL}
+     <- ({fb : fbundle FTL} {fbind : fb-bind fb (D fb)}
+	   {fbmap : fb-bind-map fb fbind}
 	   progress (Body fb) (PG fb))
-     <- ({fb : fbundle FTL}
-	   progress-letrec (PG fb) Q).
-
-
+     <- ({fb : fbundle FTL} {fbind : fb-bind fb (D fb)}
+	   {fbmap : fb-bind-map fb fbind}
+	   progress-letrec Defs PG Q).
 
 %{
 
@@ -240,18 +242,17 @@ and can-apply-function. I've thought about those and they look simple.
 
 }%
 
-%% We miss a case for when the body is a value up in the semantics.
-%{
-- : progress (tm/letrec ([fb] Defs fb) ([fb] Body fb))
-       (progress-good/step (step/letrec PP))
-     <- ({fb} fbundle-progress-map fb (Defs fb)
-	   -> progress (Body fb) PP).
-}%
-%block progress-1 : some {FTL} {Defs}
+%block progress-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
                     block {fb : fbundle FTL}
-		          {fb_bind : fb-bind fb Defs}
-                          {fbundle_map : fbundle-progress-map fb fb_bind}.
+		          {fb_bind : fb-bind fb (Defs fb)}
+                          {fbundle_map : fb-bind-map fb fb_bind}.
 
+%worlds (progress-1) (progress-letrec _ _ _).
+
+%worlds (progress-1) (progress-plus _ _ _).
+%total N (progress-plus N _ _).
+
+%worlds (progress-1) (progress _ _).
 
 %%worlds () (progress _ _).
 %%total E (progress E _).

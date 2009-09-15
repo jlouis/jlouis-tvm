@@ -140,9 +140,11 @@ step/plus-2 : step (tm/plus V1 E2) (tm/plus V1 E2')
 step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
 	       <- nat-plus N1 N2 N3.
 
+%{
 step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) V
 		 <- ({fb} fb-bind fb (Defs fb) ->
 		       value (Body fb) -> tm-eq (Body fb) V).
+}%
 
 step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
 		 <- ({fb} fb-bind fb (Defs fb) ->
@@ -199,21 +201,16 @@ progress-plus :
 %total N (progress-plus N _ _).
 
 
-progress-letrec : ({fb : fbundle FTL} progress-good (Body fb))
-		   -> progress-good (tm/letrec D ([fb] Body fb)).
-%mode +{FTL} +{T}
-      +{D : fbundle FTL -> fun-def-list FTL}
-      +{Body : fbundle FTL -> tm T}
-      +{PG : {fb : fbundle FTL} progress-good (Body fb)}
-      -{Q : progress-good (tm/letrec D ([fb] Body fb))}
-          progress-letrec PG Q.
-
-
 %{
 
 **** MAIN PROGRESS LEMMA ****
 
 }%
+
+progress-letrec : progress-good (B FB) -> progress-good (tm/letrec D B) -> type.
+%mode progress-letrec +PG -PGG.
+
+%worlds () (progress-letrec _ _).
 
 progress : {E : tm T} progress-good E -> type.
 %mode progress +E -PG.
@@ -229,10 +226,12 @@ progress : {E : tm T} progress-good E -> type.
      <- progress-plus PG1 PG2 PGG.
 
 -/lrv : progress (tm/letrec Defs Body) Q
-     <- ({fb : fbundle FTL} {fb_bind : fb-bind fb (Defs fb)}
-	   {fbundle_map : fbundle-progress-map fb fb_bind}
-	     progress (Body fb) (PG fb) ->
-	     progress-letrec (PG fb) Q).
+     <- ({fb : fbundle FTL}
+	   progress (Body fb) (PG fb))
+     <- ({fb : fbundle FTL}
+	   progress-letrec (PG fb) Q).
+
+
 
 %{
 
@@ -254,6 +253,6 @@ and can-apply-function. I've thought about those and they look simple.
                           {fbundle_map : fbundle-progress-map fb fb_bind}.
 
 
-%worlds (progress-1) (progress _ _).
+%%worlds () (progress _ _).
 %%total E (progress E _).
 

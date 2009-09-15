@@ -144,7 +144,9 @@ step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
 
 step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) V
 		 <- ({fb} fb-bind fb (Defs fb) ->
-		       value (Body fb) -> tm-eq (Body fb) V).
+			  value (Body fb))
+		 <- ({fb} fb-bind fb (Defs fb) ->
+			  tm-eq (Body fb) V).
 
 step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
 		 <- ({fb} fb-bind fb (Defs fb) ->

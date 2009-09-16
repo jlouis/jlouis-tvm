@@ -188,10 +188,13 @@ progress-good/step : progress-good E
 
 
 %{ Lemma capturing Plus }%
-fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
-%mode +{FTL} -{D : fun-def-list FTL} +{F : fbundle FTL}
-      -{B : fb-bind F D}
-      fb-bind-map F B.
+fb-bind-map : {FB : fbundle FTL} fb-bind FB (Defs FB) -> type.
+%{
+%mode +{FTL} +{F} -{Defs : fbundle FTL -> fun-def-list FTL}
+      -{Bind : fb-bind F (Defs F)}
+      fb-bind-map F Bind.
+}%
+%mode fb-bind-map +F -B.
 
 can-fbundle-lookup : {FB : fbundle FTL} fbundle-lookup FB FDL -> type.
 %mode can-fbundle-lookup +FN -FL.
@@ -201,7 +204,6 @@ can-fbundle-lookup : {FB : fbundle FTL} fbundle-lookup FB FDL -> type.
 
 - : can-fbundle-lookup (f-tl FB) (fbundle-lookup/dig Q)
      <- can-fbundle-lookup FB Q.
-
 
 can-fun-apply : {EL : tm-list TL} fun-apply Parms EL T -> type.
 %mode +{T : tp} +{TL : tp-list} +{Parms}
@@ -273,7 +275,7 @@ progress : {E : tm T} progress-good E -> type.
 -/lr : progress (tm/letrec Defs Body) Q
 	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
 	      {fbmap : fb-bind-map fb fbind}
-	      progress (Body fb) (PG _))
+	      progress (Body fb) (PG fb))
 	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
 	      {fbmap : fb-bind-map fb fbind}
 	      progress-letrec PG Q).
@@ -287,21 +289,14 @@ progress : {E : tm T} progress-good E -> type.
 		          {fb_bind : fb-bind fb (Defs fb)}
                           {fbundle_map : fb-bind-map fb fb_bind}.
 
-%worlds (progress-1) (progress-letrec _ _).
+%worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
+                     (fb-bind-map _ _) (can-fun-apply _ _)
+                     (can-fbundle-lookup _ _) (progress _ _).
+
 %total E (progress-letrec E _).
-
-%worlds (progress-1) (progress-plus _ _ _).
 %total N (progress-plus N _ _).
-
-%worlds (progress-1) (fb-bind-map _ _).
 %terminates E (fb-bind-map E _).
-%worlds (progress-1) (can-fun-apply _ _).
 %total E (can-fun-apply E _).
-%worlds (progress-1) (can-fbundle-lookup _ _).
-%%total E (can-fbundle-lookup E _).
-%worlds (progress-1) (progress _ _).
-%%total E (progress E _).
 
-%%worlds () (progress _ _).
-%%total E (progress E _).
+%total (E E') (can-fbundle-lookup E _) (progress E' _).
 

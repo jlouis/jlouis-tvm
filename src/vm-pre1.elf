@@ -121,6 +121,8 @@ step : tm T -> tm T -> type.
 fb-bind : fbundle FTL -> fun-def-list FTL -> type.
 %mode fb-bind +FB -FDef.
 
+
+
 fbundle-lookup : fname FT -> fun-def-list (fun-tp-list/cons FT _) -> type.
 
 fbundle-lookup/ctx-hit : fbundle-lookup (f-hd FB) FL
@@ -130,7 +132,17 @@ fbundle-lookup/miss : fbundle-lookup (f-hd (f-tl FB)) R
 		       <- fbundle-lookup (f-hd FB) (fun-def-list/cons _ R).
 
 
+
+
 fun-apply : fun-def (fun-tp/ TL T) -> tm-list TL -> tm T -> type.
+
+fun-apply/body : fun-apply (fun-def/body E) tm-list/nil E.
+
+fun-apply/parm : fun-apply (fun-def/parm ([x] R x)) (tm-list/cons E EL) Q
+		  <- fun-apply (R E) EL Q.
+
+
+
 
 step/plus-1 : step (tm/plus E1 E2) (tm/plus E1' E2)
 	       <- step E1 E1'.
@@ -148,9 +160,10 @@ step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) V
 		 <- ({fb} fb-bind fb (Defs fb) ->
 			  tm-eq (Body fb) V).
 
-step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) E
+step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb))
+		     (tm/letrec ([fb] Defs fb) ([fb] Body' fb))
 		 <- ({fb} fb-bind fb (Defs fb) ->
-		       step (Body fb) E).
+		       step (Body fb) (Body' fb)).
 
 step/call : step (tm/call FN EL) E
 	     <- fbundle-lookup FN (fun-def-list/cons FDef _)
@@ -206,9 +219,18 @@ progress-plus :
 
 progress-letrec : ({F} progress-good (Body F))
 		   -> progress-good (tm/letrec Defs Body) -> type.
-%mode progress-letrec +PG -PGG.
+%mode +{FTL} +{T} +{F : fbundle FTL}
+      +{Body : fbundle FTL -> tm T}
+      +{Defs : fbundle FTL -> fun-def-list FTL}
+      +{PG : {F} progress-good (Body F)}
+      -{PGG : progress-good (tm/letrec Defs Body)}
+      progress-letrec PG PGG.
 
+- : progress-letrec ([fb] progress-good/value (VP fb))
+     (progress-good/step (step/letrec-v ([_] [_] tm-eq/refl) ([fb] [fbind] VP fb))).
 
+- : progress-letrec ([fb] progress-good/step (SP fb))
+     (progress-good/step (step/letrec-s ([fb] [fbind] SP fb))).
 
 %{
 
@@ -232,7 +254,7 @@ progress : {E : tm T} progress-good E -> type.
 -/lrv : progress (tm/letrec Defs Body) Q
      <- ({fb : fbundle FTL} {fbind : fb-bind fb (D fb)}
 	   {fbmap : fb-bind-map fb fbind}
-	   progress (Body fb) (PG fb))
+	   progress (Body fb) (PG _))
      <- ({fb : fbundle FTL} {fbind : fb-bind fb (D fb)}
 	   {fbmap : fb-bind-map fb fbind}
 	   progress-letrec PG Q).
@@ -250,6 +272,7 @@ and can-apply-function. I've thought about those and they look simple.
                           {fbundle_map : fb-bind-map fb fb_bind}.
 
 %worlds (progress-1) (progress-letrec _ _).
+%total E (progress-letrec E _).
 
 %worlds (progress-1) (progress-plus _ _ _).
 %total N (progress-plus N _ _).

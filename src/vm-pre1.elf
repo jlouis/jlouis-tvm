@@ -188,16 +188,22 @@ progress-good/step : progress-good E
 
 
 %{ Lemma capturing Plus }%
-fb-bind-map : {FB : fbundle FTL} fb-bind FB (Defs FB) -> type.
-%{
-%mode +{FTL} +{F} -{Defs : fbundle FTL -> fun-def-list FTL}
-      -{Bind : fb-bind F (Defs F)}
+fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
+%mode +{FTL} +{F} -{Defs : fun-def-list FTL}
+      -{Bind : fb-bind F Defs}
       fb-bind-map F Bind.
-}%
-%mode fb-bind-map +F -B.
 
-can-fbundle-lookup : {FB : fbundle FTL} fbundle-lookup FB FDL -> type.
-%mode can-fbundle-lookup +FN -FL.
+fname-size : fbundle FTL -> nat -> type.
+%mode fname-size +FB -N.
+
+fname-size/z : fname-size FG z
+		  <- fb-bind-map FG _.
+
+fname-size/s : fname-size (f-tl FB) (s K)
+		  <- fname-size FB K.
+
+can-fbundle-lookup : {FB : fbundle (fun-tp-list/cons FT FTL)} fbundle-lookup FB FDL -> type.
+%mode can-fbundle-lookup +FB -FL.
 
 - : can-fbundle-lookup FB (fbundle-lookup/ctx-hit FBBind)
      <- fb-bind-map FB FBBind.
@@ -276,7 +282,7 @@ progress : {E : tm T} progress-good E -> type.
 	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
 	      {fbmap : fb-bind-map fb fbind}
 	      progress (Body fb) (PG fb))
-	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
+	<- ({fb : fbundle FTL} {fbind : fb-bind fb Defs}
 	      {fbmap : fb-bind-map fb fbind}
 	      progress-letrec PG Q).
 
@@ -289,14 +295,15 @@ progress : {E : tm T} progress-good E -> type.
 		          {fb_bind : fb-bind fb (Defs fb)}
                           {fbundle_map : fb-bind-map fb fb_bind}.
 
+%worlds (progress-1) (fb-bind-map _ _).
 %worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
-                     (fb-bind-map _ _) (can-fun-apply _ _)
-                     (can-fbundle-lookup _ _) (progress _ _).
+                     (can-fun-apply _ _) (can-fbundle-lookup _ _)
+                     (fname-size _ _)
+                     (progress _ _).
 
 %total E (progress-letrec E _).
 %total N (progress-plus N _ _).
-%terminates E (fb-bind-map E _).
 %total E (can-fun-apply E _).
-
-%total (E E') (can-fbundle-lookup E _) (progress E' _).
+%total E (fb-bind-map E _).
+%total (N E') (can-fbundle-lookup N _) (progress E' _).
 

@@ -123,7 +123,7 @@ fb-bind : fbundle FTL -> fun-def-list FTL -> type.
 
 
 
-fbundle-lookup : fbundle _ -> fun-def-list (fun-tp-list/cons FT _) -> type.
+fbundle-lookup : fbundle FTL -> fun-def-list FTL -> type.
 
 fbundle-lookup/ctx-hit : fbundle-lookup FB FL
 			  <- fb-bind FB FL.
@@ -193,14 +193,6 @@ fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
       -{Bind : fb-bind F Defs}
       fb-bind-map F Bind.
 
-fname-size : fbundle FTL -> nat -> type.
-%mode fname-size +FB -N.
-
-fname-size/z : fname-size FG z
-		  <- fb-bind-map FG _.
-
-fname-size/s : fname-size (f-tl FB) (s K)
-		  <- fname-size FB K.
 
 can-fbundle-lookup : {FB : fbundle (fun-tp-list/cons FT FTL)} fbundle-lookup FB FDL -> type.
 %mode can-fbundle-lookup +FB -FL.
@@ -282,7 +274,7 @@ progress : {E : tm T} progress-good E -> type.
 	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
 	      {fbmap : fb-bind-map fb fbind}
 	      progress (Body fb) (PG fb))
-	<- ({fb : fbundle FTL} {fbind : fb-bind fb Defs}
+	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
 	      {fbmap : fb-bind-map fb fbind}
 	      progress-letrec PG Q).
 
@@ -298,12 +290,11 @@ progress : {E : tm T} progress-good E -> type.
 %worlds (progress-1) (fb-bind-map _ _).
 %worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
                      (can-fun-apply _ _) (can-fbundle-lookup _ _)
-                     (fname-size _ _)
                      (progress _ _).
 
 %total E (progress-letrec E _).
 %total N (progress-plus N _ _).
 %total E (can-fun-apply E _).
-%total E (fb-bind-map E _).
+
 %total (N E') (can-fbundle-lookup N _) (progress E' _).
 

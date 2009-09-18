@@ -4,6 +4,7 @@ PROPERTIES OF THE PRELUDE
 
 }%
 
+%{ Effectiveness of nat-plus, if N1 and N2 are given, we always produce a result. }%
 can-nat-plus : {N1} {N2} nat-plus N1 N2 N3 -> type.
 %mode can-nat-plus +N1 +N2 -NPP.
 
@@ -16,3 +17,70 @@ can-nat-plus : {N1} {N2} nat-plus N1 N2 N3 -> type.
 
 %worlds () (can-nat-plus _ _ _).
 %total N (can-nat-plus N _ _).
+
+
+%{ Prove that x + 0 = x }%
+nat-plus-zero-id : {N1} nat-plus N1 z N1 -> type.
+%mode nat-plus-zero-id +N -NP.
+
+- : nat-plus-zero-id z nat-plus/z.
+
+- : nat-plus-zero-id (s K) (nat-plus/s NP)
+     <- nat-plus-zero-id K NP.
+
+%worlds () (nat-plus-zero-id _ _).
+%total E (nat-plus-zero-id E _).
+
+%{ Auxillary lemma. Prove that the second argument increase by one }%
+nat-plus-flip : nat-plus N1 N2 N3 -> nat-plus N1 (s N2) (s N3) -> type.
+%mode nat-plus-flip +NP -NP2.
+
+- : nat-plus-flip _ nat-plus/z.
+
+- : nat-plus-flip
+     (nat-plus/s Dplus : nat-plus (s N1) N2 (s N3))
+     (nat-plus/s DIH : nat-plus (s N1) (s N2) (s (s N3)))
+       <- nat-plus-flip Dplus DIH.
+
+%worlds () (nat-plus-flip _ _).
+%total E (nat-plus-flip E _).
+
+%{ Commutativity of nat-plus }%
+nat-plus-commutes : nat-plus N1 N2 N3 -> nat-plus N2 N1 N3 -> type.
+%mode nat-plus-commutes +NP -NP'.
+
+- : nat-plus-commutes _ D
+     <- nat-plus-zero-id N1 D.
+
+- : nat-plus-commutes
+     (nat-plus/s Dplus)
+     D
+     <- nat-plus-commutes Dplus DIH
+     <- nat-plus-flip DIH D.
+
+%worlds () (nat-plus-commutes _ _).
+%total NP (nat-plus-commutes NP _).
+
+%{ Reduction metrics on natural numbers }%
+nat-plus-reduces-2 : {N1} {N2} {N3} nat-plus N1 N2 N3 -> type.
+%mode nat-plus-reduces-2 +N1 +N2 +N3 +NP.
+
+- : nat-plus-reduces-2 _ _ _ nat-plus/z.
+
+- : nat-plus-reduces-2 (s N1) N2 (s N3) (nat-plus/s D)
+     <- nat-plus-reduces-2 N1 N2 N3 D.
+
+%worlds () (nat-plus-reduces-2 _ _ _ _).
+%total D (nat-plus-reduces-2 _ _ _ D).
+%reduces N2 <= N3 (nat-plus-reduces-2 N1 N2 N3 _).
+
+nat-plus-reduces-1 : {N1} {N2} {N3} nat-plus N1 N2 N3 -> type.
+%mode nat-plus-reduces-1 +N1 +N2 +N3 +NP.
+
+- : nat-plus-reduces-1 N1 N2 N3 D
+     <- nat-plus-commutes D D'
+     <- nat-plus-reduces-2 N2 N1 N3 D'.
+
+%worlds () (nat-plus-reduces-1 _ _ _ _).
+%total D (nat-plus-reduces-1 _ _ _ D).
+%reduces N1 <= N3 (nat-plus-reduces-1 N1 N2 N3 _).

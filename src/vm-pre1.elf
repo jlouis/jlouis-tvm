@@ -51,9 +51,11 @@ fun-tp-list/cons : fun-tp -> fun-tp-list -> fun-tp-list.
 
 fname : fun-tp -> type.
 fbundle : fun-tp-list -> type.
+fbundle+ : fun-tp-list -> type.
 
-f-hd : fbundle (fun-tp-list/cons FT FTL) -> fname FT.
-f-tl : fbundle (fun-tp-list/cons FT FTL) -> fbundle FTL.
+f-hd : fbundle+ (fun-tp-list/cons FT FTL) -> fname FT.
+f-tl/z : fbundle FTL -> fbundle+ FTL.
+f-tl/s : fbundle+ (fun-tp-list/cons FT FTL) -> fbundle+ FTL.
 
 
 
@@ -121,14 +123,16 @@ step : tm T -> tm T -> type.
 fb-bind : fbundle FTL -> fun-def-list FTL -> type.
 %mode fb-bind +FB -FDef.
 
+%worlds () (fb-bind _ _).
+%total E (fb-bind E _).
 
 
-fbundle-lookup : fbundle FTL -> fun-def-list FTL -> type.
+fbundle-lookup : fbundle+ FTL -> fun-def-list FTL -> type.
 
-fbundle-lookup/ctx-hit : fbundle-lookup FB FL
+fbundle-lookup/ctx-hit : fbundle-lookup (f-tl/z FB) FL
 			  <- fb-bind FB FL.
 
-fbundle-lookup/dig : fbundle-lookup (f-tl FB) R
+fbundle-lookup/dig : fbundle-lookup (f-tl/s FB) R
 		       <- fbundle-lookup FB (fun-def-list/cons _ R).
 
 
@@ -187,20 +191,23 @@ progress-good/step : progress-good E
 		      <- step E E'.
 
 
-%{ Lemma capturing Plus }%
 fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
-%mode +{FTL} +{F} -{Defs : fun-def-list FTL}
-      -{Bind : fb-bind F Defs}
+%mode fb-bind-map +FB -B.
+%{
+%mode +{FTL} +{F} -{Defs : fbundle FTL -> fun-def-list FTL}
+      -{Bind : fb-bind F (Defs F)}
       fb-bind-map F Bind.
+}%
 
+can-fbundle-lookup : {FB : fbundle+ (fun-tp-list/cons FT FTL)}
+		      fbundle-lookup FB FDL -> type.
 
-can-fbundle-lookup : {FB : fbundle (fun-tp-list/cons FT FTL)} fbundle-lookup FB FDL -> type.
 %mode can-fbundle-lookup +FB -FL.
 
-- : can-fbundle-lookup FB (fbundle-lookup/ctx-hit FBBind)
+- : can-fbundle-lookup (f-tl/z FB) (fbundle-lookup/ctx-hit FBBind)
      <- fb-bind-map FB FBBind.
 
-- : can-fbundle-lookup (f-tl FB) (fbundle-lookup/dig Q)
+- : can-fbundle-lookup (f-tl/s FB) (fbundle-lookup/dig Q)
      <- can-fbundle-lookup FB Q.
 
 can-fun-apply : {EL : tm-list TL} fun-apply Parms EL T -> type.
@@ -270,31 +277,28 @@ progress : {E : tm T} progress-good E -> type.
      <- progress E2 PG2
      <- progress-plus PG1 PG2 PGG.
 
--/lr : progress (tm/letrec Defs Body) Q
+-/lr : progress (tm/letrec (Defs : fbundle FTL -> fun-def-list FTL) Body) Q
 	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
-	      {fbmap : fb-bind-map fb fbind}
+	      {fb_map : fb-bind-map fb fbind}
 	      progress (Body fb) (PG fb))
-	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
-	      {fbmap : fb-bind-map fb fbind}
-	      progress-letrec PG Q).
+	<- progress-letrec PG Q.
 
 -/call : progress (tm/call (f-hd FB) EL) (progress-good/step (step/call CFA CFL))
 	  <- can-fbundle-lookup FB CFL
 	  <- can-fun-apply EL CFA.
 
-%block progress-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
+%block progress-1 : some {FTL} {Defs : fun-def-list FTL}
                     block {fb : fbundle FTL}
-		          {fb_bind : fb-bind fb (Defs fb)}
-                          {fbundle_map : fb-bind-map fb fb_bind}.
+		          {fb_bind : fb-bind fb Defs}
+                          {fb_map : fb-bind-map fb fb_bind}.
 
-%worlds (progress-1) (fb-bind-map _ _).
 %worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
-                     (can-fun-apply _ _) (can-fbundle-lookup _ _)
-                     (progress _ _).
+                     (fb-bind-map _ _)
+                     (can-fun-apply _ _) (can-fbundle-lookup _ _).
 
 %total E (progress-letrec E _).
 %total N (progress-plus N _ _).
 %total E (can-fun-apply E _).
-
-%total (N E') (can-fbundle-lookup N _) (progress E' _).
+%total E (fb-bind-map E _).
+%total N (can-fbundle-lookup N _).
 

@@ -2,6 +2,8 @@
 
 This is version (s z) of our pre-vm version.
 
+TODO: Test examples of semantics. If they are not right, there is no reason to do this
+      at all.
 Jesper Louis Andersen, 2009
 
 }%
@@ -155,14 +157,14 @@ step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
 	       <- nat-plus N1 N2 N3.
 
 step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] Body fb)) V
-		 <- ({fb} fb-bind fb (Defs fb) ->
+		 <- ({fb} {_ : fb-bind fb (Defs fb)}
 			  value (Body fb))
-		 <- ({fb} fb-bind fb (Defs fb) ->
+		 <- ({fb} {_ : fb-bind fb (Defs fb)}
 			  tm-eq (Body fb) V).
 
 step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb))
 		     (tm/letrec ([fb] Defs fb) ([fb] Body' fb))
-		 <- ({fb} fb-bind fb (Defs fb) ->
+		 <- ({fb} {_ : fb-bind fb (Defs fb)}
 		       step (Body fb) (Body' fb)).
 
 step/call : step (tm/call (f-hd FB) EL) E
@@ -187,8 +189,9 @@ progress-good/step : progress-good E
 		      <- step E E'.
 
 
-fb-bind-map : {FB : fbundle FTL} fb-bind FB Ds -> type.
-%mode fb-bind-map +FB -B.
+fb-bind-map : {FB : fbundle FTL} {Defs : fbundle FTL -> fun-def-list FTL}
+	         (fb-bind FB ((Defs FB) : fun-def-list FTL)) -> type.
+%mode fb-bind-map +FB -Defs -B.
 %{
 %mode +{FTL} +{F} -{Defs : fbundle FTL -> fun-def-list FTL}
       -{Bind : fb-bind F (Defs F)}
@@ -201,7 +204,7 @@ can-fbundle-lookup : {FB : fbundle+ (fun-tp-list/cons FT FTL)}
 %mode can-fbundle-lookup +FB -FL.
 
 - : can-fbundle-lookup (f-tl/z FB) (fbundle-lookup/ctx-hit FBBind)
-     <- fb-bind-map FB FBBind.
+     <- fb-bind-map FB _ FBBind.
 
 - : can-fbundle-lookup (f-tl/s FB) (fbundle-lookup/dig Q)
      <- can-fbundle-lookup FB Q.
@@ -275,7 +278,7 @@ progress : {E : tm T} progress-good E -> type.
 
 -/lr : progress (tm/letrec (Defs : fbundle FTL -> fun-def-list FTL) Body) Q
 	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
-	      {fb_map : fb-bind-map fb fbind}
+	      {fb_map : fb-bind-map fb Defs fbind}
 	      progress (Body fb) (PG fb))
 	<- progress-letrec PG Q.
 
@@ -286,18 +289,17 @@ progress : {E : tm T} progress-good E -> type.
 %block progress-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
                     block {fb : fbundle FTL}
 		          {fb_bind : fb-bind fb (Defs fb)}
-                          {fb_map : fb-bind-map fb fb_bind}.
+                          {fb_map : fb-bind-map fb Defs fb_bind}.
 
 %worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
-                     (fb-bind-map _ _)
+                     (fb-bind-map _ _ _)
                      (progress _ _)
                      (can-fun-apply _ _) (can-fbundle-lookup _ _).
 
 %total E (progress-letrec E _).
 %total N (progress-plus N _ _).
 %total E (can-fun-apply E _).
-%terminates E (fb-bind-map E _).
-%terminates N (can-fbundle-lookup N _).
+%terminates (N E) (can-fbundle-lookup N _) (fb-bind-map E _ _).
 %total PG (progress-letrec PG _).
 %terminates T (progress T _).
 

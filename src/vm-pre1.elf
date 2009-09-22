@@ -234,7 +234,7 @@ prg1 : tm tp/nat =
 
 }%
 
-%{ General realtion capturing the basics of type progress }%
+%{ General relation capturing the basics of type progress }%
 
 progress-good : tm T -> type.
 
@@ -245,14 +245,9 @@ progress-good/step : progress-good E
 		      <- step E E'.
 
 
-fb-bind-map : {FB : fbundle FTL} {Defs : fbundle FTL -> fun-def-list FTL}
-	         (fb-bind FB ((Defs FB) : fun-def-list FTL)) -> type.
-%mode fb-bind-map +FB -Defs -B.
-%{
-%mode +{FTL} +{F} -{Defs : fbundle FTL -> fun-def-list FTL}
-      -{Bind : fb-bind F (Defs F)}
-      fb-bind-map F Bind.
-}%
+fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
+%mode fb-bind-map +F -B.
+
 
 can-fbundle-lookup : {FB : fbundle+ (fun-tp-list/cons FT FTL)}
 		      fbundle-lookup FB FDL -> type.
@@ -260,10 +255,11 @@ can-fbundle-lookup : {FB : fbundle+ (fun-tp-list/cons FT FTL)}
 %mode can-fbundle-lookup +FB -FL.
 
 - : can-fbundle-lookup (f-tl/z FB) (fbundle-lookup/ctx-hit FBBind)
-     <- fb-bind-map FB _ FBBind.
+     <- fb-bind-map FB FBBind.
 
 - : can-fbundle-lookup (f-tl/s FB) (fbundle-lookup/dig Q)
      <- can-fbundle-lookup FB Q.
+
 
 can-fun-apply : {EL : tm-list TL} fun-apply Parms EL T -> type.
 %mode +{T : tp} +{TL : tp-list} +{Parms}
@@ -333,29 +329,32 @@ progress : {E : tm T} progress-good E -> type.
      <- progress-plus PG1 PG2 PGG.
 
 -/lr : progress (tm/letrec (Defs : fbundle FTL -> fun-def-list FTL) Body) Q
-	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
-	      {fb_map : fb-bind-map fb Defs fbind}
+	<- ({fb : fbundle FTL} {defs : fun-def-list FTL}
+	      {fbind : fb-bind fb defs}
+	      {fb-map : fb-bind-map fb fbind}
 	      progress (Body fb) (PG fb))
 	<- progress-letrec PG Q.
 
--/call : progress (tm/call (f-hd FB) EL) (progress-good/step (step/call CFA CFL))
+-/call : progress (tm/call (f-hd FB) EL)
+	       (progress-good/step (step/call CFA CFL))
 	  <- can-fbundle-lookup FB CFL
 	  <- can-fun-apply EL CFA.
 
-%block progress-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
+%block progress-1 : some {FTL : fun-tp-list}
                     block {fb : fbundle FTL}
-		          {fb_bind : fb-bind fb (Defs fb)}
-                          {fb_map : fb-bind-map fb Defs fb_bind}.
+		          {defs : fun-def-list FTL}
+		          {bind : fb-bind fb defs}
+		          {map : fb-bind-map fb bind}.
 
 %worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
-                     (fb-bind-map _ _ _)
+                     (fb-bind-map _ _)
                      (progress _ _)
                      (can-fun-apply _ _) (can-fbundle-lookup _ _).
 
-%total E (progress-letrec E _).
 %total N (progress-plus N _ _).
 %total E (can-fun-apply E _).
-%terminates (N E) (can-fbundle-lookup N _) (fb-bind-map E _ _).
 %total PG (progress-letrec PG _).
-%terminates T (progress T _).
+%total E (fb-bind-map E _).
+%total (T N) (can-fbundle-lookup N _) (progress T _).
+
 

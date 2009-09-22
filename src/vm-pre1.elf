@@ -2,8 +2,6 @@
 
 This is version (s z) of our pre-vm version.
 
-TODO: Test examples of semantics. If they are not right, there is no reason to do this
-      at all.
 Jesper Louis Andersen, 2009
 
 }%
@@ -171,6 +169,64 @@ step/call : step (tm/call (f-hd FB) EL) E
 	     <- fbundle-lookup FB (fun-def-list/cons FDef _)
 	     <- fun-apply FDef EL E.
 
+
+%{
+
+**** Iterated step relations ****
+
+}%
+
+steps : tm T -> tm T -> type.
+
+steps/0 : steps T T.
+
+steps/s : steps T T'
+	   <- step T T''
+	   <- steps T'' T'.
+
+steps-to : tm T -> tm T -> type.
+
+steps-to/ : steps-to T V
+	     <- steps T V
+	     <- value V.
+
+
+
+%{
+
+********* TESTS *********
+
+}%
+
+prg0 : tm tp/nat =
+    tm/letrec ([fg] fun-def-list/cons
+	      (fun-def/parm [x] fun-def/body
+		 (tm/plus (tm/call (f-hd (f-tl/s (f-tl/z fg)))
+			     (tm-list/cons x
+				(tm-list/cons
+				   (tm/cst-n 3)
+				   tm-list/nil)))
+		          (tm/cst-n 2)))
+	      (fun-def-list/cons
+		 (fun-def/parm [x] fun-def/parm [y] fun-def/body
+		    (tm/plus (tm/cst-n 2)
+		             (tm/call (f-hd (f-tl/z fg)) (tm-list/cons x tm-list/nil))))
+		 fun-def-list/nil))
+	([fg] tm/call (f-hd (f-tl/z fg)) (tm-list/cons (tm/cst-n 0) tm-list/nil)).
+
+prg1 : tm tp/nat =
+    tm/letrec ([fg] fun-def-list/cons
+	            (fun-def/parm [x : tm tp/nat] fun-def/body
+		       (tm/plus x
+		          (tm/cst-n 2)))
+	      (fun-def-list/cons
+		    (fun-def/parm [x : tm tp/nat] fun-def/body
+		       (tm/plus (tm/cst-n 2)
+			  (tm/call (f-hd (f-tl/z fg)) (tm-list/cons x tm-list/nil))))
+		 fun-def-list/nil))
+	([fg] tm/call (f-hd (f-tl/s (f-tl/z fg))) (tm-list/cons (tm/cst-n 1) tm-list/nil)).
+
+%query 1 2 (steps-to prg1 V).
 
 %{
 

@@ -8,6 +8,16 @@ PROPERTIES OF THE PRELUDE
 %worlds () (nat-plus _ _ _).
 %unique nat-plus +N1 +N2 -1N3.
 
+%{ Lift it to a lemma we can use }%
+
+plus-unique : nat-plus N1 N2 M -> nat-plus N1 N2 M' -> nat-eq M M' -> type.
+%mode plus-unique +NP1 +NP2 -NEQ.
+
+- : plus-unique N N' nat-eq/refl.
+
+%worlds () (plus-unique _ _ _).
+%total NP (plus-unique NP _ _).
+
 %{ Effectiveness of nat-plus, if N1 and N2 are given, we always produce a result. }%
 can-nat-plus : {N1} {N2} nat-plus N1 N2 N3 -> type.
 %mode can-nat-plus +N1 +N2 -NPP.

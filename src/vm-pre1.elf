@@ -398,4 +398,65 @@ progress : {E : tm T} progress-good E -> type.
 
 
 
+tm-eq : tm T -> tm T -> type.
+
+tm-eq/refl : tm-eq T T.
+
+%{ Congruence on constants }%
+tm-eq-cst-n-cong : nat-eq N1 N2 -> tm-eq (tm/cst-n N1) (tm/cst-n N2) -> type.
+%mode tm-eq-cst-n-cong +NEQ -TEQ.
+
+- : tm-eq-cst-n-cong nat-eq/refl tm-eq/refl.
+
+%worlds () (tm-eq-cst-n-cong _ _).
+%total T (tm-eq-cst-n-cong T _).
+
+%{ Congruence on plus }%
+tm-eq-plus-cong : tm-eq T1 U1 -> tm-eq T2 U2
+			      -> tm-eq (tm/plus T1 T2) (tm/plus U1 U2) -> type.
+%mode tm-eq-plus-cong +EQ1 +EQ2 -PEQ.
+
+- : tm-eq-plus-cong tm-eq/refl tm-eq/refl tm-eq/refl.
+
+%worlds () (tm-eq-plus-cong _ _ _).
+%total T (tm-eq-plus-cong T _ _).
+
+%{ Congruence on if }%
+tm-eq-if-cong : tm-eq B1 B2 -> tm-eq T1 T2 -> tm-eq F1 F2
+		-> tm-eq (tm/if B1 T1 F1) (tm/if B2 T2 F2) -> type.
+%mode tm-eq-if-cong +EQ1 +EQ2 +EQ3 -IEQ.
+
+- : tm-eq-if-cong tm-eq/refl tm-eq/refl tm-eq/refl tm-eq/refl.
+
+%worlds () (tm-eq-if-cong _ _ _ _).
+%total T (tm-eq-if-cong T _ _ _).
+
+
+
+%{ Determinism of the system }%
+det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
+%mode det +S1 +S2 -EQ.
+
+- : det (step/plus-1 SP1) (step/plus-1 SP2) Q
+     <- det SP1 SP2 TEQ
+     <- tm-eq-plus-cong TEQ tm-eq/refl Q.
+
+- : det (step/plus-2 SP1 VP) (step/plus-2 SP2 VP) Q
+     <- det SP1 SP2 TEQ
+     <- tm-eq-plus-cong tm-eq/refl TEQ Q.
+
+- : det (step/plus-3 NP1) (step/plus-3 NP2) Q
+     <- plus-unique NP1 NP2 NEQ
+     <- tm-eq-cst-n-cong NEQ Q.
+
+- : det (step/if-1 SP1) (step/if-1 SP2) Q
+     <- det SP1 SP2 TEQ
+     <- tm-eq-if-cong TEQ tm-eq/refl tm-eq/refl Q.
+
+- : det step/if-t step/if-t tm-eq/refl.
+
+- : det step/if-f step/if-f tm-eq/refl.
+
+%%worlds () (det _ _ _).
+%%total S (det S _ _).
 

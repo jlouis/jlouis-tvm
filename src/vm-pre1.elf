@@ -53,6 +53,9 @@ fname : fun-tp -> type.
 fbundle : fun-tp-list -> type.
 fbundle+ : fun-tp-list -> type.
 
+%{ This constant only exists to appease Twelfs splitter in the input coverage }%
+fbundle0 : fbundle fun-tp-list/nil.
+
 f-hd : fbundle+ (fun-tp-list/cons FT FTL) -> fname FT.
 f-tl/z : fbundle FTL -> fbundle+ FTL.
 f-tl/s : fbundle+ (fun-tp-list/cons FT FTL) -> fbundle+ FTL.
@@ -117,6 +120,9 @@ step : tm T -> tm T -> type.
 %% Binding construct for function-bundles
 fb-bind : fbundle FTL -> fun-def-list FTL -> type.
 %mode fb-bind +FB -FDef.
+
+%{ To appease Twelf splitter }%
+fb-bind0 : fb-bind fbundle0 fun-def-list/nil.
 
 fbundle-lookup : fbundle+ FTL -> fun-def-list FTL -> type.
 
@@ -240,6 +246,8 @@ progress-good/step : progress-good E
 fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
 %mode fb-bind-map +F -B.
 
+%{ To appease Twelfs splitter }%
+fb-bind-map0 : fb-bind-map fbundle0 fb-bind0.
 
 can-fbundle-lookup : {FB : fbundle+ (fun-tp-list/cons FT FTL)}
 		      fbundle-lookup FB FDL -> type.

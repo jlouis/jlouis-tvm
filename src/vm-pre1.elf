@@ -182,6 +182,13 @@ step/call : step (tm/call (f-hd FB) EL) E
 	     <- fun-apply FDef EL E.
 
 
+%block step-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
+		block {fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}.
+
+%worlds (step-1) (value _) (step _ _) (fun-apply _ _ _)
+                 (fbundle-lookup _ _) (fb-bind _ _).
+%%unique step +T -1T2.
+
 %{
 
 **** Iterated step relations ****
@@ -388,5 +395,7 @@ progress : {E : tm T} progress-good E -> type.
 %total PG (progress-if PG _).
 %total E (fb-bind-map E _).
 %total (T N) (can-fbundle-lookup N _) (progress T _).
+
+
 
 

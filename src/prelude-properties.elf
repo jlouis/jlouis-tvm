@@ -4,6 +4,10 @@ PROPERTIES OF THE PRELUDE
 
 }%
 
+%{ Uniqueness of nat-plus ... }%
+%worlds () (nat-plus _ _ _).
+%unique nat-plus +N1 +N2 -1N3.
+
 %{ Effectiveness of nat-plus, if N1 and N2 are given, we always produce a result. }%
 can-nat-plus : {N1} {N2} nat-plus N1 N2 N3 -> type.
 %mode can-nat-plus +N1 +N2 -NPP.

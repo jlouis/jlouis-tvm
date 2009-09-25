@@ -88,8 +88,12 @@ fun-list/cons : fun-def FT -> fun-list FTL -> fun-list (fun-tp-list/cons FT FTL)
 %{ Primitive constants }%
 tm/cst-n : nat -> tm tp/nat.
 tm/cst-b : nat -> tm tp/bool.
+
+%{ Operations on primitive constants }%
 tm/plus  : tm tp/nat -> tm tp/nat -> tm tp/nat.
 
+%{ Control flow }%
+tm/if : tm tp/bool -> tm T -> tm T -> tm T.
 
 tm/call : fname (fun-tp/ TL T) -> tm-list TL -> tm T.
 tm/letrec : (fbundle FTL -> fun-def-list FTL)
@@ -154,6 +158,16 @@ step/plus-2 : step (tm/plus V1 E2) (tm/plus V1 E2')
 
 step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
 	       <- nat-plus N1 N2 N3.
+
+
+step/if-1 : step (tm/if B T F) (tm/if B' T F)
+	     <- step B B'.
+
+step/if-f : step (tm/if (tm/cst-b z) T F) T.
+
+step/if-t : step (tm/if (tm/cst-b (s _)) T F) F.
+
+
 
 step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] V)) V
 		 <- value V.
@@ -294,20 +308,34 @@ progress-plus :
        (progress-good/step (step/plus-3 CNP))
      <- can-nat-plus _ _ CNP.
 
-progress-letrec : ({F} progress-good (Body F))
-		   -> progress-good (tm/letrec Defs Body) -> type.
+
+progress-if : progress-good B -> progress-good (tm/if B T F) -> type.
+%mode +{A : tp} +{B : tm tp/bool} +{T : tm A} +{F : tm A}
+      +{PG : progress-good B}
+      -{PGG : progress-good (tm/if B T F)}
+      progress-if PG PGG.
+
+- : progress-if (progress-good/step SP) (progress-good/step (step/if-1 SP)).
+
+- : progress-if (progress-good/value VP) (progress-good/step step/if-t).
+
+- : progress-if (progress-good/value VP) (progress-good/step step/if-f).
+
+progress-letrec : ({F : fbundle FTL} {FB : fb-bind F (Defs F)}
+		     progress-good (Body F))
+		   -> progress-good (tm/letrec Defs ([fb] Body fb)) -> type.
 %mode +{FTL} +{T} +{F : fbundle FTL}
       +{Body : fbundle FTL -> tm T}
       +{Defs : fbundle FTL -> fun-def-list FTL}
-      +{PG : {F} progress-good (Body F)}
+      +{PG : {F} {FB} progress-good (Body F)}
       -{PGG : progress-good (tm/letrec Defs Body)}
       progress-letrec PG PGG.
 
-- : progress-letrec ([fb] progress-good/value VP)
+- : progress-letrec ([fb] [fbind] progress-good/value VP)
      (progress-good/step (step/letrec-v VP)).
 
-- : progress-letrec ([fb] progress-good/step (SP fb))
-     (progress-good/step (step/letrec-s ([fb] [fbind] SP fb))).
+- : progress-letrec ([fb] [fbind] progress-good/step (SP fb fbind))
+     (progress-good/step (step/letrec-s ([fb] [fbind] SP fb fbind))).
 
 %{
 
@@ -323,16 +351,19 @@ progress : {E : tm T} progress-good E -> type.
 
 -/c2 : progress (tm/cst-b _) (progress-good/value value/cst-b).
 
--/p : progress (tm/plus E1 E2) PGG
+-/plus : progress (tm/plus E1 E2) PGG
      <- progress E1 PG1
      <- progress E2 PG2
      <- progress-plus PG1 PG2 PGG.
 
+-/if : progress (tm/if B T F) PGG
+	<- progress B PGB
+	<- progress-if PGB PGG.
+
 -/lr : progress (tm/letrec (Defs : fbundle FTL -> fun-def-list FTL) Body) Q
-	<- ({fb : fbundle FTL}
-	      {fbind : fb-bind fb (Defs fb)}
-	      {fb-map : fb-bind-map fb fbind}
-	      progress (Body fb) (PG fb))
+	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
+	      fb-bind-map fb fbind ->
+	        progress (Body fb) (PG fb fbind))
 	<- progress-letrec PG Q.
 
 -/call : progress (tm/call (f-hd FB) EL)
@@ -346,6 +377,7 @@ progress : {E : tm T} progress-good E -> type.
 		          {map : fb-bind-map fb bind}.
 
 %worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
+                     (progress-if _ _)
                      (fb-bind-map _ _)
                      (progress _ _)
                      (can-fun-apply _ _) (can-fbundle-lookup _ _).
@@ -353,6 +385,7 @@ progress : {E : tm T} progress-good E -> type.
 %total N (progress-plus N _ _).
 %total E (can-fun-apply E _).
 %total PG (progress-letrec PG _).
+%total PG (progress-if PG _).
 %total E (fb-bind-map E _).
 %total (T N) (can-fbundle-lookup N _) (progress T _).
 

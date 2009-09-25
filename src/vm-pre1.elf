@@ -154,7 +154,7 @@ step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] V)) V
 
 step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb))
 		     (tm/letrec ([fb] Defs fb) ([fb] Body' fb))
-		 <- ({fb} {_ : fb-bind fb (Defs fb)}
+		 <- ({fb} fb-bind fb (Defs fb) ->
 		       step (Body fb) (Body' fb)).
 
 step/call : step (tm/call (f-hd FB) EL) E

@@ -130,6 +130,11 @@ nat-mone/s-2 : nat-mone (s N) (s L) K
 		<- nat-mone N L K.
 
 
+%{ Relations on natural numbers }%
+
+nat-eq : nat -> nat -> type.
+
+nat-eq/refl : nat-eq N N.
 
 nat-lt : nat -> nat -> bool -> type.
 %mode nat-lt +N1 +N2 -B.

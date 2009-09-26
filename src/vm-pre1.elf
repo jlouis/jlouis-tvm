@@ -68,6 +68,12 @@ tm-list : tp-list -> type.
 tm-list/nil : tm-list tp-list/nil.
 tm-list/cons : tm T -> tm-list TL -> tm-list (tp-list/cons T TL).
 
+%{ Syntactic term equality }%
+tm-eq : tm T -> tm T -> type.
+
+tm-eq/refl : tm-eq T T.
+
+
 
 fun-def : fun-tp -> type.
 
@@ -272,31 +278,26 @@ fb-bind-map0 : fb-bind-map fbundle0 fb-bind0.
 %unique fun-apply +FD +TL -1T.
 %unique fb-bind +F -B.
 
-fdef-eq : fun-def-list FTL -> fun-def-list FTL -> type.
-fdef-eq/refl : fdef-eq FDL FDL.
 
-fdef-eq-dig : fdef-eq (fun-def-list/cons F T1) (fun-def-list/cons F T2) -> fdef-eq T1 T2 -> type.
-%mode fdef-eq-dig +FD1 -FD2.
+fdef-eq : fun-def FT -> fun-def FT -> type.
 
-- : fdef-eq-dig fdef-eq/refl fdef-eq/refl.
+fdef-eq/refl : fdef-eq FD FD.
 
-%worlds () (fdef-eq-dig _ _).
-%total FD (fdef-eq-dig FD _).
-
-
-fbundle-lookup-unique : fbundle-lookup FB FD1
-		     -> fbundle-lookup FB FD2 -> fdef-eq FD1 FD2 -> type.
+fbundle-lookup-unique : fbundle-lookup FB (fun-def-list/cons FD1 _)
+		     -> fbundle-lookup FB (fun-def-list/cons FD2 _) -> fdef-eq FD1 FD2 -> type.
 %mode fbundle-lookup-unique +FB1 +FB2 -FDEF.
 
 - : fbundle-lookup-unique (fbundle-lookup/ctx-hit FB) (fbundle-lookup/ctx-hit FB) fdef-eq/refl.
 
-- : fbundle-lookup-unique (fbundle-lookup/dig FB1) (fbundle-lookup/dig FB2) Q
-     <- fbundle-lookup-unique FB1 FB2 FDEQ
-     <- fdef-eq-dig FDEQ Q.
-
 %worlds () (fbundle-lookup-unique _ _ _).
-%%total FB (fbundle-lookup-unique FB _ _).
+%trustme %total FB (fbundle-lookup-unique FB _ _).
 
+function-apply-unique : fdef-eq FD1 FD2 -> fun-apply FD1 TL E1 -> fun-apply FD2 TL E2
+			 -> tm-eq E1 E2 -> type.
+%mode function-apply-unique +EQ +FA1 +FA2 -TMEQ.
+
+%worlds () (function-apply-unique _ _ _ _).
+%trustme %total FB (function-apply-unique _ FB _ _).
 
 %{ General relation capturing the basics of type progress }%
 
@@ -434,10 +435,6 @@ progress : {E : tm T} progress-good E -> type.
 
 
 
-tm-eq : tm T -> tm T -> type.
-
-tm-eq/refl : tm-eq T T.
-
 %{ Congruence on constants }%
 tm-eq-cst-n-cong : nat-eq N1 N2 -> tm-eq (tm/cst-n N1) (tm/cst-n N2) -> type.
 %mode tm-eq-cst-n-cong +NEQ -TEQ.
@@ -493,7 +490,11 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 
 - : det step/if-f step/if-f tm-eq/refl.
 
+- : det (step/call FA1 FL1) (step/call FA2 FL2) Q
+     <- fbundle-lookup-unique FL1 FL2 FBEQ
+     <- function-apply-unique FBEQ FA1 FA2 Q.
+
 %worlds () (det _ _ _).
-%%total S (det S _ _).
+%total S (det S _ _).
 
 

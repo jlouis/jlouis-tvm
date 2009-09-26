@@ -413,7 +413,7 @@ tm-eq-letrec-cong : ({fb} {fbind: fb-bind fb (Defs fb)} tm-eq (B1 fb) (B2 fb)) -
 		      tm-eq (tm/letrec Defs B1) (tm/letrec Defs B2) -> type.
 %mode tm-eq-letrec-cong +EQ -TEQLR.
 
-
+- : tm-eq-letrec-cong ([fb] [fbind] tm-eq/refl) tm-eq/refl.
 
 %{ Congruence on constants }%
 tm-eq-cst-n-cong : nat-eq N1 N2 -> tm-eq (tm/cst-n N1) (tm/cst-n N2) -> type.
@@ -511,7 +511,7 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 
 %total FB (fbundle-lookup-unique FB _ _).
 %total FB (function-apply-unique _ FB _ _).
-%trustme %total FB (tm-eq-letrec-cong FB _).
+%total FB (tm-eq-letrec-cong FB _).
 %{ TODO: Fix the %thaw we use. Should be fairly easy }%
 %total T (tm-eq-cst-n-cong T _).
 %total T (tm-eq-if-cong T _ _ _).

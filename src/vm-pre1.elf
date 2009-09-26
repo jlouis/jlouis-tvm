@@ -508,11 +508,9 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 %total (T N) (can-fbundle-lookup N _) (progress T _).
 
 %{ Determinism totality }%
-
 %total FB (fbundle-lookup-unique FB _ _).
 %total FB (function-apply-unique _ FB _ _).
 %total FB (tm-eq-letrec-cong FB _).
-%{ TODO: Fix the %thaw we use. Should be fairly easy }%
 %total T (tm-eq-cst-n-cong T _).
 %total T (tm-eq-if-cong T _ _ _).
 %total T (tm-eq-plus-cong T _ _).

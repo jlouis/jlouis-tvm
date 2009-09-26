@@ -147,8 +147,6 @@ fun-apply/parm : fun-apply (fun-def/parm ([x] R x)) (tm-list/cons E EL) Q
 		  <- fun-apply (R E) EL Q.
 
 
-
-
 step/plus-1 : step (tm/plus E1 E2) (tm/plus E1' E2)
 	       <- step E1 E1'.
 
@@ -180,14 +178,6 @@ step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb))
 step/call : step (tm/call (f-hd FB) EL) E
 	     <- fbundle-lookup FB (fun-def-list/cons FDef _)
 	     <- fun-apply FDef EL E.
-
-
-%block step-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
-		block {fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}.
-
-%worlds (step-1) (value _) (step _ _) (fun-apply _ _ _)
-                 (fbundle-lookup _ _) (fb-bind _ _).
-%%unique step +T -1T2.
 
 %{
 
@@ -253,6 +243,61 @@ prg1 : tm tp/nat =
 
 }%
 
+%{
+
+**** MAPS ****
+
+}%
+fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
+%mode fb-bind-map +F -B.
+
+%{ To appease Twelfs splitter }%
+fb-bind-map0 : fb-bind-map fbundle0 fb-bind0.
+
+
+%{ Blocks we need. The first one gives us the block we need in step relations }%
+%block step-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
+		block {fb : fbundle FTL}
+		      {fb_bind : fb-bind fb (Defs fb)}.
+%{ The second is used in the progress-proof }%
+%block progress-1 : some {FTL : fun-tp-list} {Defs}
+                    block {fb : fbundle FTL}
+		          {bind : fb-bind fb (Defs fb)}
+		          {map : fb-bind-map fb bind}.
+
+
+
+%{ Various obvious uniqueness lemmas }%
+%worlds (step-1) (fbundle-lookup _ _) (fun-apply _ _ _) (fb-bind _ _).
+%unique fun-apply +FD +TL -1T.
+%unique fb-bind +F -B.
+
+fdef-eq : fun-def-list FTL -> fun-def-list FTL -> type.
+fdef-eq/refl : fdef-eq FDL FDL.
+
+fdef-eq-dig : fdef-eq (fun-def-list/cons F T1) (fun-def-list/cons F T2) -> fdef-eq T1 T2 -> type.
+%mode fdef-eq-dig +FD1 -FD2.
+
+- : fdef-eq-dig fdef-eq/refl fdef-eq/refl.
+
+%worlds () (fdef-eq-dig _ _).
+%total FD (fdef-eq-dig FD _).
+
+
+fbundle-lookup-unique : fbundle-lookup FB FD1
+		     -> fbundle-lookup FB FD2 -> fdef-eq FD1 FD2 -> type.
+%mode fbundle-lookup-unique +FB1 +FB2 -FDEF.
+
+- : fbundle-lookup-unique (fbundle-lookup/ctx-hit FB) (fbundle-lookup/ctx-hit FB) fdef-eq/refl.
+
+- : fbundle-lookup-unique (fbundle-lookup/dig FB1) (fbundle-lookup/dig FB2) Q
+     <- fbundle-lookup-unique FB1 FB2 FDEQ
+     <- fdef-eq-dig FDEQ Q.
+
+%worlds () (fbundle-lookup-unique _ _ _).
+%%total FB (fbundle-lookup-unique FB _ _).
+
+
 %{ General relation capturing the basics of type progress }%
 
 progress-good : tm T -> type.
@@ -264,11 +309,7 @@ progress-good/step : progress-good E
 		      <- step E E'.
 
 
-fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
-%mode fb-bind-map +F -B.
 
-%{ To appease Twelfs splitter }%
-fb-bind-map0 : fb-bind-map fbundle0 fb-bind0.
 
 can-fbundle-lookup : {FB : fbundle+ (fun-tp-list/cons FT FTL)}
 		      fbundle-lookup FB FDL -> type.
@@ -378,11 +419,6 @@ progress : {E : tm T} progress-good E -> type.
 	  <- can-fbundle-lookup FB CFL
 	  <- can-fun-apply EL CFA.
 
-%block progress-1 : some {FTL : fun-tp-list} {Defs}
-                    block {fb : fbundle FTL}
-		          {bind : fb-bind fb (Defs fb)}
-		          {map : fb-bind-map fb bind}.
-
 %worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
                      (progress-if _ _)
                      (fb-bind-map _ _)
@@ -457,6 +493,7 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 
 - : det step/if-f step/if-f tm-eq/refl.
 
-%%worlds () (det _ _ _).
+%worlds () (det _ _ _).
 %%total S (det S _ _).
+
 

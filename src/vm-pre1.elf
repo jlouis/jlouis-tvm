@@ -289,15 +289,11 @@ fbundle-lookup-unique : fbundle-lookup FB (fun-def-list/cons FD1 _)
 
 - : fbundle-lookup-unique (fbundle-lookup/ctx-hit FB) (fbundle-lookup/ctx-hit FB) fdef-eq/refl.
 
-%worlds () (fbundle-lookup-unique _ _ _).
-%trustme %total FB (fbundle-lookup-unique FB _ _).
+
 
 function-apply-unique : fdef-eq FD1 FD2 -> fun-apply FD1 TL E1 -> fun-apply FD2 TL E2
 			 -> tm-eq E1 E2 -> type.
 %mode function-apply-unique +EQ +FA1 +FA2 -TMEQ.
-
-%worlds () (function-apply-unique _ _ _ _).
-%trustme %total FB (function-apply-unique _ FB _ _).
 
 %{ General relation capturing the basics of type progress }%
 
@@ -434,6 +430,13 @@ progress : {E : tm T} progress-good E -> type.
 %total (T N) (can-fbundle-lookup N _) (progress T _).
 
 
+%{ Congruence on letrec }%
+%thaw tm-eq.
+tm-eq-letrec-cong : ({fb} {fbind: fb-bind fb (Defs fb)} tm-eq (B1 fb) (B2 fb)) ->
+		      tm-eq (tm/letrec Defs B1) (tm/letrec Defs B2) -> type.
+%mode tm-eq-letrec-cong +EQ -TEQLR.
+
+
 
 %{ Congruence on constants }%
 tm-eq-cst-n-cong : nat-eq N1 N2 -> tm-eq (tm/cst-n N1) (tm/cst-n N2) -> type.
@@ -441,8 +444,6 @@ tm-eq-cst-n-cong : nat-eq N1 N2 -> tm-eq (tm/cst-n N1) (tm/cst-n N2) -> type.
 
 - : tm-eq-cst-n-cong nat-eq/refl tm-eq/refl.
 
-%worlds () (tm-eq-cst-n-cong _ _).
-%total T (tm-eq-cst-n-cong T _).
 
 %{ Congruence on plus }%
 tm-eq-plus-cong : tm-eq T1 U1 -> tm-eq T2 U2
@@ -451,19 +452,12 @@ tm-eq-plus-cong : tm-eq T1 U1 -> tm-eq T2 U2
 
 - : tm-eq-plus-cong tm-eq/refl tm-eq/refl tm-eq/refl.
 
-%worlds () (tm-eq-plus-cong _ _ _).
-%total T (tm-eq-plus-cong T _ _).
-
 %{ Congruence on if }%
 tm-eq-if-cong : tm-eq B1 B2 -> tm-eq T1 T2 -> tm-eq F1 F2
 		-> tm-eq (tm/if B1 T1 F1) (tm/if B2 T2 F2) -> type.
 %mode tm-eq-if-cong +EQ1 +EQ2 +EQ3 -IEQ.
 
 - : tm-eq-if-cong tm-eq/refl tm-eq/refl tm-eq/refl tm-eq/refl.
-
-%worlds () (tm-eq-if-cong _ _ _ _).
-%total T (tm-eq-if-cong T _ _ _).
-
 
 
 %{ Determinism of the system }%
@@ -490,11 +484,37 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 
 - : det step/if-f step/if-f tm-eq/refl.
 
+- : det (step/letrec-v VP) (step/letrec-v VP') tm-eq/refl.
+
+- : det (step/letrec-s ([fb] [fbind] Run1 fb fbind))
+        (step/letrec-s ([fb] [fbind] Run2 fb fbind)) Q
+     <- ({fb : fbundle FTL}
+	   {fbind : fb-bind fb (Defs fb)}
+	   det (Run1 fb fbind) (Run2 fb fbind) (INEQ fb fbind))
+     <- tm-eq-letrec-cong INEQ Q.
+
+
 - : det (step/call FA1 FL1) (step/call FA2 FL2) Q
      <- fbundle-lookup-unique FL1 FL2 FBEQ
      <- function-apply-unique FBEQ FA1 FA2 Q.
 
-%worlds () (det _ _ _).
+%block det-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
+	       block {fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}.
+
+%worlds (det-1) (tm-eq-cst-n-cong _ _)
+                (tm-eq-plus-cong _ _ _) (tm-eq-letrec-cong _ _)
+                (tm-eq-if-cong _ _ _ _) (fbundle-lookup-unique _ _ _)
+                (function-apply-unique _ _ _ _).
+
+%worlds (det-1) (det _ _ _).
+
+%trustme %total FB (fbundle-lookup-unique FB _ _).
+%trustme %total FB (function-apply-unique _ FB _ _).
+%trustme %total FB (tm-eq-letrec-cong FB _).
+%{ TODO: Fix the %thaw we use. Should be fairly easy }%
+%total T (tm-eq-cst-n-cong T _).
+%total T (tm-eq-if-cong T _ _ _).
+%total T (tm-eq-plus-cong T _ _).
 %total S (det S _ _).
 
 

@@ -88,11 +88,17 @@ tm/cst-b : nat -> tm tp/bool.
 %{ Operations on primitive constants }%
 tm/plus  : tm tp/nat -> tm tp/nat -> tm tp/nat.
 
-%{ Control flow }%
-tm/if : tm tp/bool -> tm T -> tm T -> tm T.
-
-tm/call : fname (fun-tp/ TL T) -> tm-list TL -> tm T.
+%{ Binding }%
 tm/letrec : (fbundle FTL -> fun-def-list FTL)
                -> (fbundle FTL -> tm T) -> tm T.
+tm/let : tm T1 -> (tm T1 -> tm T) -> tm T.
+
+%{ Control flow }%
+tm/if : tm tp/bool -> tm T -> tm T -> tm T.
+tm/call : fname (fun-tp/ TL T) -> tm-list TL -> tm T.
+
+
+
+
 
 

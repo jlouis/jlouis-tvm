@@ -65,6 +65,11 @@ step/plus-2 : step (tm/plus V1 E2) (tm/plus V1 E2')
 step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
 	       <- nat-plus N1 N2 N3.
 
+step/let-s : step (tm/let T B) (tm/let T' B)
+	      <- step T T'.
+
+step/let-a : step (tm/let V B) (B V)
+	      <- value V.
 
 step/if-1 : step (tm/if B T F) (tm/if B' T F)
 	     <- step B B'.

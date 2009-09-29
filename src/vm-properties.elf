@@ -113,6 +113,16 @@ progress-if : progress-good B -> progress-good (tm/if B T F) -> type.
 
 - : progress-if (progress-good/value VP) (progress-good/step step/if-f).
 
+progress-let : progress-good T -> progress-good (tm/let T B) -> type.
+%mode +{A : tp} +{B : tp} +{T : tm A} +{Bdy : tm A -> tm B}
+      +{TG : progress-good T}
+      -{BG : progress-good (tm/let T Bdy)}
+      progress-let TG BG.
+
+- : progress-let (progress-good/value VP) (progress-good/step (step/let-a VP)).
+
+- : progress-let (progress-good/step SP) (progress-good/step (step/let-s SP)).
+
 progress-letrec : ({F : fbundle FTL} {FB : fb-bind F (Defs F)}
 		     progress-good (Body F))
 		   -> progress-good (tm/letrec Defs ([fb] Body fb)) -> type.
@@ -151,6 +161,10 @@ progress : {E : tm T} progress-good E -> type.
 -/if : progress (tm/if B T F) PGG
 	<- progress B PGB
 	<- progress-if PGB PGG.
+
+-/let : progress (tm/let T B) Q
+	 <- progress T PG
+	 <- progress-let PG Q.
 
 -/lr : progress (tm/letrec (Defs : fbundle FTL -> fun-def-list FTL) Body) Q
 	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
@@ -191,6 +205,14 @@ tm-eq-if-cong : tm-eq B1 B2 -> tm-eq T1 T2 -> tm-eq F1 F2
 
 - : tm-eq-if-cong tm-eq/refl tm-eq/refl tm-eq/refl tm-eq/refl.
 
+tm-eq-let-cong : tm-eq T1 T2
+	       -> tm-eq (tm/let T1 B) (tm/let T2 B) -> type.
+%mode +{A : tp} +{B : tp} +{T1 : tm A} +{T2 : tm A} +{B : tm A -> tm B}
+      +{EQ1 : tm-eq T1 T2}
+      -{LEQ : tm-eq (tm/let T1 B) (tm/let T2 B)}
+      tm-eq-let-cong EQ1 LEQ.
+
+- : tm-eq-let-cong tm-eq/refl tm-eq/refl.
 
 %{ Determinism of the system }%
 det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
@@ -216,6 +238,13 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 
 - : det step/if-f step/if-f tm-eq/refl.
 
+
+- : det (step/let-a VP) (step/let-a VP1) tm-eq/refl.
+
+- : det (step/let-s SP) (step/let-s SP1) Q
+     <- det SP SP1 TEQ
+     <- tm-eq-let-cong TEQ Q.
+
 - : det (step/letrec-v VP) (step/letrec-v VP') tm-eq/refl.
 
 - : det (step/letrec-s ([fb] [fbind] Run1 fb fbind))
@@ -237,12 +266,12 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 		          {map : fb-bind-map fb bind}.
 
 %worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
-                     (progress-if _ _)
+                     (progress-if _ _) (progress-let _ _)
                      (fb-bind-map _ _)
                      (progress _ _)
                      (can-fun-apply _ _) (can-fbundle-lookup _ _).
 
-%worlds (det-1) (tm-eq-cst-n-cong _ _)
+%worlds (det-1) (tm-eq-cst-n-cong _ _) (tm-eq-let-cong _ _)
                 (tm-eq-plus-cong _ _ _) (tm-eq-letrec-cong _ _)
                 (tm-eq-if-cong _ _ _ _) (fbundle-lookup-unique _ _ _)
                 (function-apply-unique _ _ _ _).
@@ -258,6 +287,7 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 %total N (progress-plus N _ _).
 %total E (can-fun-apply E _).
 %total PG (progress-letrec PG _).
+%total PG (progress-let PG _).
 %total PG (progress-if PG _).
 %total E (fb-bind-map E _).
 %total (T N) (can-fbundle-lookup N _) (progress T _).
@@ -265,6 +295,7 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 %{ Determinism totality }%
 %total FB (fbundle-lookup-unique FB _ _).
 %total FB (function-apply-unique _ FB _ _).
+%total T (tm-eq-let-cong T _).
 %total FB (tm-eq-letrec-cong FB _).
 %total T (tm-eq-cst-n-cong T _).
 %total T (tm-eq-if-cong T _ _ _).

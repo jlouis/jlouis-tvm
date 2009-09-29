@@ -95,7 +95,7 @@ tm-eq/refl : tm-eq T T.
 fun-def : fun-tp -> type.
 
 fun-def/body : tm T -> (fun-def (fun-tp/ tp-list/nil T)).
-fun-def/parm : (tm T0 -> fun-def (fun-tp/ TL T)) -> fun-def (fun-tp/ (tp-list/cons T0 TL) T).
+fun-def/parm : (reg T0 -> fun-def (fun-tp/ TL T)) -> fun-def (fun-tp/ (tp-list/cons T0 TL) T).
 
 fun-def-list : fun-tp-list -> type.
 
@@ -112,7 +112,7 @@ fun-list/cons : fun-def FT -> fun-list FTL -> fun-list (fun-tp-list/cons FT FTL)
 tm/reg : reg T -> tm T.
 
 %{ Operations on registers }%
-tm/plus  : reg tp/nat -> reg tp/nat -> reg tp/nat.
+tm/plus  : reg tp/nat -> reg tp/nat -> tm tp/nat.
 
 %{ Binding }%
 tm/letrec : (fbundle FTL -> fun-def-list FTL)

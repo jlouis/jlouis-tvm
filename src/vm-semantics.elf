@@ -17,15 +17,7 @@ Jesper Louis Andersen, 2009
 value : tm T -> type.
 
 
-value/cst-n : value (tm/cst-n _).
-
-value/cst-b : value (tm/cst-b _).
-
-value-letrec : tm T -> tm T -> type.
-%mode value-letrec +T -T'.
-
-value-letrec/cst-n : value-letrec (tm/cst-n N) (tm/cst-n N).
-value-letrec/cst-b : value-letrec (tm/cst-b B) (tm/cst-b B).
+value/reg : value (tm/reg _).
 
 step : tm T -> tm T -> type.
 
@@ -47,36 +39,28 @@ fbundle-lookup/dig : fbundle-lookup (f-tl/s FB) R
 
 
 
-fun-apply : fun-def (fun-tp/ TL T) -> tm-list TL -> tm T -> type.
+fun-apply : fun-def (fun-tp/ TL T) -> reg-list TL -> tm T -> type.
 
-fun-apply/body : fun-apply (fun-def/body E) tm-list/nil E.
+fun-apply/body : fun-apply (fun-def/body E) reg-list/nil E.
 
-fun-apply/parm : fun-apply (fun-def/parm ([x] R x)) (tm-list/cons E EL) Q
+fun-apply/parm : fun-apply (fun-def/parm ([x] R x)) (reg-list/cons E EL) Q
 		  <- fun-apply (R E) EL Q.
 
 
-step/plus-1 : step (tm/plus E1 E2) (tm/plus E1' E2)
-	       <- step E1 E1'.
 
-step/plus-2 : step (tm/plus V1 E2) (tm/plus V1 E2')
-	       <- value V1
-	       <- step E2 E2'.
 
-step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
-	       <- nat-plus N1 N2 N3.
+step/plus : step (tm/plus (reg/cst-n N1) (reg/cst-n N2)) (tm/reg (reg/cst-n N3))
+		    <- nat-plus N1 N2 N3.
 
 step/let-s : step (tm/let T B) (tm/let T' B)
 	      <- step T T'.
 
-step/let-a : step (tm/let V B) (B V)
-	      <- value V.
+step/let-a : step (tm/let (tm/reg V) B) (B V)
+	      <- value (tm/reg V).
 
-step/if-1 : step (tm/if B T F) (tm/if B' T F)
-	     <- step B B'.
+step/if-f : step (tm/if (reg/cst-b z) T F) T.
 
-step/if-f : step (tm/if (tm/cst-b z) T F) T.
-
-step/if-t : step (tm/if (tm/cst-b (s _)) T F) F.
+step/if-t : step (tm/if (reg/cst-b (s _)) T F) F.
 
 
 
@@ -88,7 +72,7 @@ step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb))
 		 <- ({fb} fb-bind fb (Defs fb) ->
 		       step (Body fb) (Body' fb)).
 
-step/call : step (tm/call (f-hd FB) EL) E
+step/call : step (tm/br (f-hd FB) EL) E
 	     <- fbundle-lookup FB (fun-def-list/cons FDef _)
 	     <- fun-apply FDef EL E.
 

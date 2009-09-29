@@ -1,0 +1,111 @@
+%{
+
+This is version (s z) of our pre-vm version.
+
+Jesper Louis Andersen, 2009
+
+}%
+
+
+
+%{
+
+******** STATIC SEMANTICS ********
+
+}%
+
+value : tm T -> type.
+
+
+value/cst-n : value (tm/cst-n _).
+
+value/cst-b : value (tm/cst-b _).
+
+value-letrec : tm T -> tm T -> type.
+%mode value-letrec +T -T'.
+
+value-letrec/cst-n : value-letrec (tm/cst-n N) (tm/cst-n N).
+value-letrec/cst-b : value-letrec (tm/cst-b B) (tm/cst-b B).
+
+step : tm T -> tm T -> type.
+
+%% Binding construct for function-bundles
+fb-bind : fbundle FTL -> fun-def-list FTL -> type.
+%mode fb-bind +FB -FDef.
+
+%{ To appease Twelf splitter }%
+fb-bind0 : fb-bind fbundle0 fun-def-list/nil.
+
+fbundle-lookup : fbundle+ FTL -> fun-def-list FTL -> type.
+
+fbundle-lookup/ctx-hit : fbundle-lookup (f-tl/z FB) FL
+			  <- fb-bind FB FL.
+
+fbundle-lookup/dig : fbundle-lookup (f-tl/s FB) R
+		       <- fbundle-lookup FB (fun-def-list/cons _ R).
+
+
+
+
+fun-apply : fun-def (fun-tp/ TL T) -> tm-list TL -> tm T -> type.
+
+fun-apply/body : fun-apply (fun-def/body E) tm-list/nil E.
+
+fun-apply/parm : fun-apply (fun-def/parm ([x] R x)) (tm-list/cons E EL) Q
+		  <- fun-apply (R E) EL Q.
+
+
+step/plus-1 : step (tm/plus E1 E2) (tm/plus E1' E2)
+	       <- step E1 E1'.
+
+step/plus-2 : step (tm/plus V1 E2) (tm/plus V1 E2')
+	       <- value V1
+	       <- step E2 E2'.
+
+step/plus-3 : step (tm/plus (tm/cst-n N1) (tm/cst-n N2)) (tm/cst-n N3)
+	       <- nat-plus N1 N2 N3.
+
+
+step/if-1 : step (tm/if B T F) (tm/if B' T F)
+	     <- step B B'.
+
+step/if-f : step (tm/if (tm/cst-b z) T F) T.
+
+step/if-t : step (tm/if (tm/cst-b (s _)) T F) F.
+
+
+
+step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] V)) V
+		 <- value V.
+
+step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb))
+		     (tm/letrec ([fb] Defs fb) ([fb] Body' fb))
+		 <- ({fb} fb-bind fb (Defs fb) ->
+		       step (Body fb) (Body' fb)).
+
+step/call : step (tm/call (f-hd FB) EL) E
+	     <- fbundle-lookup FB (fun-def-list/cons FDef _)
+	     <- fun-apply FDef EL E.
+
+%{
+
+**** Iterated step relations ****
+
+}%
+
+steps : tm T -> tm T -> type.
+
+steps/0 : steps T T.
+
+steps/s : steps T T'
+	   <- step T T''
+	   <- steps T'' T'.
+
+steps-to : tm T -> tm T -> type.
+
+steps-to/ : steps-to T V
+	     <- steps T V
+	     <- value V.
+
+
+

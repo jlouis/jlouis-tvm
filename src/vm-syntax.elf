@@ -1,250 +1,98 @@
-%% Definition of an LLVM-inspired VM language.
-%%   Syntax definitions
-%% Jesper Louis Andersen, 2009.
-
-%%%%%{ Label Identifiers }%%%%%
-
 %{
 
-A label is an identifier in the LLVM IR designating a label. Our encoding
-of these is simple that a label carries a number identifying it. This creates
-a supply of an (countably) infinite amount of labels for us to use.
+******** Type System ********
 
 }%
 
-label : type.
+%% Primitive types
+tp : type.
 
-label/n : nat -> label.
+tp/nat : tp.
+tp/bool : tp.
 
-%% Convenience shorthands.
-l_1 = label/n 1.
-l_2 = label/n 2.
-l_3 = label/n 3.
-l_4 = label/n 4.
-l_5 = label/n 5.
-l_6 = label/n 6.
-l_7 = label/n 7.
+%% Lists of primitive types
+tp-list : type.
 
+tp-list/nil : tp-list.
+tp-list/cons : tp -> tp-list -> tp-list.
 
+%% Function types
+fun-tp : type.
+%% There is only way to introduce a function type.
+fun-tp/ : tp-list -> tp -> fun-tp.
 
-
-
-%%%%%{ Expression Syntax }%%%%%
-
-%{
-
-Registers is a family of either constants or variables. But as variables
-are captured by HOAS, we do not need to specify them.
-
-Expressions are either constants, additions or less-than comparisons
-in this silly language.
-
-}%
-
-reg : type. %name reg R r.
-
-reg/constant : nat -> reg.
+fun-tp-list : type.
+fun-tp-list/nil : fun-tp-list.
+fun-tp-list/cons : fun-tp -> fun-tp-list -> fun-tp-list.
 
 %{
 
-We will need lists of registers when one makes function calls and when one
-jumps to other basic blocks. Hence, we define them here
+******** Syntax ********
 
 }%
 
-reg-list : type.
+%{ Introduction of function bundles.
 
-reg-list/nil : reg-list.
-reg-list/cons : reg -> reg-list -> reg-list.
+   Function names
+   Function bundles
 
-
-
-
-
-exp : type. %name exp E e.
-
-exp/constant : reg -> exp.
-exp/plus : reg -> reg -> exp.
-exp/lt : reg -> reg -> exp.
-
-%% For convenience.
-constant = [n] (exp/constant (reg/constant n)).
-
-%{
-
->>> NOTE
-We stratify into 'reg' and 'exp' respectively to eliminate arbitrarily
-nested expression trees. In the LLVM IR we only have primitive operations
-and [constant expressions] which are expression trees that can be constant
-folded. They are omitted for now, and possibly forever because they don't
-provide anything interesting in my humble opinion.
-
-I think they were added as a convenience so one can do e.g. address
-calculations on a load word instruction.
-<<<
-
+   TODO: DOCUMENT FOR GODS SAKE!
 }%
 
+fname : fun-tp -> type.
+fbundle : fun-tp-list -> type.
+fbundle+ : fun-tp-list -> type.
 
+%{ This constant only exists to appease Twelfs splitter in the input coverage }%
+fbundle0 : fbundle fun-tp-list/nil.
 
+f-hd : fbundle+ (fun-tp-list/cons FT FTL) -> fname FT.
+f-tl/z : fbundle FTL -> fbundle+ FTL.
+f-tl/s : fbundle+ (fun-tp-list/cons FT FTL) -> fbundle+ FTL.
 
-%%%%%{ Instruction syntax }%%%%%
 
-%{
 
-We have supposed assignment instructions are of the form
+tm : tp -> type.
+tm-list : tp-list -> type.
 
-%x = exp
+tm-list/nil : tm-list tp-list/nil.
+tm-list/cons : tm T -> tm-list TL -> tm-list (tp-list/cons T TL).
 
-so a series of assignment instructions are of the form
+%{ Syntactic term equality }%
+tm-eq : tm T -> tm T -> type.
 
-%x1 = exp1;
-%x2 = exp2;
-...
-%xn = expn;
+tm-eq/refl : tm-eq T T.
 
-Note that we use an SSA-form. This means that an assignment to x1 is
-static. In other words, once x1 is assigned to in the first line, it
-is impossible to reassign another value to x1. This effectively makes
-x1 a constant in the following evaluation.
 
-As an example, suppose we have the following code segment:
 
-%x1 = 3;
-%x2 = 7;
-return %x1 + %x2;
+fun-def : fun-tp -> type.
 
-This can be transformed into a functionally styled program as
+fun-def/body : tm T -> (fun-def (fun-tp/ tp-list/nil T)).
+fun-def/parm : (tm T0 -> fun-def (fun-tp/ TL T)) -> fun-def (fun-tp/ (tp-list/cons T0 TL) T).
 
-let x1 = 3 in
-  let x2 = 7 in
-    return x1 + x2;
+fun-def-list : fun-tp-list -> type.
 
-Which we can then transform to an equivalent program by using
-lambda-abstractions for the let-body:
+fun-def-list/nil : fun-def-list fun-tp-list/nil.
+fun-def-list/cons : fun-def FT -> fun-def-list FTL -> fun-def-list (fun-tp-list/cons FT FTL).
 
-let 3 in
-  (fn x1 => let 7 in
-    (fn x2 => return x1 + x2))
+fun-list : fun-tp-list -> type.
 
-The latter style is amenable to a HOAS Twelf encoding as follows. We will
-define the basic operations of the language as being 'instruction's.
+fun-list/nil : fun-list fun-tp-list/nil.
+fun-list/cons : fun-def FT -> fun-list FTL -> fun-list (fun-tp-list/cons FT FTL).
 
-}%
 
-instruction : type. %name instruction I i.
+%{ Primitive constants }%
+tm/cst-n : nat -> tm tp/nat.
+tm/cst-b : nat -> tm tp/bool.
 
-instruction/let : exp -> (reg -> instruction) -> instruction.
-instruction/return : reg -> instruction.
-instruction/br : label -> reg-list -> instruction.
-instruction/brc : reg -> label -> reg-list -> label -> reg-list -> instruction. % Conditional branch
+%{ Operations on primitive constants }%
+tm/plus  : tm tp/nat -> tm tp/nat -> tm tp/nat.
 
-%abbrev let = instruction/let.
-%abbrev return = instruction/return.
-%abbrev br = instruction/br.
-%abbrev brc = instruction/brc.
+%{ Control flow }%
+tm/if : tm tp/bool -> tm T -> tm T -> tm T.
 
+tm/call : fname (fun-tp/ TL T) -> tm-list TL -> tm T.
+tm/letrec : (fbundle FTL -> fun-def-list FTL)
+               -> (fbundle FTL -> tm T) -> tm T.
 
-
-%%%%%{ Basic Block Syntax }%%%%%
-
-%{
-
-Basic blocks are defined by a label and then a possible list of
-phi-nodes. These resemble the let-construction in instructions, but
-we can handle them more easily by building them into basic-blocks.
-
->>> NOTE
-This also enforces phi-nodes to be the first thing in basic blocks by
-construction
-<<<
-
-We thus set out to define basic-block headers:
-
-}%
-
-bb-header : type. %name bb-header BBH bbh.
-
-bb-header/phi : (reg -> bb-header) -> bb-header.
-bb-header/body : instruction -> bb-header.
-
-%abbrev phi = bb-header/phi.
-%abbrev body = bb-header/body.
-
-%{
-
-A basic block (bb) defines a label, identifying the basic block and
-then it contains a bb-header. We have already introduced the bb type family in the
-section on maps earlier en vm.elf.
-
-}%
-
-bb : type. %name bb BB.
-
-bb/def : label -> bb-header -> bb.
-
-
-%{
-
-Here is the notational idea. A set of LLVM instructions of the form
-
-foo:
-  %p1 = phi(..,..)
-  %x1 = 3;
-  %x2 = %p1;
-  return %x1 + %x2;
-
-is then translated into
-
-(bb foo (phi [p1]
-	     (body
-		(let 3 in
-		   ([x1] let p1 in
-		      ([x2] let (plus [x1] [x2])
-			 [tmp] return tmp))))
-
-Where foo is a valid label name.
-
-}%
-
-
-
-%{
-
-We will need lists of basic blocks. Note that if we
-have the code:
-
-label1:
-  ...
-  <no jump or return here>
-label2:
-  ...
-
-we can always fix it by an explicit jump just before label2. Thus, it
-seems ok to define lists of basic blocks as a primitive for functions.
-
-}%
-
-
-bb-list : type.
-
-bb-list/nil : bb-list.
-bb-list/cons : label -> bb -> bb-list -> bb-list.
-
-
-
-
-%%%%%{ Function Syntax }%%%%%
-
-
-%{
-
-The function body itself designates one basic block as the initial block by
-its label. This is the block we run when asked.
-
-}%
-
-function-body : type.
-
-function-body/def : label -> bb-list -> function-body.
 

@@ -1,0 +1,36 @@
+%{
+
+********* TESTS *********
+
+}%
+
+prg0 : tm tp/nat =
+    tm/letrec ([fg] fun-def-list/cons
+	      (fun-def/parm [x] fun-def/body
+		 (tm/plus (tm/call (f-hd (f-tl/s (f-tl/z fg)))
+			     (tm-list/cons x
+				(tm-list/cons
+				   (tm/cst-n 3)
+				   tm-list/nil)))
+		          (tm/cst-n 2)))
+	      (fun-def-list/cons
+		 (fun-def/parm [x] fun-def/parm [y] fun-def/body
+		    (tm/plus (tm/cst-n 2)
+		             (tm/call (f-hd (f-tl/z fg)) (tm-list/cons x tm-list/nil))))
+		 fun-def-list/nil))
+	([fg] tm/call (f-hd (f-tl/z fg)) (tm-list/cons (tm/cst-n 0) tm-list/nil)).
+
+prg1 : tm tp/nat =
+    tm/letrec ([fg] fun-def-list/cons
+	            (fun-def/parm [x : tm tp/nat] fun-def/body
+		       (tm/plus x
+		          (tm/cst-n 2)))
+	      (fun-def-list/cons
+		    (fun-def/parm [x : tm tp/nat] fun-def/body
+		       (tm/plus (tm/cst-n 2)
+			  (tm/call (f-hd (f-tl/z fg)) (tm-list/cons x tm-list/nil))))
+		 fun-def-list/nil))
+	([fg] tm/call (f-hd (f-tl/s (f-tl/z fg))) (tm-list/cons (tm/cst-n 1) tm-list/nil)).
+
+%query 1 2 (steps-to prg1 V).
+

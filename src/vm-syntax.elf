@@ -122,7 +122,6 @@ tm/let : tm T1 -> (reg T1 -> tm T) -> tm T.
 %{ Control flow }%
 %{ The if-construction should be killed. It is basically a derived form of brc }%
 tm/if : reg tp/bool -> tm T -> tm T -> tm T.
-tm/return : reg T -> tm T.
 tm/br : fname (fun-tp/ TL T) -> reg-list TL -> tm T.
 %{
 tm/brc : reg tp/bool -> fname (fun-tp/ TL T) -> reg-list TL

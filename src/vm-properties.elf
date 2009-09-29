@@ -67,40 +67,19 @@ can-fbundle-lookup : {FB : fbundle+ (fun-tp-list/cons FT FTL)}
      <- can-fbundle-lookup FB Q.
 
 
-can-fun-apply : {EL : tm-list TL} fun-apply Parms EL T -> type.
+can-fun-apply : {RL : reg-list TL} fun-apply Parms RL T -> type.
 %mode +{T : tp} +{TL : tp-list} +{Parms}
       -{E : tm T}
-      +{EL : tm-list TL}
-      -{FA : fun-apply Parms EL E}
-      can-fun-apply EL FA.
+      +{RL : reg-list TL}
+      -{FA : fun-apply Parms RL E}
+      can-fun-apply RL FA.
 
-- : can-fun-apply tm-list/nil fun-apply/body.
+- : can-fun-apply reg-list/nil fun-apply/body.
 
-- : can-fun-apply (tm-list/cons E EL) (fun-apply/parm Q)
+- : can-fun-apply (reg-list/cons E EL) (fun-apply/parm Q)
      <- can-fun-apply EL Q.
 
-progress-plus :
-%%
-    progress-good E1 ->
-    progress-good E2 ->
-%%
-    progress-good (tm/plus E1 E2) -> type.
-%mode  +{E1} +{E2}
-       +{PG1 : progress-good E1} +{PG2 : progress-good E2}
-       -{PGG : progress-good (tm/plus E1 E2)}
-       progress-plus PG1 PG2 PGG.
-
-
-- : progress-plus (progress-good/step SP1) PG2 (progress-good/step (step/plus-1 SP1)).
-
-- : progress-plus (progress-good/value VP1) (progress-good/step SP2)
-     (progress-good/step (step/plus-2 SP2 VP1)).
-
-- : progress-plus (progress-good/value VP1) (progress-good/value VP2)
-       (progress-good/step (step/plus-3 CNP))
-     <- can-nat-plus _ _ CNP.
-
-
+%{
 progress-if : progress-good B -> progress-good (tm/if B T F) -> type.
 %mode +{A : tp} +{B : tm tp/bool} +{T : tm A} +{F : tm A}
       +{PG : progress-good B}
@@ -112,9 +91,10 @@ progress-if : progress-good B -> progress-good (tm/if B T F) -> type.
 - : progress-if (progress-good/value VP) (progress-good/step step/if-t).
 
 - : progress-if (progress-good/value VP) (progress-good/step step/if-f).
+}%
 
 progress-let : progress-good T -> progress-good (tm/let T B) -> type.
-%mode +{A : tp} +{B : tp} +{T : tm A} +{Bdy : tm A -> tm B}
+%mode +{A : tp} +{B : tp} +{T : tm A} +{Bdy : reg A -> tm B}
       +{TG : progress-good T}
       -{BG : progress-good (tm/let T Bdy)}
       progress-let TG BG.
@@ -122,6 +102,7 @@ progress-let : progress-good T -> progress-good (tm/let T B) -> type.
 - : progress-let (progress-good/value VP) (progress-good/step (step/let-a VP)).
 
 - : progress-let (progress-good/step SP) (progress-good/step (step/let-s SP)).
+
 
 progress-letrec : ({F : fbundle FTL} {FB : fb-bind F (Defs F)}
 		     progress-good (Body F))
@@ -149,18 +130,15 @@ progress : {E : tm T} progress-good E -> type.
 %mode progress +E -PG.
 
 
--/c1 : progress (tm/cst-n _) (progress-good/value value/cst-n).
+-/c : progress (tm/reg _) (progress-good/value value/reg).
 
--/c2 : progress (tm/cst-b _) (progress-good/value value/cst-b).
+-/plus : progress (tm/plus (reg/cst-n N1) (reg/cst-n N2))
+	     (progress-good/step (step/plus CNP))
+	  <- can-nat-plus N1 N2 CNP.
 
--/plus : progress (tm/plus E1 E2) PGG
-     <- progress E1 PG1
-     <- progress E2 PG2
-     <- progress-plus PG1 PG2 PGG.
+-/if-t : progress (tm/if (reg/cst-b z) T F) (progress-good/step step/if-f).
 
--/if : progress (tm/if B T F) PGG
-	<- progress B PGB
-	<- progress-if PGB PGG.
+-/if-f : progress (tm/if (reg/cst-b (s _)) T F) (progress-good/step step/if-t).
 
 -/let : progress (tm/let T B) Q
 	 <- progress T PG
@@ -172,11 +150,12 @@ progress : {E : tm T} progress-good E -> type.
 	        progress (Body fb) (PG fb fbind))
 	<- progress-letrec PG Q.
 
--/call : progress (tm/call (f-hd FB) EL)
+-/call : progress (tm/br (f-hd FB) EL)
 	       (progress-good/step (step/call CFA CFL))
 	  <- can-fbundle-lookup FB CFL
 	  <- can-fun-apply EL CFA.
 
+%{
 %{ Congruence on letrec }%
 tm-eq-letrec-cong : ({fb} {fbind: fb-bind fb (Defs fb)} tm-eq (B1 fb) (B2 fb)) ->
 		      tm-eq (tm/letrec Defs B1) (tm/letrec Defs B2) -> type.
@@ -259,24 +238,28 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
      <- fbundle-lookup-unique FL1 FL2 FBEQ
      <- function-apply-unique FBEQ FA1 FA2 Q.
 
+}%
+
 %{ Blocks we need. The first one gives us the block we need in step relations }%
 %block progress-1 : some {FTL : fun-tp-list} {Defs}
                     block {fb : fbundle FTL}
 		          {bind : fb-bind fb (Defs fb)}
 		          {map : fb-bind-map fb bind}.
 
-%worlds (progress-1) (progress-letrec _ _) (progress-plus _ _ _)
-                     (progress-if _ _) (progress-let _ _)
+%worlds (progress-1) (progress-letrec _ _)
+                     (progress-let _ _)
                      (fb-bind-map _ _)
                      (progress _ _)
                      (can-fun-apply _ _) (can-fbundle-lookup _ _).
 
+%{
 %worlds (det-1) (tm-eq-cst-n-cong _ _) (tm-eq-let-cong _ _)
                 (tm-eq-plus-cong _ _ _) (tm-eq-letrec-cong _ _)
                 (tm-eq-if-cong _ _ _ _) (fbundle-lookup-unique _ _ _)
                 (function-apply-unique _ _ _ _).
 
 %worlds (det-1) (det _ _ _).
+}%
 
 %{ Various obvious uniqueness lemmas }%
 %unique fun-apply +FD +TL -1T.
@@ -284,14 +267,13 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 %unique fbundle-lookup +FB -1FDef.
 
 %{ Progress totality }%
-%total N (progress-plus N _ _).
 %total E (can-fun-apply E _).
 %total PG (progress-letrec PG _).
 %total PG (progress-let PG _).
-%total PG (progress-if PG _).
 %total E (fb-bind-map E _).
 %total (T N) (can-fbundle-lookup N _) (progress T _).
 
+%{
 %{ Determinism totality }%
 %total FB (fbundle-lookup-unique FB _ _).
 %total FB (function-apply-unique _ FB _ _).
@@ -301,5 +283,5 @@ det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
 %total T (tm-eq-if-cong T _ _ _).
 %total T (tm-eq-plus-cong T _ _).
 %total S (det S _ _).
-
+}%
 

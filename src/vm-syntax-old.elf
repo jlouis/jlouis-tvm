@@ -2,65 +2,6 @@
 %%   Syntax definitions
 %% Jesper Louis Andersen, 2009.
 
-%%%%%{ Label Identifiers }%%%%%
-
-%{
-
-A label is an identifier in the LLVM IR designating a label. Our encoding
-of these is simple that a label carries a number identifying it. This creates
-a supply of an (countably) infinite amount of labels for us to use.
-
-}%
-
-label : type.
-
-label/n : nat -> label.
-
-%% Convenience shorthands.
-l_1 = label/n 1.
-l_2 = label/n 2.
-l_3 = label/n 3.
-l_4 = label/n 4.
-l_5 = label/n 5.
-l_6 = label/n 6.
-l_7 = label/n 7.
-
-
-
-
-
-%%%%%{ Expression Syntax }%%%%%
-
-%{
-
-Registers is a family of either constants or variables. But as variables
-are captured by HOAS, we do not need to specify them.
-
-Expressions are either constants, additions or less-than comparisons
-in this silly language.
-
-}%
-
-reg : type. %name reg R r.
-
-reg/constant : nat -> reg.
-
-%{
-
-We will need lists of registers when one makes function calls and when one
-jumps to other basic blocks. Hence, we define them here
-
-}%
-
-reg-list : type.
-
-reg-list/nil : reg-list.
-reg-list/cons : reg -> reg-list -> reg-list.
-
-
-
-
-
 exp : type. %name exp E e.
 
 exp/constant : reg -> exp.

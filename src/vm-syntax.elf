@@ -5,23 +5,23 @@
 }%
 
 %% Primitive types
-tp : type.
+tp : type. %name tp Tp.
 
 tp/nat : tp.
 tp/bool : tp.
 
 %% Lists of primitive types
-tp-list : type.
+tp-list : type. %name tp-list TpL.
 
 tp-list/nil : tp-list.
 tp-list/cons : tp -> tp-list -> tp-list.
 
 %% Function types
-fun-tp : type.
+fun-tp : type. %name fun-tp FTp.
 %% There is only way to introduce a function type.
 fun-tp/ : tp-list -> tp -> fun-tp.
 
-fun-tp-list : type.
+fun-tp-list : type. %name fun-tp-list FTpL.
 fun-tp-list/nil : fun-tp-list.
 fun-tp-list/cons : fun-tp -> fun-tp-list -> fun-tp-list.
 
@@ -31,6 +31,33 @@ fun-tp-list/cons : fun-tp -> fun-tp-list -> fun-tp-list.
 
 }%
 
+%{
+
+Registers is a family of either constants or variables. But as variables
+are captured by HOAS, we do not need to specify them.
+
+Expressions are either constants, additions or less-than comparisons
+in this silly language.
+
+}%
+
+reg : tp -> type. %name reg R r.
+
+reg/cst-n : nat -> reg tp/nat.
+reg/cst-b : nat -> reg tp/bool.
+
+%{
+
+We will need lists of registers when one makes function calls and when one
+jumps to other basic blocks. Hence, we define them here
+
+}%
+
+reg-list : tp-list -> type. %name reg-list RL.
+
+reg-list/nil : reg-list tp-list/nil.
+reg-list/cons : reg T -> reg-list TL -> reg-list (tp-list/cons T TL).
+
 %{ Introduction of function bundles.
 
    Function names
@@ -39,7 +66,7 @@ fun-tp-list/cons : fun-tp -> fun-tp-list -> fun-tp-list.
    TODO: DOCUMENT FOR GODS SAKE!
 }%
 
-fname : fun-tp -> type.
+fname : fun-tp -> type. %name fname Fn.
 fbundle : fun-tp-list -> type.
 fbundle+ : fun-tp-list -> type.
 
@@ -82,21 +109,25 @@ fun-list/cons : fun-def FT -> fun-list FTL -> fun-list (fun-tp-list/cons FT FTL)
 
 
 %{ Primitive constants }%
-tm/cst-n : nat -> tm tp/nat.
-tm/cst-b : nat -> tm tp/bool.
+tm/reg : reg T -> tm T.
 
-%{ Operations on primitive constants }%
-tm/plus  : tm tp/nat -> tm tp/nat -> tm tp/nat.
+%{ Operations on registers }%
+tm/plus  : reg tp/nat -> reg tp/nat -> reg tp/nat.
 
 %{ Binding }%
 tm/letrec : (fbundle FTL -> fun-def-list FTL)
                -> (fbundle FTL -> tm T) -> tm T.
-tm/let : tm T1 -> (tm T1 -> tm T) -> tm T.
+tm/let : tm T1 -> (reg T1 -> tm T) -> tm T.
 
 %{ Control flow }%
-tm/if : tm tp/bool -> tm T -> tm T -> tm T.
-tm/call : fname (fun-tp/ TL T) -> tm-list TL -> tm T.
-
+%{ The if-construction should be killed. It is basically a derived form of brc }%
+tm/if : reg tp/bool -> tm T -> tm T -> tm T.
+tm/return : reg T -> tm T.
+tm/br : fname (fun-tp/ TL T) -> reg-list TL -> tm T.
+%{
+tm/brc : reg tp/bool -> fname (fun-tp/ TL T) -> reg-list TL
+                     -> fname (fun-tp/ TL1 T) -> reg-list TL1 -> tm T.
+}%
 
 
 

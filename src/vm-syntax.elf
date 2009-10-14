@@ -111,24 +111,48 @@ bb-list/nil : bb-list bb-tp-list/nil.
 bb-list/cons : bb-def FT -> bb-list FTL -> bb-list (bb-tp-list/cons FT FTL).
 
 
+%{ Operations. These are simple operations returning a value to a register }%
 %{ Primitive constants }%
 op/reg : reg T -> op T.
 
 %{ Operations on registers }%
 op/plus  : reg tp/nat -> reg tp/nat -> op tp/nat.
 op/cmp-lt : reg tp/nat -> reg tp/nat -> op tp/bool.
-%% TODO: Typing
+
+%% TODO: Typing of this bastard
 op/call : bb-id T -> reg-list TL -> op T.
 
+%{ Instructions. Either assigning to a register, a return or a branch }%
 insn : tp -> type.
+
 %{ Binding }%
 insn/return : reg T -> insn T.
 insn/br : fname (bb-tp/ TL T) -> reg-list TL -> insn T.
-tm/brc : reg tp/bool -> fname (bb-tp/ TL T) -> reg-list TL
+insn/brc : reg tp/bool -> fname (bb-tp/ TL T) -> reg-list TL
                      -> fname (bb-tp/ TL1 T) -> reg-list TL1 -> insn T.
-
 insn/let : op T1 -> (reg T1 -> insn T) -> insn T.
 tm/letrec : (pbundle FTL -> bb-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.
+
+
+%{ **** Functions **** }%
+
+%{ ** Function declarations ** }%
+%%         Return  Parms
+fun-decl : tp ->   tp-list -> type.
+
+%% HOAS, parameters.
+fun-decl/parm : (reg T -> fun-decl R TL) -> fun-decl R (tp-list/cons T TL).
+fun-decl/body : insn R -> fun-decl R tp-list/nil.
+
+%{ ** Program **
+
+   A fun-list
+}%
+fun-list : type.
+
+fun-list/nil : fun-list.
+fun-list/cons : fun-decl R TL -> fun-list -> fun-list.
+
 
 

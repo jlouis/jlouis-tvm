@@ -16,14 +16,14 @@ tp-list : type. %name tp-list TpL.
 tp-list/nil : tp-list.
 tp-list/cons : tp -> tp-list -> tp-list.
 
-%% Function types
-fun-tp : type. %name fun-tp FTp.
+%% Basic-block types
+bb-tp : type. %name bb-tp FTp.
 %% There is only way to introduce a function type.
-fun-tp/ : tp-list -> tp -> fun-tp.
+bb-tp/ : tp-list -> tp -> bb-tp.
 
-fun-tp-list : type. %name fun-tp-list FTpL.
-fun-tp-list/nil : fun-tp-list.
-fun-tp-list/cons : fun-tp -> fun-tp-list -> fun-tp-list.
+bb-tp-list : type. %name bb-tp-list FTpL.
+bb-tp-list/nil : bb-tp-list.
+bb-tp-list/cons : bb-tp -> bb-tp-list -> bb-tp-list.
 
 %{
 
@@ -66,16 +66,16 @@ reg-list/cons : reg T -> reg-list TL -> reg-list (tp-list/cons T TL).
    TODO: DOCUMENT FOR GODS SAKE!
 }%
 
-fname : fun-tp -> type. %name fname Fn.
-fbundle : fun-tp-list -> type.
-fbundle+ : fun-tp-list -> type.
+fname : bb-tp -> type. %name fname Fn.
+pbundle : bb-tp-list -> type.
+pbundle+ : bb-tp-list -> type.
 
 %{ This constant only exists to appease Twelfs splitter in the input coverage }%
-fbundle0 : fbundle fun-tp-list/nil.
+pbundle0 : pbundle bb-tp-list/nil.
 
-f-hd : fbundle+ (fun-tp-list/cons FT FTL) -> fname FT.
-f-tl/z : fbundle FTL -> fbundle+ FTL.
-f-tl/s : fbundle+ (fun-tp-list/cons FT FTL) -> fbundle+ FTL.
+f-hd : pbundle+ (bb-tp-list/cons FT FTL) -> fname FT.
+f-tl/z : pbundle FTL -> pbundle+ FTL.
+f-tl/s : pbundle+ (bb-tp-list/cons FT FTL) -> pbundle+ FTL.
 
 
 
@@ -91,21 +91,24 @@ op-eq : op T -> op T -> type.
 op-eq/refl : op-eq T T.
 
 
+%% These ought to be natural numbers for now.
+bb-id : tp -> type.
 
-fun-def : fun-tp -> type.
 
-fun-def/body : op T -> (fun-def (fun-tp/ tp-list/nil T)).
-fun-def/parm : (reg T0 -> fun-def (fun-tp/ TL T)) -> fun-def (fun-tp/ (tp-list/cons T0 TL) T).
+bb-def : bb-tp -> type.
 
-fun-def-list : fun-tp-list -> type.
+bb-def/body : op T -> (bb-def (bb-tp/ tp-list/nil T)).
+bb-def/phi : (reg T0 -> bb-def (bb-tp/ TL T)) -> bb-def (bb-tp/ (tp-list/cons T0 TL) T).
 
-fun-def-list/nil : fun-def-list fun-tp-list/nil.
-fun-def-list/cons : fun-def FT -> fun-def-list FTL -> fun-def-list (fun-tp-list/cons FT FTL).
+bb-def-list : bb-tp-list -> type.
 
-fun-list : fun-tp-list -> type.
+bb-def-list/nil : bb-def-list bb-tp-list/nil.
+bb-def-list/cons : bb-def FT -> bb-def-list FTL -> bb-def-list (bb-tp-list/cons FT FTL).
 
-fun-list/nil : fun-list fun-tp-list/nil.
-fun-list/cons : fun-def FT -> fun-list FTL -> fun-list (fun-tp-list/cons FT FTL).
+bb-list : bb-tp-list -> type.
+
+bb-list/nil : bb-list bb-tp-list/nil.
+bb-list/cons : bb-def FT -> bb-list FTL -> bb-list (bb-tp-list/cons FT FTL).
 
 
 %{ Primitive constants }%
@@ -114,16 +117,18 @@ op/reg : reg T -> op T.
 %{ Operations on registers }%
 op/plus  : reg tp/nat -> reg tp/nat -> op tp/nat.
 op/cmp-lt : reg tp/nat -> reg tp/nat -> op tp/bool.
+%% TODO: Typing
+op/call : bb-id T -> reg-list TL -> op T.
 
 insn : tp -> type.
 %{ Binding }%
 insn/return : reg T -> insn T.
-insn/br : fname (fun-tp/ TL T) -> reg-list TL -> insn T.
-tm/brc : reg tp/bool -> fname (fun-tp/ TL T) -> reg-list TL
-                     -> fname (fun-tp/ TL1 T) -> reg-list TL1 -> insn T.
+insn/br : fname (bb-tp/ TL T) -> reg-list TL -> insn T.
+tm/brc : reg tp/bool -> fname (bb-tp/ TL T) -> reg-list TL
+                     -> fname (bb-tp/ TL1 T) -> reg-list TL1 -> insn T.
 
 insn/let : op T1 -> (reg T1 -> insn T) -> insn T.
-tm/letrec : (fbundle FTL -> fun-def-list FTL)
-               -> (fbundle FTL -> insn T) -> insn T.
+tm/letrec : (pbundle FTL -> bb-def-list FTL)
+               -> (pbundle FTL -> insn T) -> insn T.
 
 

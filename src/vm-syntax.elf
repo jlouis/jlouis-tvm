@@ -131,7 +131,7 @@ insn/br : fname (bb-tp/ TL T) -> reg-list TL -> insn T.
 insn/brc : reg tp/bool -> fname (bb-tp/ TL T) -> reg-list TL
                      -> fname (bb-tp/ TL1 T) -> reg-list TL1 -> insn T.
 insn/let : op T1 -> (reg T1 -> insn T) -> insn T.
-tm/letrec : (pbundle FTL -> bb-def-list FTL)
+insn/letrec : (pbundle FTL -> bb-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.
 
 

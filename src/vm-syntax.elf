@@ -92,7 +92,7 @@ op-eq/refl : op-eq T T.
 
 
 %% These ought to be natural numbers for now.
-bb-id : tp -> type.
+fun-id : tp -> tp-list -> type.
 
 
 bb-def : bb-tp -> type.
@@ -120,7 +120,7 @@ op/plus  : reg tp/nat -> reg tp/nat -> op tp/nat.
 op/cmp-lt : reg tp/nat -> reg tp/nat -> op tp/bool.
 
 %% TODO: Typing of this bastard
-op/call : bb-id T -> reg-list TL -> op T.
+op/call : fun-id T TL -> reg-list TL -> op T.
 
 %{ Instructions. Either assigning to a register, a return or a branch }%
 insn : tp -> type.
@@ -152,7 +152,7 @@ fun-decl/body : insn R -> fun-decl R tp-list/nil.
 fun-list : type.
 
 fun-list/nil : fun-list.
-fun-list/cons : fun-decl R TL -> fun-list -> fun-list.
+fun-list/cons : fun-id R TL -> fun-decl R TL -> fun-list -> fun-list.
 
 
 

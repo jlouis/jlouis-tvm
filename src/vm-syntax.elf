@@ -79,22 +79,22 @@ f-tl/s : fbundle+ (fun-tp-list/cons FT FTL) -> fbundle+ FTL.
 
 
 
-tm : tp -> type.
-tm-list : tp-list -> type.
+op : tp -> type.
+op-list : tp-list -> type.
 
-tm-list/nil : tm-list tp-list/nil.
-tm-list/cons : tm T -> tm-list TL -> tm-list (tp-list/cons T TL).
+op-list/nil : op-list tp-list/nil.
+op-list/cons : op T -> op-list TL -> op-list (tp-list/cons T TL).
 
 %{ Syntactic term equality }%
-tm-eq : tm T -> tm T -> type.
+op-eq : op T -> op T -> type.
 
-tm-eq/refl : tm-eq T T.
+op-eq/refl : op-eq T T.
 
 
 
 fun-def : fun-tp -> type.
 
-fun-def/body : tm T -> (fun-def (fun-tp/ tp-list/nil T)).
+fun-def/body : op T -> (fun-def (fun-tp/ tp-list/nil T)).
 fun-def/parm : (reg T0 -> fun-def (fun-tp/ TL T)) -> fun-def (fun-tp/ (tp-list/cons T0 TL) T).
 
 fun-def-list : fun-tp-list -> type.
@@ -109,26 +109,21 @@ fun-list/cons : fun-def FT -> fun-list FTL -> fun-list (fun-tp-list/cons FT FTL)
 
 
 %{ Primitive constants }%
-tm/reg : reg T -> tm T.
+op/reg : reg T -> op T.
 
 %{ Operations on registers }%
-tm/plus  : reg tp/nat -> reg tp/nat -> tm tp/nat.
+op/plus  : reg tp/nat -> reg tp/nat -> op tp/nat.
+op/cmp-lt : reg tp/nat -> reg tp/nat -> op tp/bool.
 
+insn : tp -> type.
 %{ Binding }%
-tm/letrec : (fbundle FTL -> fun-def-list FTL)
-               -> (fbundle FTL -> tm T) -> tm T.
-tm/let : tm T1 -> (reg T1 -> tm T) -> tm T.
-
-%{ Control flow }%
-%{ The if-construction should be killed. It is basically a derived form of brc }%
-tm/if : reg tp/bool -> tm T -> tm T -> tm T.
-tm/br : fname (fun-tp/ TL T) -> reg-list TL -> tm T.
-%{
+insn/return : reg T -> insn T.
+insn/br : fname (fun-tp/ TL T) -> reg-list TL -> insn T.
 tm/brc : reg tp/bool -> fname (fun-tp/ TL T) -> reg-list TL
-                     -> fname (fun-tp/ TL1 T) -> reg-list TL1 -> tm T.
-}%
+                     -> fname (fun-tp/ TL1 T) -> reg-list TL1 -> insn T.
 
-
-
+insn/let : op T1 -> (reg T1 -> insn T) -> insn T.
+tm/letrec : (fbundle FTL -> fun-def-list FTL)
+               -> (fbundle FTL -> insn T) -> insn T.
 
 

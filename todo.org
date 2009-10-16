@@ -15,4 +15,3 @@
   This version should be more binary in its version.
 
 * Define function call semantics for the language.
-

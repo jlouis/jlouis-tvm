@@ -119,21 +119,20 @@ op/reg : reg T -> op T.
 op/plus  : reg tp/nat -> reg tp/nat -> op tp/nat.
 op/cmp-lt : reg tp/nat -> reg tp/nat -> op tp/bool.
 
-%% TODO: Typing of this bastard
-op/call : fun-id T TL -> reg-list TL -> op T.
-
 %{ Instructions. Either assigning to a register, a return or a branch }%
 insn : tp -> type.
 
 %{ Binding }%
 insn/return : reg T -> insn T.
+
 insn/br : fname (bb-tp/ TL T) -> reg-list TL -> insn T.
 insn/brc : reg tp/bool -> fname (bb-tp/ TL T) -> reg-list TL
                      -> fname (bb-tp/ TL1 T) -> reg-list TL1 -> insn T.
 insn/let : op T1 -> (reg T1 -> insn T) -> insn T.
 insn/letrec : (pbundle FTL -> bb-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.
-
+insn/do : insn T -> insn T -> insn T. %% Only internally used
+insn/call : fun-id T TL -> reg-list TL -> (reg T -> insn T) -> insn T.
 
 %{ **** Functions **** }%
 

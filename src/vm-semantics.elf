@@ -6,20 +6,56 @@ Jesper Louis Andersen, 2009
 
 }%
 
-
-
 %{
 
 ******** STATIC SEMANTICS ********
 
 }%
 
-value : tm T -> type.
+value : insn T -> type.
+
+value/ret : value (insn/return _).
 
 
-value/reg : value (tm/reg _).
+
+%{
+
+******** DYNAMIC SEMANTICS *******
+
+}%
+
+step-op : op T -> reg T -> type.
+
+step-op/plus : step-op (op/plus (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)
+		<- nat-plus N1 N2 N3.
+
+step-op/cmp-lt : step-op (op/cmp-lt (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-b B)
+		  <- nat-lt N1 N2 B.
+
+step : insn T -> insn T -> type.
+
+step/let : step (insn/let T B) (B V)
+	    <- step-op T V.
+
+step/letrec-v : step (insn/letrec ([fb] Defs fb) ([fb] V)) V
+		 <- value V.
+
+step/brc-t : step (insn/brc (reg/cst-b (s _)) L RL _ _) (insn/br L RL).
+
+step/brc-f : step (insn/brc (reg/cst-b z) _ _ L RL) (insn/br L RL).
+
+step/do-s : step (insn/do T B) (insn/do T' B)
+	   <- step T T'.
+
+step/do-v : step (insn/do (insn/return R) B) (B R).
+
+%{ Needed:
+   br, letrec-s, call
+}%
+%{
 
 step : tm T -> tm T -> type.
+
 
 %% Binding construct for function-bundles
 fb-bind : fbundle FTL -> fun-def-list FTL -> type.
@@ -97,4 +133,4 @@ steps-to/ : steps-to T V
 	     <- value V.
 
 
-
+}%

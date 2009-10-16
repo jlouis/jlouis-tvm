@@ -136,14 +136,14 @@ nat-eq : nat -> nat -> type.
 
 nat-eq/refl : nat-eq N N.
 
-nat-lt : nat -> nat -> bool -> type.
+nat-lt : nat -> nat -> nat -> type.
 %mode nat-lt +N1 +N2 -B.
 
-nat-lt/z-z : nat-lt z z false.
+nat-lt/z-z : nat-lt z z z.
 
-nat-lt/z-s : nat-lt z (s _) true.
+nat-lt/z-s : nat-lt z (s _) (s z).
 
-nat-lt/s-z : nat-lt (s _) z false.
+nat-lt/s-z : nat-lt (s _) z z.
 
 nat-lt/s-s : nat-lt (s N) (s K) B
 	      <- nat-lt N K B.

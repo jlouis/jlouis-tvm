@@ -120,65 +120,14 @@ steps-to/ : steps-to T V
 	     <- value V.
 
 
+eval-program : fun-list -> reg T -> type.
 
-%{
+eval-program/main : eval-program (fun-list/main Fid) R
+		     <- function-lookup Fid FDecl
+		     <- function-apply FDecl reg-list/nil IS
+		     <- steps-to IS (insn/return R).
 
-step : tm T -> tm T -> type.
+eval-program/cons : eval-program (fun-list/cons Fid FDecl Rest) Q
+		     <- (function-lookup Fid FDecl ->
+			   eval-program Rest Q).
 
-
-%% Binding construct for function-bundles
-fb-bind : fbundle FTL -> fun-def-list FTL -> type.
-%mode fb-bind +FB -FDef.
-
-%{ To appease Twelf splitter }%
-fb-bind0 : fb-bind fbundle0 fun-def-list/nil.
-
-fbundle-lookup : fbundle+ FTL -> fun-def-list FTL -> type.
-
-fbundle-lookup/ctx-hit : fbundle-lookup (f-tl/z FB) FL
-			  <- fb-bind FB FL.
-
-fbundle-lookup/dig : fbundle-lookup (f-tl/s FB) R
-		       <- fbundle-lookup FB (fun-def-list/cons _ R).
-
-
-
-
-fun-apply : fun-def (fun-tp/ TL T) -> reg-list TL -> tm T -> type.
-
-fun-apply/body : fun-apply (fun-def/body E) reg-list/nil E.
-
-fun-apply/parm : fun-apply (fun-def/parm ([x] R x)) (reg-list/cons E EL) Q
-		  <- fun-apply (R E) EL Q.
-
-
-
-
-step/plus : step (tm/plus (reg/cst-n N1) (reg/cst-n N2)) (tm/reg (reg/cst-n N3))
-		    <- nat-plus N1 N2 N3.
-
-step/let-s : step (tm/let T B) (tm/let T' B)
-	      <- step T T'.
-
-step/let-a : step (tm/let (tm/reg V) B) (B V)
-	      <- value (tm/reg V).
-
-step/if-f : step (tm/if (reg/cst-b z) T F) T.
-
-step/if-t : step (tm/if (reg/cst-b (s _)) T F) F.
-
-
-
-step/letrec-v : step (tm/letrec ([fb] Defs fb) ([fb] V)) V
-		 <- value V.
-
-step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb))
-		     (tm/letrec ([fb] Defs fb) ([fb] Body' fb))
-		 <- ({fb} fb-bind fb (Defs fb) ->
-		       step (Body fb) (Body' fb)).
-
-step/call : step (tm/br (f-hd FB) EL) E
-	     <- fbundle-lookup FB (fun-def-list/cons FDef _)
-	     <- fun-apply FDef EL E.
-
-}%

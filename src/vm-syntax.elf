@@ -151,7 +151,7 @@ fun-decl/body : insn R -> fun-decl R tp-list/nil.
 }%
 fun-list : type.
 
-fun-list/nil : fun-list.
+fun-list/main : fun-id R TL -> fun-list.
 fun-list/cons : fun-id R TL -> fun-decl R TL -> fun-list -> fun-list.
 
 

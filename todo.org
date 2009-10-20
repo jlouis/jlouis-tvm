@@ -1,17 +1,13 @@
 ##
 ## TODO list for this project.
 
-* Redefine the current semantics to match what I and Andrzej talked about
-** Add the Do-instruction
-** Redefine the call to be an instruction rather than an operation.
-* Implement brc, conditional branching.
-  Easy, just step to the br instruction.
-* Consider renaming things to match LLVM more.
-* Implement the "Missing" operations for the Appel Example.
-* Try to define the Appel Example in our new language.
-  This is the check for if it is correct.
+* Define semantics for processing functions
+  Start with a naive implementation of function semantics then work
+  from there.
 
-* Define a new version of the natural number addition.
-  This version should be more binary in its version.
+  We start with the basic implementation and then add the type
+  declarations by a later two-step processing of what happens here.
 
-* Define function call semantics for the language.
+
+
+

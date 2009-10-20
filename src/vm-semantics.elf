@@ -1,6 +1,6 @@
 %{
 
-This is version (s z) of our pre-vm version.
+This is version (s z) of Mini-LLVM.
 
 Jesper Louis Andersen, 2009
 
@@ -52,6 +52,30 @@ step/do-v : step (insn/do (insn/return R) B) (B R).
 %{ Needed:
    br, letrec-s, call
 }%
+
+
+%{
+
+**** Iterated step relations ****
+
+}%
+
+steps : insn T -> insn T -> type.
+
+steps/0 : steps T T.
+
+steps/s : steps T T'
+	   <- step T T''
+	   <- steps T'' T'.
+
+steps-to : insn T -> insn T -> type.
+
+steps-to/ : steps-to T V
+	     <- steps T V
+	     <- value V.
+
+
+
 %{
 
 step : tm T -> tm T -> type.
@@ -111,26 +135,5 @@ step/letrec-s : step (tm/letrec ([fb] Defs fb) ([fb] Body fb))
 step/call : step (tm/br (f-hd FB) EL) E
 	     <- fbundle-lookup FB (fun-def-list/cons FDef _)
 	     <- fun-apply FDef EL E.
-
-%{
-
-**** Iterated step relations ****
-
-}%
-
-steps : tm T -> tm T -> type.
-
-steps/0 : steps T T.
-
-steps/s : steps T T'
-	   <- step T T''
-	   <- steps T'' T'.
-
-steps-to : tm T -> tm T -> type.
-
-steps-to/ : steps-to T V
-	     <- steps T V
-	     <- value V.
-
 
 }%

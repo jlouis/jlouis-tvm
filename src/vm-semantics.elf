@@ -40,14 +40,13 @@ pbundle-lookup/ctx-hit : pbundle-lookup (f-tl/z PB) FL
 pbundle-lookup/dig     : pbundle-lookup (f-tl/s PB) R
 			  <- pbundle-lookup PB (bb-def-list/cons _ R).
 
-%{
 bb-apply : bb-def (bb-tp/ TL T) -> reg-list TL -> insn T -> type.
 
 bb-apply/body : bb-apply (bb-def/body E) reg-list/nil E.
 
 bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
 		 <- bb-apply (R E) EL Q.
-}%
+
 
 
 step-op : op T -> reg T -> type.

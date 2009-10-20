@@ -80,6 +80,10 @@ f-tl/s : pbundle+ (bb-tp-list/cons FT FTL) -> pbundle+ FTL.
 
 
 op : tp -> type.
+%{ Instructions. Either assigning to a register, a return or a branch.
+   These take care of control flow }%
+insn : tp -> type.
+
 op-list : tp-list -> type.
 
 op-list/nil : op-list tp-list/nil.
@@ -97,7 +101,7 @@ fun-id : tp -> tp-list -> type.
 
 bb-def : bb-tp -> type.
 
-bb-def/body : op T -> (bb-def (bb-tp/ tp-list/nil T)).
+bb-def/body : insn T -> (bb-def (bb-tp/ tp-list/nil T)).
 bb-def/phi : (reg T0 -> bb-def (bb-tp/ TL T)) -> bb-def (bb-tp/ (tp-list/cons T0 TL) T).
 
 bb-def-list : bb-tp-list -> type.
@@ -118,9 +122,6 @@ op/reg : reg T -> op T.
 %{ Operations on registers }%
 op/plus  : reg tp/nat -> reg tp/nat -> op tp/nat.
 op/cmp-lt : reg tp/nat -> reg tp/nat -> op tp/bool.
-
-%{ Instructions. Either assigning to a register, a return or a branch }%
-insn : tp -> type.
 
 %{ Binding }%
 insn/return : reg T -> insn T.

@@ -24,6 +24,32 @@ value/ret : value (insn/return _).
 
 }%
 
+bb-bind : pbundle FTL -> bb-def-list FTL -> type.
+%mode bb-bind +PB -BBDef.
+
+%{ This is to work around a bug in Twelfs splitter }%
+bb-bind0 : bb-bind pbundle0 bb-def-list/nil.
+
+%{ When referring to an internal bb, ie a phi node, we use this
+   relation to look up the relevant bb in the phi-bundle }%
+pbundle-lookup : pbundle+ FTL -> bb-def-list FTL -> type.
+
+pbundle-lookup/ctx-hit : pbundle-lookup (f-tl/z PB) FL
+			  <- bb-bind PB FL.
+
+pbundle-lookup/dig     : pbundle-lookup (f-tl/s PB) R
+			  <- pbundle-lookup PB (bb-def-list/cons _ R).
+
+%{
+bb-apply : bb-def (bb-tp/ TL T) -> reg-list TL -> insn T -> type.
+
+bb-apply/body : bb-apply (bb-def/body E) reg-list/nil E.
+
+bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
+		 <- bb-apply (R E) EL Q.
+}%
+
+
 step-op : op T -> reg T -> type.
 
 step-op/plus : step-op (op/plus (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)

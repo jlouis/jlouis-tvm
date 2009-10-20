@@ -47,6 +47,17 @@ bb-apply/body : bb-apply (bb-def/body E) reg-list/nil E.
 bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
 		 <- bb-apply (R E) EL Q.
 
+function-lookup : fun-id R TL -> fun-decl R TL -> type.
+
+
+function-apply : fun-decl R TL -> reg-list TL -> insn R -> type.
+
+function-apply/body : function-apply (fun-decl/body B) reg-list/nil B.
+
+function-apply/parm : function-apply (fun-decl/parm [r] FD r)
+		                     (reg-list/cons R RL) Q
+		       <- function-apply (FD R) RL Q.
+
 
 
 step-op : op T -> reg T -> type.
@@ -83,10 +94,10 @@ step/br : step (insn/br (f-hd PB) RL) E
 	   <- pbundle-lookup PB (bb-def-list/cons BBDef _)
 	   <- bb-apply BBDef RL E.
 
-%{ Needed:
-   call
-}%
-
+step/call : step (insn/call Fid RL ([r] Body r))
+	         (insn/do T ([r] Body r))
+	     <- function-lookup Fid FDecl
+	     <- function-apply FDecl RL T.
 
 %{
 

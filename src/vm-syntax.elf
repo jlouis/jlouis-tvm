@@ -17,11 +17,11 @@ tp-list/nil : tp-list.
 tp-list/cons : tp -> tp-list -> tp-list.
 
 %% Basic-block types
-bb-tp : type. %name bb-tp FTp.
+bb-tp : type. %name bb-tp BBTp.
 %% There is only way to introduce a function type.
 bb-tp/ : tp-list -> tp -> bb-tp.
 
-bb-tp-list : type. %name bb-tp-list FTpL.
+bb-tp-list : type. %name bb-tp-list BBTpL.
 bb-tp-list/nil : bb-tp-list.
 bb-tp-list/cons : bb-tp -> bb-tp-list -> bb-tp-list.
 
@@ -96,7 +96,7 @@ op-eq/refl : op-eq T T.
 
 
 %% These ought to be natural numbers for now.
-fun-id : tp -> tp-list -> type.
+fun-id : nat -> type.
 
 
 bb-def : bb-tp -> type.
@@ -133,7 +133,7 @@ insn/let : op T1 -> (reg T1 -> insn T) -> insn T.
 insn/letrec : (pbundle FTL -> bb-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.
 insn/do : insn T -> (reg T' -> insn T) -> insn T. %% Only internally used
-insn/call : fun-id T TL -> reg-list TL -> (reg T -> insn T) -> insn T.
+insn/call : fun-id N -> reg-list TL -> (reg T -> insn T) -> insn T.
 
 %{ **** Functions **** }%
 
@@ -151,8 +151,8 @@ fun-decl/body : insn R -> fun-decl R tp-list/nil.
 }%
 fun-list : type.
 
-fun-list/main : fun-id R TL -> fun-list.
-fun-list/cons : fun-id R TL -> fun-decl R TL -> fun-list -> fun-list.
+fun-list/main : fun-id N -> fun-list.
+fun-list/cons : fun-id N -> fun-decl R TL -> fun-list -> fun-list.
 
 
 

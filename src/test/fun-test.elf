@@ -1,0 +1,54 @@
+%{ Small playtoy language for
+   working with function calls
+
+   TODO: add F and Gamma!
+
+}%
+
+%{ ** SYNTAX ** }%
+
+nat : type.
+
+z : nat.
+s : nat -> nat.
+
+fid : type.
+fid/ : nat -> type.
+
+tm : type.
+
+tm/skip : tm.
+
+tm/fcall : fid -> tm.
+tm/semi  : tm -> tm -> tm.
+
+fun : type.
+fun/ : fid -> tm -> fun.
+
+
+fun-list : type.
+
+fun-list/z : fun-list.
+fun-list/s : fun -> fun-list -> fun-list.
+
+
+%{ ** STATIC SEMANTICS ** }%
+fun-list-lookup : fun-list -> fid -> tm -> type.
+%mode fun-list-lookup +FL +Fid -T.
+
+fun-list-lookup/hit : fun-list-lookup (fun-list/s (fun/ N B) _) N B.
+
+fun-list-lookup/miss : fun-list-lookup (fun-list/s (fun/ K _) R) N B
+			<- fun-list-lookup R N B.
+
+%{ ** DYNAMIC SEMANTICS ** }%
+step-tm : fun-list -> tm -> tm -> type.
+
+step-tm/semi : step-tm FL (tm/semi B1 B2) (tm/semi B1' B2)
+		<- step-tm FL B1 B1'.
+
+step-tm/fcall : step-tm FL (tm/fcall Fid) B1
+		 <- fun-list-lookup FL Fid B1.
+
+step-tm/skip : step-tm FL (tm/semi tm/skip B) B.
+

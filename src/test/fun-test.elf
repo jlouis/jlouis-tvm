@@ -31,6 +31,9 @@ fun-list : type.
 fun-list/z : fun-list.
 fun-list/s : fun -> fun-list -> fun-list.
 
+pgm : type.
+
+pgm/ : fun-list -> tm -> pgm.
 
 %{ ** STATIC SEMANTICS ** }%
 fun-list-lookup : fun-list -> fid -> tm -> type.
@@ -40,6 +43,12 @@ fun-list-lookup/hit : fun-list-lookup (fun-list/s (fun/ N B) _) N B.
 
 fun-list-lookup/miss : fun-list-lookup (fun-list/s (fun/ K _) R) N B
 			<- fun-list-lookup R N B.
+
+value : tm -> type.
+
+value/skip : value tm/skip.
+
+
 
 %{ ** DYNAMIC SEMANTICS ** }%
 step-tm : fun-list -> tm -> tm -> type.
@@ -51,4 +60,26 @@ step-tm/fcall : step-tm FL (tm/fcall Fid) B1
 		 <- fun-list-lookup FL Fid B1.
 
 step-tm/skip : step-tm FL (tm/semi tm/skip B) B.
+
+step-pgm : pgm -> pgm -> type.
+
+step-pgm/ : step-pgm (pgm/ F T) (pgm/ F T')
+	     <- step-tm F T T'.
+
+steps : pgm -> pgm -> type.
+
+steps/0 : steps P P.
+
+steps/s : steps P P'
+	   <- step-pgm P P''
+	   <- steps P'' P'.
+
+steps-to : pgm -> pgm -> type.
+
+steps-to/ : steps-to P (pgm/ X V)
+	     <- steps P (pgm/ X V)
+	     <- value V.
+
+
+%{ ** PROPERTIES ** }%
 

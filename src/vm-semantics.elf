@@ -47,7 +47,7 @@ bb-apply/body : bb-apply (bb-def/body E) reg-list/nil E.
 bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
 		 <- bb-apply (R E) EL Q.
 
-function-lookup : fun-id N -> fun-decl R TL -> type.
+function-lookup : fun-id R TL -> fun-decl R TL -> type.
 
 
 function-apply : fun-decl R TL -> reg-list TL -> insn R -> type.

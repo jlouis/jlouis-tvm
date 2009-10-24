@@ -21,7 +21,7 @@ fun-discover-type : fun-list -> fun-tp-list -> type.
 
 fun-discover-type/main : fun-discover-type (fun-list/main _) fun-tp-list/nil.
 fun-discover-type/cons : fun-discover-type
-			    (fun-list/cons (_ : fun-id N) (_ : fun-decl R TL) Rest)
+			    (fun-list/cons (fun-id/ N) (_ : fun-decl R TL) Rest)
 			    (fun-tp-list/cons N R TL Q)
 			  <- fun-discover-type Rest Q.
 
@@ -45,7 +45,7 @@ fun-check-insn/let    : fun-check-insn TPL (insn/let _ ([r] C r))
 fun-check-insn/letrec : fun-check-insn TPL (insn/letrec ([pb] ...
 }%
 
-fun-check-insn/call   : fun-check-insn TPL (insn/call (_ : fun-id N)
+fun-check-insn/call   : fun-check-insn TPL (insn/call (fun-id/ N)
 					              (_ : reg-list TL)
 					              ([r : reg T] I r))
 			 <- fun-tp-list-lookup N TPL T TL.
@@ -63,7 +63,7 @@ fun-check-decl/body : fun-check-decl TL (fun-decl/body Insn)
 fun-check-type : fun-tp-list -> fun-list -> type.
 
 fun-check-type/main : fun-check-type _ (fun-list/main _).
-fun-check-type/cons : fun-check-type TL (fun-list/cons (Fid : fun-id N)
+fun-check-type/cons : fun-check-type TL (fun-list/cons (fun-id/ N)
 					               (FDecl : fun-decl R RL)
 					               Rest)
 		       <- fun-tp-list-lookup N TL R RL

@@ -35,6 +35,11 @@ pgm : type.
 
 pgm/ : fun-list -> tm -> pgm.
 
+%{ ** Lookup ** }%
+
+lookup : fid -> fun-list -> tm -> type.
+%mode lookup +F +FL -T.
+
 %{ ** STATIC SEMANTICS ** }%
 fun-list-lookup : fun-list -> fid -> tm -> type.
 %mode fun-list-lookup +FL +Fid -T.
@@ -50,21 +55,44 @@ value/skip : value tm/skip.
 
 
 
+%{ ** "TYPES" ** }%
+
+funl : fun-list -> type.
+
+valid : type.
+
+valid/z : valid.
+valid/s : fid -> valid -> valid.
+
+wellformed : tm -> type.
+
+wellformed/skip : wellformed tm/skip.
+
+wellformed/semi : wellformed (tm/semi T1 T2)
+		   <- wellformed T1
+		   <- wellformed T2.
+
+wellformed/fcall : wellformed (tm/fcall F)
+		    <- funl FL
+		    <- fun-list-lookup FL F _.
+
+
 %{ ** DYNAMIC SEMANTICS ** }%
-step-tm : fun-list -> tm -> tm -> type.
+step-tm : tm -> tm -> type.
 
-step-tm/semi : step-tm FL (tm/semi B1 B2) (tm/semi B1' B2)
-		<- step-tm FL B1 B1'.
+step-tm/semi : step-tm (tm/semi B1 B2) (tm/semi B1' B2)
+		<- step-tm B1 B1'.
 
-step-tm/fcall : step-tm FL (tm/fcall Fid) B1
+step-tm/fcall : step-tm (tm/fcall Fid) B1
+		 <- funl FL
 		 <- fun-list-lookup FL Fid B1.
 
-step-tm/skip : step-tm FL (tm/semi tm/skip B) B.
+step-tm/skip : step-tm (tm/semi tm/skip B) B.
 
 step-pgm : pgm -> pgm -> type.
 
 step-pgm/ : step-pgm (pgm/ F T) (pgm/ F T')
-	     <- step-tm F T T'.
+	     <- step-tm T T'.
 
 steps : pgm -> pgm -> type.
 
@@ -83,4 +111,31 @@ steps-to/ : steps-to P (pgm/ X V)
 
 %{ ** PROPERTIES ** }%
 
-%%% TODO: Grab paper and have fun!
+pgood : tm -> type.
+
+pgood/val : pgood V
+	     <- value V.
+
+pgood/step : pgood T
+	      <- step-tm T T'.
+
+pgood-pgm : pgm -> type.
+
+pgood-pgm/ : pgood-pgm (pgm/ _ B)
+	      <- pgood B.
+
+progress-tm : {T : tm} pgood T -> type.
+%mode progress-tm +T -Good.
+
+%worlds () (progress-tm _ _).
+%%total T (progress-tm T _).
+
+progress : {P : pgm} pgood-pgm P -> type.
+%mode progress +P -Good.
+
+- : progress (pgm/ Funs T) (pgood-pgm/ Q)
+     <- progress-tm T Q.
+
+%worlds () (progress _ _).
+%%total P (progress P _).
+

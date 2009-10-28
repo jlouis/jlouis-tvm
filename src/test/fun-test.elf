@@ -59,10 +59,25 @@ value/skip : value tm/skip.
 
 funl : fun-list -> type.
 
-valid : type.
+gamma : type.
 
-valid/z : valid.
-valid/s : fid -> valid -> valid.
+gammal : gamma -> type.
+
+gamma/z : gamma.
+gamma/s : fid -> gamma -> gamma.
+
+gamma-lookup : fid -> gamma -> type.
+gamma-lookup/hit : gamma-lookup F (gamma/s F _).
+gamma-lookup/miss : gamma-lookup F (gamma/s _ R)
+		     <- gamma-lookup F R.
+
+valid : fun-list -> gamma -> type.
+
+valid/z : valid fun-list/z gamma/z.
+valid/s : valid (fun-list/s (fun/ Fid _) RF) (gamma/s _ RG)
+	   <- gammal GL
+	   <- gamma-lookup Fid GL
+	   <- valid RF RG.
 
 wellformed : tm -> type.
 

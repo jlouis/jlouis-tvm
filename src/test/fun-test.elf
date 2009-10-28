@@ -91,6 +91,15 @@ wellformed/fcall : wellformed (tm/fcall F)
 		    <- funl FL
 		    <- fun-list-lookup FL F _.
 
+wellformed-pgm : pgm -> type.
+
+wellformed-pgm/ : wellformed-pgm (pgm/ _ T)
+		   <- wellformed T.
+
+valid-pgm : pgm -> type.
+
+valid-pgm/ : valid-pgm (pgm/ FL T)
+	      <- ({G : gamma} valid FL G).
 
 %{ ** DYNAMIC SEMANTICS ** }%
 step-tm : tm -> tm -> type.
@@ -145,12 +154,12 @@ progress-tm : {T : tm} pgood T -> type.
 %worlds () (progress-tm _ _).
 %%total T (progress-tm T _).
 
-progress : {P : pgm} pgood-pgm P -> type.
-%mode progress +P -Good.
+progress : {P : pgm} valid-pgm P -> wellformed-pgm P -> pgood-pgm P -> type.
+%mode progress +P +VP +WP -Good.
 
-- : progress (pgm/ Funs T) (pgood-pgm/ Q)
+- : progress (pgm/ Funs T) VP WP (pgood-pgm/ Q)
      <- progress-tm T Q.
 
-%worlds () (progress _ _).
+%worlds () (progress _ _ _ _).
 %%total P (progress P _).
 

@@ -105,7 +105,7 @@ valid-pgm/ : valid-pgm (pgm/ FL T)
 step-tm : tm -> tm -> type.
 
 step-tm/semi : step-tm (tm/semi B1 B2) (tm/semi B1' B2)
-		<- step-tm B1 B1'.
+		  <- step-tm B1 B1'.
 
 step-tm/fcall : step-tm (tm/fcall Fid) B1
 		 <- funl FL
@@ -148,18 +148,41 @@ pgood-pgm : pgm -> type.
 pgood-pgm/ : pgood-pgm (pgm/ _ B)
 	      <- pgood B.
 
-progress-tm : {T : tm} pgood T -> type.
-%mode progress-tm +T -Good.
+progress-tm-semi : pgood T -> pgood (tm/semi T T2) -> type.
+%mode +{T : tm}
+      +{T2 : tm}
+      +{PGT : pgood T}
+      -{PGG : pgood (tm/semi T T2)}
+      progress-tm-semi PGT PGG.
 
-%worlds () (progress-tm _ _).
-%%total T (progress-tm T _).
+- : progress-tm-semi (pgood/step SP) (pgood/step (step-tm/semi SP)).
 
-progress : {P : pgm} valid-pgm P -> wellformed-pgm P -> pgood-pgm P -> type.
-%mode progress +P +VP +WP -Good.
+- : progress-tm-semi (pgood/val value/skip) (pgood/step step-tm/skip).
 
-- : progress (pgm/ Funs T) VP WP (pgood-pgm/ Q)
-     <- progress-tm T Q.
+%worlds () (progress-tm-semi _ _).
+%total PG (progress-tm-semi PG _).
 
-%worlds () (progress _ _ _ _).
-%%total P (progress P _).
+progress-tm : {T : tm} wellformed T -> pgood T -> type.
+%mode progress-tm +T +WP -Good.
+
+- : progress-tm tm/skip _ (pgood/val value/skip).
+
+- : progress-tm (tm/semi T1 T2) (wellformed/semi WP2 WP1) PG
+     <- progress-tm T1 WP1 PG1
+     <- progress-tm-semi PG1 PG.
+
+- : progress-tm (tm/fcall F) (wellformed/fcall Lookup Exist)
+       (pgood/step (step-tm/fcall Lookup Exist)).
+
+%worlds () (progress-tm _ _ _).
+%total T (progress-tm T _ _).
+
+progress : {P : pgm} wellformed-pgm P -> pgood-pgm P -> type.
+%mode progress +P +WP -Good.
+
+- : progress (pgm/ Funs T) (wellformed-pgm/ WP) (pgood-pgm/ Q)
+     <- progress-tm T WP Q.
+
+%worlds () (progress _ _ _).
+%total P (progress P _ _).
 

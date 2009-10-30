@@ -115,24 +115,118 @@ pgood/v : pgood _ tm/skip.
 pgood/s : pgood D T
 	   <- step D T T'.
 
-%% Lemma, progress on terms.
-progress-tm : wf G T -> wf-def G D G -> pgood D T -> type.
-%mode progress-tm +WF +WFD -PG.
+%% Lemma, output-factored progress on fst of Semi operation
+progress-tm-semi : pgood D T -> pgood D (tm/semi T T2) -> type.
+%mode +{T} +{T2} +{D} +{PG : pgood D T} -{Q : pgood D (tm/semi T T2)}
+      progress-tm-semi PG Q.
 
-%% Helper for progress on programs.
+- : progress-tm-semi pgood/v (pgood/s step/skip).
+
+- : progress-tm-semi (pgood/s SP) (pgood/s (step/semi SP)).
+
+%worlds () (progress-tm-semi _ _).
+%total PG (progress-tm-semi PG _).
+
+%% Helper relating a gamma-lookup to a definition lookup if we know [ G |- d : G' ]
+lookup-good : wf-def G D G' -> gamma-lookup G' F -> def-lookup D F T -> type.
+%mode lookup-good +WFD +GL -DL.
+
+- : lookup-good _ gamma-lookup/hit def-lookup/hit.
+
+- : lookup-good (wf-def/s WFD WF) (gamma-lookup/miss GL) (def-lookup/miss DL)
+     <- lookup-good WFD GL DL.
+
+%% Lemma, progress on terms.
+progress-tm : {T : tm} wf G T -> wf-def G D G -> pgood D T -> type.
+%mode progress-tm +T +WF +WFD -PG.
+
+- : progress-tm tm/skip _ _ pgood/v.
+
+- : progress-tm (tm/semi T1 T2) (wf/semi W2 W1) WFD Q
+     <- progress-tm T1 W1 WFD PG1
+     <- progress-tm-semi PG1 Q.
+
+- : progress-tm (tm/fcall F) (wf/fcall GL) WFD (pgood/s (step/fcall DL))
+     <- lookup-good WFD GL DL.
+
+%% Disjunction for progress on programs.
 pgood-pgm : pgm -> type.
 
 pgood-pgm/v : pgood-pgm (pgm/ D tm/skip).
 pgood-pgm/s : pgood-pgm (pgm/ D T)
 	       <- step D T T'.
 
-progress : wf-pgm P -> pgood-pgm P -> type.
-%mode progress +WF -PG.
+%% Helper for progress on programs.
+progress-pgm-h : pgood D T -> pgood-pgm (pgm/ D T) -> type.
+%mode progress-pgm-h +PG -PGG.
+
+- : progress-pgm-h pgood/v pgood-pgm/v.
+
+- : progress-pgm-h (pgood/s SP) (pgood-pgm/s SP).
+
+%worlds () (progress-pgm-h _ _).
+%total PG (progress-pgm-h PG _).
+
+progress : {P : pgm} wf-pgm P -> pgood-pgm P -> type.
+%mode progress +P +WF -PG.
+
+- : progress (pgm/ _ tm/skip) _ pgood-pgm/v.
+
+- : progress (pgm/ Defs T) (wf-pgm/ WF WFD) Q
+     <- ({g : gamma} progress-tm T (WF g) (WFD g) PG)
+     <- progress-pgm-h PG Q.
+
+%% Progress runs in a world where there is presence of gammas:
+%block gamma-b-1 : block {g : gamma}.
+
+%worlds (gamma-b-1) (lookup-good _ _ _).
+%worlds (gamma-b-1) (progress-tm _ _ _ _).
+%worlds (gamma-b-1) (progress _ _ _).
+%total GL (lookup-good _ GL _).
+%total T (progress-tm T _ _ _).
+%total P (progress P _ _).
 
 %{ PRESERVATION }%
 
+preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
+%mode preserv-lookup +DL +WFD -WF.
+
+- : preserv-lookup def-lookup/hit (wf-def/s WFD WF) WF.
+
+- : preserv-lookup (def-lookup/miss L) (wf-def/s WFD WF) Q
+     <- preserv-lookup L WFD Q.
+
+
+
+preserv-tm : wf G T -> wf-def G D G -> step D' T T' -> wf G T' -> type.
+%mode preserv-tm +WF +WFD +SD -WF'.
+
+- : preserv-tm (wf/semi WF2 WF1) WFD step/skip WF2.
+
+- : preserv-tm (wf/semi WF2 WF1) WFD (step/semi T1) (wf/semi WF2 WF1')
+     <- preserv-tm WF1 WFD T1 WF1'.
+
+- : preserv-tm (wf/fcall GL) WFD (step/fcall DL) WF
+     <- preserv-lookup DL WFD WF.
+
+
+
 preservation : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 %mode preservation +WFP +SP -WFP'.
+
+- : preservation (wf-pgm/ ([g] WF g) ([g] WFD g)) (step-pgm/ TSP)
+%%
+ (wf-pgm/ ([g] WF' g) ([g] WFD g))
+%%
+     <- ({g : gamma} preserv-tm (WF g) (WFD g) TSP (WF' g)).
+
+%worlds (gamma-b-1) (preserv-lookup _ _ _).
+%worlds (gamma-b-1) (preserv-tm _ _ _ _).
+%worlds (gamma-b-1) (preservation _ _ _).
+
+%total DL (preserv-lookup DL _ _).
+%total WF (preserv-tm WF _ _ _).
+%total S  (preservation _ S _).
 
 %{ DETERMINISM }%
 
@@ -151,3 +245,9 @@ det : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
 soundness : wf-pgm P -> step-pgm P P' -> pgood-pgm P' -> type.
 %mode soundness +WFP +SP -PG.
 
+- : soundness WFP SPP PGG
+     <- preservation WFP SPP WFP'
+     <- progress P' WFP' PGG.
+
+%worlds () (soundness _ _ _).
+%total SP (soundness _ SP _).

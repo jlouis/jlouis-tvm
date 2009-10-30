@@ -34,3 +34,31 @@ defs/s : fid -> tm -> defs -> defs.
 pgm : type.
 
 pgm/ : defs -> tm -> pgm.
+
+%{ ** Operational semantics ** }%
+
+%% Function definition lookup.
+def-lookup : defs -> fid -> tm -> type.
+%mode def-lookup +D +F -T.
+
+def-lookup/hit : def-lookup (defs/s F B _) F B.
+def-lookup/miss : def-lookup (defs/s F' _ R) F Q
+		   <- def-lookup R F Q.
+
+%% Term evaluation
+ev : defs -> tm -> tm -> type.
+
+ev/skip : ev _ (tm/semi tm/skip T) T.
+ev/semi : ev D (tm/semi T T2) (tm/semi T' T2)
+	   <- ev Defs T T'.
+ev/fcall : ev D (tm/fcall F) B
+	    <- def-lookup D F B.
+
+%% Program evaluation
+
+ev-pgm : pgm -> pgm -> type.
+
+ev-pgm/ : ev-pgm (pgm/ Defs T) (pgm/ Defs T')
+	   <- ev Defs T T'.
+
+%{ ** Type system ** }%

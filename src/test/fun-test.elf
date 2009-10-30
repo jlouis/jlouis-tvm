@@ -46,19 +46,19 @@ def-lookup/miss : def-lookup (defs/s F' _ R) F Q
 		   <- def-lookup R F Q.
 
 %% Term evaluation
-ev : defs -> tm -> tm -> type.
+step : defs -> tm -> tm -> type.
 
-ev/skip : ev _ (tm/semi tm/skip T) T.
-ev/semi : ev D (tm/semi T T2) (tm/semi T' T2)
-	   <- ev Defs T T'.
-ev/fcall : ev D (tm/fcall F) B
+step/skip : step _ (tm/semi tm/skip T) T.
+step/semi : step D (tm/semi T T2) (tm/semi T' T2)
+	   <- step Defs T T'.
+step/fcall : step D (tm/fcall F) B
 	    <- def-lookup D F B.
 
 %% Program evaluation
-ev-pgm : pgm -> pgm -> type.
+step-pgm : pgm -> pgm -> type.
 
-ev-pgm/ : ev-pgm (pgm/ Defs T) (pgm/ Defs T')
-	   <- ev Defs T T'.
+step-pgm/ : step-pgm (pgm/ Defs T) (pgm/ Defs T')
+	   <- step Defs T T'.
 
 %{ ** Type system ** }%
 
@@ -105,4 +105,49 @@ wf-pgm/ : wf-pgm (pgm/ D T)
 	   <- ({G : gamma} wf-def G D G)
 	   <- ({G : gamma} wf G T).
 
+%{ **** PROPERTIES **** }%
+
+%{ PROGRESS }%
+%% Helper. Defines when progress is good for a term.
+pgood : defs -> tm -> type.
+
+pgood/v : pgood _ tm/skip.
+pgood/s : pgood D T
+	   <- step D T T'.
+
+%% Lemma, progress on terms.
+progress-tm : wf G T -> wf-def G D G -> pgood D T -> type.
+%mode progress-tm +WF +WFD -PG.
+
+%% Helper for progress on programs.
+pgood-pgm : pgm -> type.
+
+pgood-pgm/v : pgood-pgm (pgm/ D tm/skip).
+pgood-pgm/s : pgood-pgm (pgm/ D T)
+	       <- step D T T'.
+
+progress : wf-pgm P -> pgood-pgm P -> type.
+%mode progress +WF -PG.
+
+%{ PRESERVATION }%
+
+preservation : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
+%mode preservation +WFP +SP -WFP'.
+
+%{ DETERMINISM }%
+
+%% Helper, syntactic equality on terms and programs.
+tm-eq : tm -> tm -> type.
+tm-eq/ : tm-eq T T.
+pgm-eq : pgm -> pgm -> type.
+pgm-eq/ : pgm-eq P P.
+
+
+det : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
+%mode det +WFP +SP1 +SP2 -EQ.
+
+%{ SOUNDNESS }%
+
+soundness : wf-pgm P -> step-pgm P P' -> pgood-pgm P' -> type.
+%mode soundness +WFP +SP -PG.
 

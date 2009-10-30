@@ -55,10 +55,54 @@ ev/fcall : ev D (tm/fcall F) B
 	    <- def-lookup D F B.
 
 %% Program evaluation
-
 ev-pgm : pgm -> pgm -> type.
 
 ev-pgm/ : ev-pgm (pgm/ Defs T) (pgm/ Defs T')
 	   <- ev Defs T T'.
 
 %{ ** Type system ** }%
+
+%% Helping type environment for functions
+gamma : type.
+
+gamma/z : gamma.
+gamma/s : fid -> gamma -> gamma.
+
+gamma-lookup : gamma -> fid -> type.
+%mode gamma-lookup +G +F.
+
+gamma-lookup/hit : gamma-lookup (gamma/s F _) F.
+gamma-lookup/miss : gamma-lookup (gamma/s F' R) F
+		     <- gamma-lookup R F.
+
+%% Welformednesss relation. Defines when a term abides a Gamma-typing.
+%%   notated as [ G |- t ]
+wf : gamma -> tm -> type.
+%mode wf +G +T.
+
+wf/skip : wf _ tm/skip.
+wf/semi : wf G (tm/semi T1 T2)
+	   <- wf G T1
+	   <- wf G T2.
+wf/fcall : wf G (tm/fcall F)
+	    <- gamma-lookup G F.
+
+%% Wellformedness relation on definitions [ G |- d : G' ]
+wf-def : gamma -> defs -> gamma -> type.
+%mode wf-def +G +D +G'.
+
+wf-def/z : wf-def G defs/z gamma/z.
+wf-def/s : wf-def G (defs/s F T DR) (gamma/s F GR)
+	    <- wf G T
+	    <- wf-def G DR GR.
+
+%% Wellformedness on programs [ |- P ]
+
+wf-pgm : pgm -> type.
+
+%% TODO: Perhaps we should derive Gamma explicitly. It is fairly easy.
+wf-pgm/ : wf-pgm (pgm/ D T)
+	   <- ({G : gamma} wf-def G D G)
+	   <- ({G : gamma} wf G T).
+
+

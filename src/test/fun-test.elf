@@ -5,184 +5,32 @@
 
 }%
 
-%{ ** SYNTAX ** }%
-
+%{ ** Prelude ** }%
 nat : type.
 
 z : nat.
 s : nat -> nat.
 
+%{ ** SYNTAX ** }%
+
+%% Function id's. These are just natural numbers
 fid : type.
 fid/ : nat -> type.
 
+%% Terms
 tm : type.
 
 tm/skip : tm.
-
+tm/semi : tm -> tm -> tm.
 tm/fcall : fid -> tm.
-tm/semi  : tm -> tm -> tm.
 
-fun : type.
-fun/ : fid -> tm -> fun.
+%% Function definition lists
+defs : type.
 
+defs/z : defs.
+defs/s : fid -> tm -> defs -> defs.
 
-fun-list : type.
-
-fun-list/z : fun-list.
-fun-list/s : fun -> fun-list -> fun-list.
-
+%% Programs
 pgm : type.
 
-pgm/ : fun-list -> tm -> pgm.
-
-%{ ** Lookup ** }%
-
-lookup : fid -> fun-list -> tm -> type.
-%mode lookup +F +FL -T.
-
-%{ ** STATIC SEMANTICS ** }%
-fun-list-lookup : fun-list -> fid -> tm -> type.
-%mode fun-list-lookup +FL +Fid -T.
-
-fun-list-lookup/hit : fun-list-lookup (fun-list/s (fun/ N B) _) N B.
-
-fun-list-lookup/miss : fun-list-lookup (fun-list/s (fun/ K _) R) N B
-			<- fun-list-lookup R N B.
-
-value : tm -> type.
-
-value/skip : value tm/skip.
-
-
-
-%{ ** "TYPES" ** }%
-
-funl : fun-list -> type.
-
-gamma : type.
-
-gammal : gamma -> type.
-
-gamma/z : gamma.
-gamma/s : fid -> gamma -> gamma.
-
-gamma-lookup : fid -> gamma -> type.
-gamma-lookup/hit : gamma-lookup F (gamma/s F _).
-gamma-lookup/miss : gamma-lookup F (gamma/s _ R)
-		     <- gamma-lookup F R.
-
-valid : fun-list -> gamma -> type.
-
-valid/z : valid fun-list/z gamma/z.
-valid/s : valid (fun-list/s (fun/ Fid _) RF) (gamma/s _ RG)
-	   <- gammal GL
-	   <- gamma-lookup Fid GL
-	   <- valid RF RG.
-
-wellformed : tm -> type.
-
-wellformed/skip : wellformed tm/skip.
-
-wellformed/semi : wellformed (tm/semi T1 T2)
-		   <- wellformed T1
-		   <- wellformed T2.
-
-wellformed/fcall : wellformed (tm/fcall F)
-		    <- funl FL
-		    <- fun-list-lookup FL F _.
-
-wellformed-pgm : pgm -> type.
-
-wellformed-pgm/ : wellformed-pgm (pgm/ _ T)
-		   <- wellformed T.
-
-valid-pgm : pgm -> type.
-
-valid-pgm/ : valid-pgm (pgm/ FL T)
-	      <- ({G : gamma} valid FL G).
-
-%{ ** DYNAMIC SEMANTICS ** }%
-step-tm : tm -> tm -> type.
-
-step-tm/semi : step-tm (tm/semi B1 B2) (tm/semi B1' B2)
-		  <- step-tm B1 B1'.
-
-step-tm/fcall : step-tm (tm/fcall Fid) B1
-		 <- funl FL
-		 <- fun-list-lookup FL Fid B1.
-
-step-tm/skip : step-tm (tm/semi tm/skip B) B.
-
-step-pgm : pgm -> pgm -> type.
-
-step-pgm/ : step-pgm (pgm/ F T) (pgm/ F T')
-	     <- step-tm T T'.
-
-steps : pgm -> pgm -> type.
-
-steps/0 : steps P P.
-
-steps/s : steps P P'
-	   <- step-pgm P P''
-	   <- steps P'' P'.
-
-steps-to : pgm -> pgm -> type.
-
-steps-to/ : steps-to P (pgm/ X V)
-	     <- steps P (pgm/ X V)
-	     <- value V.
-
-
-%{ ** PROPERTIES ** }%
-
-pgood : tm -> type.
-
-pgood/val : pgood V
-	     <- value V.
-
-pgood/step : pgood T
-	      <- step-tm T T'.
-
-pgood-pgm : pgm -> type.
-
-pgood-pgm/ : pgood-pgm (pgm/ _ B)
-	      <- pgood B.
-
-progress-tm-semi : pgood T -> pgood (tm/semi T T2) -> type.
-%mode +{T : tm}
-      +{T2 : tm}
-      +{PGT : pgood T}
-      -{PGG : pgood (tm/semi T T2)}
-      progress-tm-semi PGT PGG.
-
-- : progress-tm-semi (pgood/step SP) (pgood/step (step-tm/semi SP)).
-
-- : progress-tm-semi (pgood/val value/skip) (pgood/step step-tm/skip).
-
-%worlds () (progress-tm-semi _ _).
-%total PG (progress-tm-semi PG _).
-
-progress-tm : {T : tm} wellformed T -> pgood T -> type.
-%mode progress-tm +T +WP -Good.
-
-- : progress-tm tm/skip _ (pgood/val value/skip).
-
-- : progress-tm (tm/semi T1 T2) (wellformed/semi WP2 WP1) PG
-     <- progress-tm T1 WP1 PG1
-     <- progress-tm-semi PG1 PG.
-
-- : progress-tm (tm/fcall F) (wellformed/fcall Lookup Exist)
-       (pgood/step (step-tm/fcall Lookup Exist)).
-
-%worlds () (progress-tm _ _ _).
-%total T (progress-tm T _ _).
-
-progress : {P : pgm} wellformed-pgm P -> pgood-pgm P -> type.
-%mode progress +P +WP -Good.
-
-- : progress (pgm/ Funs T) (wellformed-pgm/ WP) (pgood-pgm/ Q)
-     <- progress-tm T WP Q.
-
-%worlds () (progress _ _ _).
-%total P (progress P _ _).
-
+pgm/ : defs -> tm -> pgm.

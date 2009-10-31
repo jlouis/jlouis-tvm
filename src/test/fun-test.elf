@@ -1,7 +1,11 @@
 %{ Small playtoy language for
    working with function calls
 
-   TODO: add F and Gamma!
+   TODO: There are some murky things with the Definition-blocks we ought to fix.
+         Try to define the more constricted versions and see if they can be defined
+         If yes, then it ought to hold.
+
+         Define det for programs. This ought to be right.
 
 }%
 
@@ -197,7 +201,8 @@ preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
      <- preserv-lookup L WFD Q.
 
 
-
+%% TODO:
+%% Why is it [ D' |- T -> T' ] here and not [ D |- T -> T' ] ??
 preserv-tm : wf G T -> wf-def G D G -> step D' T T' -> wf G T' -> type.
 %mode preserv-tm +WF +WFD +SD -WF'.
 
@@ -237,8 +242,38 @@ pgm-eq : pgm -> pgm -> type.
 pgm-eq/ : pgm-eq P P.
 
 
+det-tm-semi : tm-eq T T' -> tm-eq (tm/semi T T2) (tm/semi T' T2) -> type.
+%mode +{T} +{T'} +{T2}
+      +{EQI : tm-eq T T'} -{EQO : tm-eq (tm/semi T T2) (tm/semi T' T2)}
+      det-tm-semi EQI EQO.
+
+- : det-tm-semi tm-eq/ tm-eq/.
+
+%worlds () (det-tm-semi _ _).
+%total EQ (det-tm-semi EQ _).
+
+%% TODO: This is definitely wrong I think.
+%%   Think deeply about why it is [ D' |- T -> T' ]
+%%   And                          [ D'' |- T -> T'' ]
+%% It looks so damn wrong and ought to be the same D.
+det-tm : wf G T -> wf-def G D G -> step D' T T' -> step D'' T T'' -> tm-eq T' T'' -> type.
+%mode det-tm +WF +WFD +SP1 +SP2 -EQ.
+
+- : det-tm _ _ step/skip step/skip tm-eq/.
+
+- : det-tm (wf/semi WF2 WF1) WFD (step/semi SP1) (step/semi SP1') EQ
+     <- det-tm WF1 WFD SP1 SP1' EQ'
+     <- det-tm-semi EQ' EQ.
+
+- : det-tm WF WFD (step/fcall DL) (step/fcall DL') tm-eq/.
+
+%worlds () (det-tm _ _ _ _ _).
+%total S (det-tm _ _ S _ _).
+
 det : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
 %mode det +WFP +SP1 +SP2 -EQ.
+
+
 
 %{ SOUNDNESS }%
 
@@ -251,3 +286,4 @@ soundness : wf-pgm P -> step-pgm P P' -> pgood-pgm P' -> type.
 
 %worlds () (soundness _ _ _).
 %total SP (soundness _ SP _).
+

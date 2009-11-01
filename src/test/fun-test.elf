@@ -1,11 +1,12 @@
 %{ Small playtoy language for
    working with function calls
 
-   TODO: There are some murky things with the Definition-blocks we ought to fix.
-         Try to define the more constricted versions and see if they can be defined
-         If yes, then it ought to hold.
+   TODO: The requirement is currently that some of the stepping relations
+         must have seemingly no relation to wellformedness of definition
+         blocks.
 
-         Define det for programs. This ought to be right.
+         - Cross-check semantics
+         - Cross-check proofs
 
 }%
 

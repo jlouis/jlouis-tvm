@@ -267,13 +267,28 @@ det-tm : wf G T -> wf-def G D G -> step D' T T' -> step D'' T T'' -> tm-eq T' T'
 
 - : det-tm WF WFD (step/fcall DL) (step/fcall DL') tm-eq/.
 
-%worlds () (det-tm _ _ _ _ _).
+%worlds (gamma-b-1) (det-tm _ _ _ _ _).
 %total S (det-tm _ _ S _ _).
+
+det-tm-pgm : tm-eq T T -> pgm-eq P P -> type.
+%mode +{T} +{P}
+      +{IEQ : tm-eq T T} -{OEQ : pgm-eq P P}
+      det-tm-pgm IEQ OEQ.
+
+- : det-tm-pgm tm-eq/ pgm-eq/.
+
+%worlds (gamma-b-1) (det-tm-pgm _ _).
+%total EQ (det-tm-pgm EQ _).
 
 det : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
 %mode det +WFP +SP1 +SP2 -EQ.
 
+- : det (wf-pgm/ WF WFD) (step-pgm/ SP1) (step-pgm/ SP2) PEQ
+     <- ({g : gamma} det-tm (WF g) (WFD g) SP1 SP2 EQ)
+     <- det-tm-pgm EQ PEQ.
 
+%worlds (gamma-b-1) (det _ _ _ _).
+%total SP (det _ SP _ _ ).
 
 %{ SOUNDNESS }%
 

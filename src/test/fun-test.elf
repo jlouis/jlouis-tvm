@@ -1,13 +1,5 @@
 %{ Small playtoy language for
    working with function calls
-
-   TODO: The requirement is currently that some of the stepping relations
-         must have seemingly no relation to wellformedness of definition
-         blocks.
-
-         - Cross-check semantics
-         - Cross-check proofs
-
 }%
 
 %{ ** Prelude ** }%
@@ -52,15 +44,17 @@ def-lookup/miss : def-lookup (defs/s F' _ R) F Q
 
 %% Term evaluation
 step : defs -> tm -> tm -> type.
+%mode step +D +T -T'.
 
 step/skip : step _ (tm/semi tm/skip T) T.
 step/semi : step D (tm/semi T T2) (tm/semi T' T2)
-	   <- step Defs T T'.
+	   <- step D T T'.
 step/fcall : step D (tm/fcall F) B
 	    <- def-lookup D F B.
 
 %% Program evaluation
 step-pgm : pgm -> pgm -> type.
+%mode step-pgm +P -P'.
 
 step-pgm/ : step-pgm (pgm/ Defs T) (pgm/ Defs T')
 	   <- step Defs T T'.
@@ -105,7 +99,7 @@ wf-def/s : wf-def G (defs/s F T DR) (gamma/s F GR)
 
 wf-pgm : pgm -> type.
 
-%% TODO: Perhaps we should derive Gamma explicitly. It is fairly easy.
+%% Perhaps we should derive Gamma explicitly. It is fairly easy.
 wf-pgm/ : wf-pgm (pgm/ D T)
 	   <- ({G : gamma} wf-def G D G)
 	   <- ({G : gamma} wf G T).
@@ -202,9 +196,8 @@ preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
      <- preserv-lookup L WFD Q.
 
 
-%% TODO:
-%% Why is it [ D' |- T -> T' ] here and not [ D |- T -> T' ] ??
-preserv-tm : wf G T -> wf-def G D G -> step D' T T' -> wf G T' -> type.
+
+preserv-tm : wf G T -> wf-def G D G -> step D T T' -> wf G T' -> type.
 %mode preserv-tm +WF +WFD +SD -WF'.
 
 - : preserv-tm (wf/semi WF2 WF1) WFD step/skip WF2.
@@ -221,9 +214,7 @@ preservation : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 %mode preservation +WFP +SP -WFP'.
 
 - : preservation (wf-pgm/ ([g] WF g) ([g] WFD g)) (step-pgm/ TSP)
-%%
- (wf-pgm/ ([g] WF' g) ([g] WFD g))
-%%
+           (wf-pgm/ ([g] WF' g) ([g] WFD g))
      <- ({g : gamma} preserv-tm (WF g) (WFD g) TSP (WF' g)).
 
 %worlds (gamma-b-1) (preserv-lookup _ _ _).
@@ -253,11 +244,7 @@ det-tm-semi : tm-eq T T' -> tm-eq (tm/semi T T2) (tm/semi T' T2) -> type.
 %worlds () (det-tm-semi _ _).
 %total EQ (det-tm-semi EQ _).
 
-%% TODO: This is definitely wrong I think.
-%%   Think deeply about why it is [ D' |- T -> T' ]
-%%   And                          [ D'' |- T -> T'' ]
-%% It looks so damn wrong and ought to be the same D.
-det-tm : wf G T -> wf-def G D G -> step D' T T' -> step D'' T T'' -> tm-eq T' T'' -> type.
+det-tm : wf G T -> wf-def G D G -> step D T T' -> step D T T'' -> tm-eq T' T'' -> type.
 %mode det-tm +WF +WFD +SP1 +SP2 -EQ.
 
 - : det-tm _ _ step/skip step/skip tm-eq/.

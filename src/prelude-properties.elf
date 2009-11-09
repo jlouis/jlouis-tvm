@@ -98,3 +98,13 @@ nat-plus-reduces-1 : {N1} {N2} {N3} nat-plus N1 N2 N3 -> type.
 %worlds () (nat-plus-reduces-1 _ _ _ _).
 %total D (nat-plus-reduces-1 _ _ _ D).
 %reduces N1 <= N3 (nat-plus-reduces-1 N1 N2 N3 _).
+
+
+nat-eq-neq-void : nat-eq N1 N2 -> nat-neq N1 N2 -> void -> type.
+%mode nat-eq-neq-void +EQ +NEQ -V.
+
+- : nat-eq-neq-void nat-eq/refl (nat-neq/ss NEQP) V
+     <- nat-eq-neq-void nat-eq/refl NEQP V.
+
+%worlds () (nat-eq-neq-void _ _ _).
+%total NEQ (nat-eq-neq-void _ NEQ _).

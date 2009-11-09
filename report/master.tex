@@ -1,0 +1,72 @@
+\documentclass[a4paper, oneside, 10pt, draft]{memoir}
+\input{packages}
+\chapterstyle{culver}
+
+\usepackage{fixme}
+\usepackage[english]{babel}
+%\usepackage[utopia]{mathdesign}
+
+\usepackage[osf,sc]{mathpazo}
+\linespread{1.05}
+%\usepackage{fourier}
+
+\usepackage{semantic}
+\author{Jesper Louis
+  Andersen\\jesper.louis.andersen@gmail.com\\140280-2029}
+\title{Formalizing a Virtual Machine}
+\date{\today}
+
+\newlength{\drop}
+\newcommand*{\titleM}{\begingroup% Misericords, T&H p 153
+  \drop = 0.08\textheight
+  \centering
+  {\Huge\bfseries Lambda}\\[\baselineskip]
+  {\scshape IR of exsml}\\[\baselineskip]
+  {\scshape by}\\[\baselineskip]
+  {\large\scshape Jesper Louis Andersen\\jesper.louis.andersen@gmail.com}\par
+  \endgroup}
+
+\bibliographystyle{plain}
+
+\begin{document}
+\maketitle{}
+\tableofcontents{}
+\chapter{Introduction}
+
+The Low-Level Virtual Machine \cite{llvm:homepage} is a framework for
+constructing programming language tool-chains. It provisions for
+building JIT compilers, or traditional static compilations. LLVM
+provides a low-level language, much like an idealized typed assembler
+as an API for compiler writers to target. This language is an
+Intermediate Language (IL) from which the LLVM backend can emit code,
+optimize programs and the like.
+
+The goal of LLVM is to make the work of compiler writers easier. It
+provides a stepping stone as soon as you can target its IL. The idea
+is then that many optimizations come ``for free'' in the sense that
+the LLVM backend is able to carry them out.
+
+Unfortunately, the description of the LLVM IL is completely
+informal. The main reference document \cite{llvm:reference} contains
+next to no specification in any formal language. There is a complete
+lack of (E)BNF grammar syntax, semantics and type system.
+
+This report establishes a preliminary syntax and semantics for LLVM
+from which one can build a complete work.
+
+\chapter{Design considerations}
+
+%% Mention that SSA is the key. Build it up from an example and make
+%% it clear that the SSA-trick can be utilized to lift the problem.
+
+\bibliography{biblio}
+% State what the goals of this project is.
+% State we focus on the operational semantics.
+% State we will use Twelf where applicable if time allows.
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 

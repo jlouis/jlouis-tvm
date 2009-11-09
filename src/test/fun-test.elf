@@ -2,12 +2,6 @@
    working with function calls
 }%
 
-%{ ** Prelude ** }%
-nat : type.
-
-z : nat.
-s : nat -> nat.
-
 %{ ** SYNTAX ** }%
 
 %% Function id's. These are just natural numbers

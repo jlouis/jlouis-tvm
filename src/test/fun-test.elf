@@ -9,14 +9,14 @@ fid : type.
 fid/ : nat -> fid.
 
 %% Terms
-tm : type.
+tm : type. %name tm Tm.
 
 tm/skip : tm.
 tm/semi : tm -> tm -> tm.
 tm/fcall : fid -> tm.
 
 %% Function definition lists
-defs : type.
+defs : type. %name defs Defs.
 
 defs/z : defs.
 defs/s : fid -> tm -> defs -> defs.
@@ -29,12 +29,13 @@ pgm/ : defs -> tm -> pgm.
 %{ ** Operational semantics ** }%
 
 %% Function definition lookup.
-def-lookup : defs -> fid -> tm -> type.
+def-lookup : defs -> fid -> tm -> type. %name def-lookup DL.
 %mode def-lookup +D +F -T.
 
 def-lookup/hit : def-lookup (defs/s F B _) F B.
-def-lookup/miss : def-lookup (defs/s F' _ R) F Q
-		   <- def-lookup R F Q.
+def-lookup/miss : def-lookup (defs/s (fid/ N1) _ R) (fid/ N2) Q
+		   <- nat-neq N1 N2
+		   <- def-lookup R (fid/ N2) Q.
 
 %% Term evaluation
 step : defs -> tm -> tm -> type.
@@ -56,17 +57,18 @@ step-pgm/ : step-pgm (pgm/ Defs T) (pgm/ Defs T')
 %{ ** Type system ** }%
 
 %% Helping type environment for functions
-gamma : type.
+gamma : type. %name gamma G.
 
 gamma/z : gamma.
 gamma/s : fid -> gamma -> gamma.
 
-gamma-lookup : gamma -> fid -> type.
-%mode gamma-lookup +G +F.
+gamma-lookup : fid -> gamma -> type. %name gamma-lookup GL.
+%mode gamma-lookup +F +G.
 
-gamma-lookup/hit : gamma-lookup (gamma/s F _) F.
-gamma-lookup/miss : gamma-lookup (gamma/s F' R) F
-		     <- gamma-lookup R F.
+gamma-lookup/hit : gamma-lookup F (gamma/s F _).
+gamma-lookup/miss : gamma-lookup (fid/ N) (gamma/s (fid/ N') R)
+		     <- nat-neq N N'
+		     <- gamma-lookup (fid/ N) R.
 
 %% Uniqueness relation of definitions: [ f \notin D ]
 f-notin : fid -> defs -> type.
@@ -79,7 +81,7 @@ f-notin/s : f-notin (fid/ N1) (defs/s (fid/ N2) _ R)
 
 %% Welformednesss relation. Defines when a term abides a Gamma-typing.
 %%   notated as [ G |- t ]
-wf : gamma -> tm -> type.
+wf : gamma -> tm -> type. %name wf Wf.
 %mode wf +G +T.
 
 wf/skip : wf _ tm/skip.
@@ -87,15 +89,14 @@ wf/semi : wf G (tm/semi T1 T2)
 	   <- wf G T1
 	   <- wf G T2.
 wf/fcall : wf G (tm/fcall F)
-	    <- gamma-lookup G F.
+	    <- gamma-lookup F G.
 
 %% Wellformedness relation on definitions [ G |- d : G' ]
-wf-def : gamma -> defs -> gamma -> type.
+wf-def : gamma -> defs -> gamma -> type. %name wf-def WFD.
 %mode wf-def +G +D +G'.
 
 wf-def/z : wf-def G defs/z gamma/z.
 wf-def/s : wf-def G (defs/s F T DR) (gamma/s F GR)
-	    <- f-notin F DR
 	    <- wf G T
 	    <- wf-def G DR GR.
 
@@ -131,12 +132,13 @@ progress-tm-semi : pgood D T -> pgood D (tm/semi T T2) -> type.
 %total PG (progress-tm-semi PG _).
 
 %% Helper relating a gamma-lookup to a definition lookup if we know [ G |- d : G' ]
-lookup-good : wf-def G D G' -> gamma-lookup G' F -> def-lookup D F T -> type.
+lookup-good : wf-def G D G' -> gamma-lookup F G' -> def-lookup D F T -> type.
 %mode lookup-good +WFD +GL -DL.
 
-- : lookup-good _ gamma-lookup/hit def-lookup/hit.
+- : lookup-good (wf-def/s _ _) gamma-lookup/hit def-lookup/hit.
 
-- : lookup-good (wf-def/s WFD WF WL) (gamma-lookup/miss GL) (def-lookup/miss DL)
+- : lookup-good (wf-def/s WFD _) (gamma-lookup/miss GL NEQ) (def-lookup/miss DL NEQ')
+     <- nat-neq-sym NEQ NEQ'
      <- lookup-good WFD GL DL.
 
 %% Lemma, progress on terms.
@@ -183,7 +185,7 @@ progress : {P : pgm} wf-pgm P -> pgood-pgm P -> type.
 %worlds () (lookup-good _ _ _).
 %worlds () (progress-tm _ _ _ _).
 %worlds () (progress _ _ _).
-%total GL (lookup-good _ GL _).
+%total Wf (lookup-good Wf _ _).
 %total T (progress-tm T _ _ _).
 %total P (progress P _ _).
 

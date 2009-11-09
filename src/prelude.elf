@@ -137,7 +137,7 @@ nat-eq : nat -> nat -> type.
 nat-eq/refl : nat-eq N N.
 
 
-nat-neq : nat -> nat -> type.
+nat-neq : nat -> nat -> type. %name nat-neq NEQ.
 %mode nat-neq +N1 +N2.
 
 nat-neq/zs : nat-neq z (s _).

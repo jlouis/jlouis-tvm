@@ -260,7 +260,6 @@ preservation : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 %total WF (preserv-tm WF _ _ _).
 %total S  (preservation _ S _).
 
-%{
 %{ DETERMINISM }%
 
 %% Helper, syntactic equality on terms and programs.
@@ -280,6 +279,15 @@ det-tm-semi : tm-eq T T' -> tm-eq (tm/semi T T2) (tm/semi T' T2) -> type.
 %worlds () (det-tm-semi _ _).
 %total EQ (det-tm-semi EQ _).
 
+det-lookup : gamma-lookup F G' -> wf-def G D G' -> def-lookup D F T -> def-lookup D F T'
+%%
+	     -> tm-eq T T' -> type.
+%mode det-lookup +GL +WDF +DL1 +DL2 -EQ.
+
+%worlds () (det-lookup _ _ _ _ _).
+%trustme
+%total GL (det-lookup GL _ _ _ _).
+
 det-tm : wf G T -> wf-def G D G -> step D T T' -> step D T T'' -> tm-eq T' T'' -> type.
 %mode det-tm +WF +WFD +SP1 +SP2 -EQ.
 
@@ -289,29 +297,30 @@ det-tm : wf G T -> wf-def G D G -> step D T T' -> step D T T'' -> tm-eq T' T'' -
      <- det-tm WF1 WFD SP1 SP1' EQ'
      <- det-tm-semi EQ' EQ.
 
-- : det-tm WF WFD (step/fcall DL) (step/fcall DL') tm-eq/.
+- : det-tm (wf/fcall GL) WFD (step/fcall DL) (step/fcall DL') EQ
+     <- det-lookup GL WFD DL DL' EQ.
 
-%worlds (gamma-b-1) (det-tm _ _ _ _ _).
+%worlds () (det-tm _ _ _ _ _).
 %total S (det-tm _ _ S _ _).
 
-det-tm-pgm : tm-eq T T -> pgm-eq P P -> type.
-%mode +{T} +{P}
-      +{IEQ : tm-eq T T} -{OEQ : pgm-eq P P}
+det-tm-pgm : tm-eq T T' -> pgm-eq (pgm/ D T) (pgm/ D T') -> type.
+%mode +{D} +{T} +{T'} +{P : pgm} +{P' : pgm}
+      +{IEQ : tm-eq T T'} -{OEQ : pgm-eq (pgm/ D T) (pgm/ D T')}
       det-tm-pgm IEQ OEQ.
 
 - : det-tm-pgm tm-eq/ pgm-eq/.
 
-%worlds (gamma-b-1) (det-tm-pgm _ _).
+%worlds () (det-tm-pgm _ _).
 %total EQ (det-tm-pgm EQ _).
 
 det : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
 %mode det +WFP +SP1 +SP2 -EQ.
 
-- : det (wf-pgm/ WF WFD) (step-pgm/ SP1) (step-pgm/ SP2) PEQ
-     <- ({g : gamma} det-tm (WF g) (WFD g) SP1 SP2 EQ)
+- : det (wf-pgm/ WF WFD) (step-pgm/ (SP1 : step D T T')) (step-pgm/ (SP2 : step D T T'')) PEQ
+     <- det-tm WF WFD SP1 SP2 EQ
      <- det-tm-pgm EQ PEQ.
 
-%worlds (gamma-b-1) (det _ _ _ _).
+%worlds () (det _ _ _ _).
 %total SP (det _ SP _ _ ).
 
 %{ SOUNDNESS }%
@@ -325,6 +334,3 @@ soundness : wf-pgm P -> step-pgm P P' -> pgood-pgm P' -> type.
 
 %worlds () (soundness _ _ _).
 %total SP (soundness _ SP _).
-
-
-}%

@@ -12,7 +12,7 @@ s : nat -> nat.
 
 %% Function id's. These are just natural numbers
 fid : type.
-fid/ : nat -> type.
+fid/ : nat -> fid.
 
 %% Terms
 tm : type.
@@ -101,8 +101,8 @@ wf-pgm : pgm -> type.
 
 %% Perhaps we should derive Gamma explicitly. It is fairly easy.
 wf-pgm/ : wf-pgm (pgm/ D T)
-	   <- ({G : gamma} wf-def G D G)
-	   <- ({G : gamma} wf G T).
+	   <- wf-def G D G
+	   <- wf G T.
 
 %{ **** PROPERTIES **** }%
 
@@ -172,15 +172,13 @@ progress : {P : pgm} wf-pgm P -> pgood-pgm P -> type.
 - : progress (pgm/ _ tm/skip) _ pgood-pgm/v.
 
 - : progress (pgm/ Defs T) (wf-pgm/ WF WFD) Q
-     <- ({g : gamma} progress-tm T (WF g) (WFD g) PG)
+     <- progress-tm T WF WFD PG
      <- progress-pgm-h PG Q.
 
 %% Progress runs in a world where there is presence of gammas:
-%block gamma-b-1 : block {g : gamma}.
-
-%worlds (gamma-b-1) (lookup-good _ _ _).
-%worlds (gamma-b-1) (progress-tm _ _ _ _).
-%worlds (gamma-b-1) (progress _ _ _).
+%worlds () (lookup-good _ _ _).
+%worlds () (progress-tm _ _ _ _).
+%worlds () (progress _ _ _).
 %total GL (lookup-good _ GL _).
 %total T (progress-tm T _ _ _).
 %total P (progress P _ _).

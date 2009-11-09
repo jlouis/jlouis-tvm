@@ -1,5 +1,6 @@
 %{ Small playtoy language for
    working with function calls
+
 }%
 
 %{ ** SYNTAX ** }%
@@ -53,6 +54,36 @@ step-pgm : pgm -> pgm -> type.
 
 step-pgm/ : step-pgm (pgm/ Defs T) (pgm/ Defs T')
 	   <- step Defs T T'.
+
+
+%{ ** TESTS ************************************************************* }%
+
+pgm_1 = pgm/ defs/z tm/skip.
+%query 0 1 (step-pgm pgm_1 (pgm/ defs/z tm/skip)).
+
+pgm_2 = pgm/ defs/z (tm/semi (tm/semi tm/skip tm/skip) (tm/skip)).
+%query 1 2 (step-pgm pgm_2 (pgm/ defs/z (tm/semi tm/skip tm/skip))).
+
+pgm_3 = pgm/ defs/z (tm/semi tm/skip tm/skip).
+%query 1 2 (step-pgm pgm_3 (pgm/ defs/z tm/skip)).
+
+f = (fid/ 0).
+g = (fid/ 1).
+
+pgm_4_x = [x] pgm/ (defs/s f tm/skip (defs/s g (tm/semi tm/skip tm/skip) defs/z)) x.
+
+pgm_4 = pgm_4_x (tm/semi (tm/fcall f) (tm/fcall g)).
+%query 1 2 (step-pgm pgm_4 (pgm_4_x (tm/semi tm/skip (tm/fcall g)))).
+
+pgm_5 = pgm_4_x (tm/semi (tm/fcall g) (tm/fcall f)).
+%query 1 2 (step-pgm pgm_5 (pgm_4_x (tm/semi (tm/semi tm/skip tm/skip) (tm/fcall f)))).
+
+%% This one shows that we always pick the first definition if there are multiple. We want
+%%   to catch things like this later on.
+pgm_6 = [x] pgm/ (defs/s f tm/skip (defs/s f (tm/semi tm/skip tm/skip) defs/z)) x.
+%query 1 2 (step-pgm (pgm_6 (tm/fcall f)) X).
+%{ ********************************************************************** }%
+
 
 %{ ** Type system ** }%
 
@@ -189,6 +220,7 @@ progress : {P : pgm} wf-pgm P -> pgood-pgm P -> type.
 %total T (progress-tm T _ _ _).
 %total P (progress P _ _).
 
+
 %{ PRESERVATION }%
 
 preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
@@ -196,7 +228,7 @@ preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
 
 - : preserv-lookup def-lookup/hit (wf-def/s WFD WF) WF.
 
-- : preserv-lookup (def-lookup/miss L) (wf-def/s WFD WF) Q
+- : preserv-lookup (def-lookup/miss L NEQ) (wf-def/s WFD WF) Q
      <- preserv-lookup L WFD Q.
 
 
@@ -217,18 +249,18 @@ preserv-tm : wf G T -> wf-def G D G -> step D T T' -> wf G T' -> type.
 preservation : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 %mode preservation +WFP +SP -WFP'.
 
-- : preservation (wf-pgm/ ([g] WF g) ([g] WFD g)) (step-pgm/ TSP)
-           (wf-pgm/ ([g] WF' g) ([g] WFD g))
-     <- ({g : gamma} preserv-tm (WF g) (WFD g) TSP (WF' g)).
+- : preservation (wf-pgm/ WF WFD) (step-pgm/ TSP) (wf-pgm/ WF' WFD)
+     <- preserv-tm WF WFD TSP WF'.
 
-%worlds (gamma-b-1) (preserv-lookup _ _ _).
-%worlds (gamma-b-1) (preserv-tm _ _ _ _).
-%worlds (gamma-b-1) (preservation _ _ _).
+%worlds () (preserv-lookup _ _ _).
+%worlds () (preserv-tm _ _ _ _).
+%worlds () (preservation _ _ _).
 
 %total DL (preserv-lookup DL _ _).
 %total WF (preserv-tm WF _ _ _).
 %total S  (preservation _ S _).
 
+%{
 %{ DETERMINISM }%
 
 %% Helper, syntactic equality on terms and programs.
@@ -294,3 +326,5 @@ soundness : wf-pgm P -> step-pgm P P' -> pgood-pgm P' -> type.
 %worlds () (soundness _ _ _).
 %total SP (soundness _ SP _).
 
+
+}%

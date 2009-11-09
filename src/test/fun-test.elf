@@ -68,6 +68,15 @@ gamma-lookup/hit : gamma-lookup (gamma/s F _) F.
 gamma-lookup/miss : gamma-lookup (gamma/s F' R) F
 		     <- gamma-lookup R F.
 
+%% Uniqueness relation of definitions: [ f \notin D ]
+f-notin : fid -> defs -> type.
+%mode f-notin +F +D.
+
+f-notin/z : f-notin F defs/z.
+f-notin/s : f-notin (fid/ N1) (defs/s (fid/ N2) _ R)
+	     <- nat-neq N1 N2
+	     <- f-notin (fid/ N1) R.
+
 %% Welformednesss relation. Defines when a term abides a Gamma-typing.
 %%   notated as [ G |- t ]
 wf : gamma -> tm -> type.
@@ -86,6 +95,7 @@ wf-def : gamma -> defs -> gamma -> type.
 
 wf-def/z : wf-def G defs/z gamma/z.
 wf-def/s : wf-def G (defs/s F T DR) (gamma/s F GR)
+	    <- f-notin F DR
 	    <- wf G T
 	    <- wf-def G DR GR.
 
@@ -126,7 +136,7 @@ lookup-good : wf-def G D G' -> gamma-lookup G' F -> def-lookup D F T -> type.
 
 - : lookup-good _ gamma-lookup/hit def-lookup/hit.
 
-- : lookup-good (wf-def/s WFD WF) (gamma-lookup/miss GL) (def-lookup/miss DL)
+- : lookup-good (wf-def/s WFD WF WL) (gamma-lookup/miss GL) (def-lookup/miss DL)
      <- lookup-good WFD GL DL.
 
 %% Lemma, progress on terms.

@@ -279,13 +279,44 @@ det-tm-semi : tm-eq T T' -> tm-eq (tm/semi T T2) (tm/semi T' T2) -> type.
 %worlds () (det-tm-semi _ _).
 %total EQ (det-tm-semi EQ _).
 
+void-tm-eq : void -> tm-eq T T' -> type.
+%mode +{T} +{T'}
+      +{V : void} -{EQ : tm-eq T T'}
+      void-tm-eq V EQ.
+
+%worlds () (void-tm-eq _ _).
+%total V (void-tm-eq V _).
+
 det-lookup : gamma-lookup F G' -> wf-def G D G' -> def-lookup D F T -> def-lookup D F T'
 %%
 	     -> tm-eq T T' -> type.
-%mode det-lookup +GL +WDF +DL1 +DL2 -EQ.
+%mode +{F} +{G} +{G'} +{T1} +{T2} +{D}
+      +{GL : gamma-lookup F G'}
+      +{WFD : wf-def G D G'}
+      +{DL1 : def-lookup D F T1} +{DL2 : def-lookup D F T2} -{EQ : tm-eq T1 T2}
+      det-lookup GL WFD DL1 DL2 EQ.
+
+- : det-lookup GL WFD def-lookup/hit def-lookup/hit tm-eq/.
+
+- : det-lookup (gamma-lookup/miss GL1 NEQ1) WFD def-lookup/hit def-lookup/hit tm-eq/.
+
+- : det-lookup (gamma-lookup/miss GL' _) (wf-def/s WFD' _)
+          (def-lookup/miss DL1 _) (def-lookup/miss DL2 _) EQ
+     <- det-lookup GL' WFD' DL1 DL2 EQ.
+
+- : det-lookup gamma-lookup/hit WFD (def-lookup/miss DL1 NEQ) (def-lookup/miss DL2 NEQ2) EQ
+     <- nat-eq-neq-void nat-eq/refl NEQ V
+     <- void-tm-eq V EQ.
+
+- : det-lookup GL WFD def-lookup/hit (def-lookup/miss DL2 NEQ) EQ
+     <- nat-eq-neq-void nat-eq/refl NEQ V
+     <- void-tm-eq V EQ.
+
+- : det-lookup GL WFD (def-lookup/miss DL1 NEQ) def-lookup/hit EQ
+     <- nat-eq-neq-void nat-eq/refl NEQ V
+     <- void-tm-eq V EQ.
 
 %worlds () (det-lookup _ _ _ _ _).
-%trustme
 %total GL (det-lookup GL _ _ _ _).
 
 det-tm : wf G T -> wf-def G D G -> step D T T' -> step D T T'' -> tm-eq T' T'' -> type.

@@ -21,3 +21,8 @@
 /report/synopsis.pdf
 /report/synopsis.out
 /report/master.toc
+/src/test/jlouis-minillvm-20091110.tar.gz
+/src/test/jlouis-minillvm-20091110/fun-test.elf
+/src/test/jlouis-minillvm-20091110/prelude-properties.elf
+/src/test/jlouis-minillvm-20091110/prelude.elf
+/src/test/jlouis-minillvm-20091110/sources.cfg

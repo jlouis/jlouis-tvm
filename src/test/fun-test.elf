@@ -80,8 +80,9 @@ pgm_5 = pgm_4_x (tm/semi (tm/fcall g) (tm/fcall f)).
 
 %% This one shows that we always pick the first definition if there are multiple. We want
 %%   to catch things like this later on.
-pgm_6 = [x] pgm/ (defs/s f tm/skip (defs/s f (tm/semi tm/skip tm/skip) defs/z)) x.
+pgm_6 = [x] pgm/ (defs/s f tm/skip (defs/s g tm/skip (defs/s f (tm/semi tm/skip tm/skip) defs/z))) x.
 %query 1 2 (step-pgm (pgm_6 (tm/fcall f)) X).
+
 %{ ********************************************************************** }%
 
 
@@ -102,6 +103,8 @@ gamma-lookup/miss : gamma-lookup (fid/ N) (gamma/s (fid/ N') R)
 		     <- gamma-lookup (fid/ N) R.
 
 %% Uniqueness relation of definitions: [ f \notin D ]
+%%   used to eradicate multiple definitions of the same function definition.
+
 f-notin : fid -> defs -> type.
 %mode f-notin +F +D.
 
@@ -129,6 +132,7 @@ wf-def : gamma -> defs -> gamma -> type. %name wf-def WFD.
 wf-def/z : wf-def G defs/z gamma/z.
 wf-def/s : wf-def G (defs/s F T DR) (gamma/s F GR)
 	    <- wf G T
+	    <- f-notin F DR
 	    <- wf-def G DR GR.
 
 %% Wellformedness on programs [ |- P ]
@@ -139,6 +143,17 @@ wf-pgm : pgm -> type.
 wf-pgm/ : wf-pgm (pgm/ D T)
 	   <- wf-def G D G
 	   <- wf G T.
+
+%{ ** TESTS ** }%
+
+%% We'll try looking up wellformedness of our programs by search.
+%query 1 2 (wf-pgm pgm_1).
+%query 1 2 (wf-pgm pgm_2).
+%query 1 2 (wf-pgm pgm_3).
+%query 1 2 (wf-pgm pgm_4).
+%query 1 2 (wf-pgm pgm_5).
+%% This one defines f twice and is supposed to fail.
+%query 0 1 (wf-pgm (pgm_6 (tm/fcall f))).
 
 %{ **** PROPERTIES **** }%
 
@@ -166,9 +181,9 @@ progress-tm-semi : pgood D T -> pgood D (tm/semi T T2) -> type.
 lookup-good : wf-def G D G' -> gamma-lookup F G' -> def-lookup D F T -> type.
 %mode lookup-good +WFD +GL -DL.
 
-- : lookup-good (wf-def/s _ _) gamma-lookup/hit def-lookup/hit.
+- : lookup-good (wf-def/s _ _ _) gamma-lookup/hit def-lookup/hit.
 
-- : lookup-good (wf-def/s WFD _) (gamma-lookup/miss GL NEQ) (def-lookup/miss DL NEQ')
+- : lookup-good (wf-def/s WFD _ _) (gamma-lookup/miss GL NEQ) (def-lookup/miss DL NEQ')
      <- nat-neq-sym NEQ NEQ'
      <- lookup-good WFD GL DL.
 
@@ -226,9 +241,9 @@ progress : {P : pgm} wf-pgm P -> pgood-pgm P -> type.
 preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
 %mode preserv-lookup +DL +WFD -WF.
 
-- : preserv-lookup def-lookup/hit (wf-def/s WFD WF) WF.
+- : preserv-lookup def-lookup/hit (wf-def/s WFD _ WF) WF.
 
-- : preserv-lookup (def-lookup/miss L NEQ) (wf-def/s WFD WF) Q
+- : preserv-lookup (def-lookup/miss L NEQ) (wf-def/s WFD _ WF) Q
      <- preserv-lookup L WFD Q.
 
 
@@ -300,7 +315,7 @@ det-lookup : gamma-lookup F G' -> wf-def G D G' -> def-lookup D F T -> def-looku
 
 - : det-lookup (gamma-lookup/miss GL1 NEQ1) WFD def-lookup/hit def-lookup/hit tm-eq/.
 
-- : det-lookup (gamma-lookup/miss GL' _) (wf-def/s WFD' _)
+- : det-lookup (gamma-lookup/miss GL' _) (wf-def/s WFD' _ _)
           (def-lookup/miss DL1 _) (def-lookup/miss DL2 _) EQ
      <- det-lookup GL' WFD' DL1 DL2 EQ.
 

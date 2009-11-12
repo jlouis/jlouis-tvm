@@ -1,6 +1,10 @@
 %{ Small playtoy language for
    working with function calls
 
+   TODO:
+   Kill NEQs in gamma-lookup
+   Build 2 systems: One with def-lookup having NEQ and one without.
+
 }%
 
 %{ ** SYNTAX ** }%
@@ -99,7 +103,6 @@ gamma-lookup : fid -> gamma -> type. %name gamma-lookup GL.
 
 gamma-lookup/hit : gamma-lookup F (gamma/s F _).
 gamma-lookup/miss : gamma-lookup (fid/ N) (gamma/s (fid/ N') R)
-		     <- nat-neq N N'
 		     <- gamma-lookup (fid/ N) R.
 
 %% Uniqueness relation of definitions: [ f \notin D ]

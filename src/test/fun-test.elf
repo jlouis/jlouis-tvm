@@ -38,7 +38,6 @@ def-lookup : defs -> fid -> tm -> type. %name def-lookup DL.
 
 def-lookup/hit : def-lookup (defs/s F B _) F B.
 def-lookup/miss : def-lookup (defs/s (fid/ N1) _ R) (fid/ N2) Q
-		   <- nat-neq N1 N2
 		   <- def-lookup R (fid/ N2) Q.
 
 %% Term evaluation
@@ -84,7 +83,7 @@ pgm_5 = pgm_4_x (tm/semi (tm/fcall g) (tm/fcall f)).
 %% This one shows that we always pick the first definition if there are multiple. We want
 %%   to catch things like this later on.
 pgm_6 = [x] pgm/ (defs/s f tm/skip (defs/s g tm/skip (defs/s f (tm/semi tm/skip tm/skip) defs/z))) x.
-%query 1 2 (step-pgm (pgm_6 (tm/fcall f)) X).
+%query 2 3 (step-pgm (pgm_6 (tm/fcall f)) X).
 
 %{ ********************************************************************** }%
 
@@ -200,8 +199,7 @@ lookup-good : wf-def G D G' -> gamma-lookup F G' -> def-lookup D F T -> type.
 
 - : lookup-good (wf-def/s _ _ _) gamma-lookup/hit def-lookup/hit.
 
-- : lookup-good (wf-def/s WFD NI  _) (gamma-lookup/miss GL) (def-lookup/miss DL NEQ)
-     <- notin-neq NI WFD GL NEQ
+- : lookup-good (wf-def/s WFD NI  _) (gamma-lookup/miss GL) (def-lookup/miss DL)
      <- lookup-good WFD GL DL.
 
 %%- : lookup-good (wf-def/s WFD FNotin _) (gamma-lookup/miss GL) (def-lookup/miss DL _).
@@ -263,7 +261,7 @@ preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
 
 - : preserv-lookup def-lookup/hit (wf-def/s WFD _ WF) WF.
 
-- : preserv-lookup (def-lookup/miss L _) (wf-def/s WFD _ WF) Q
+- : preserv-lookup (def-lookup/miss L) (wf-def/s WFD _ WF) Q
      <- preserv-lookup L WFD Q.
 
 
@@ -322,6 +320,18 @@ void-tm-eq : void -> tm-eq T T' -> type.
 %worlds () (void-tm-eq _ _).
 %total V (void-tm-eq V _).
 
+notin-void : f-notin F D -> def-lookup D F T -> void -> type.
+%mode notin-void +FIN +DL -V.
+
+- : notin-void (f-notin/s R NEQ) (def-lookup/miss DL) V
+     <- notin-void R DL V.
+
+- : notin-void (f-notin/s R NEQ) def-lookup/hit V
+     <- nat-eq-neq-void nat-eq/refl NEQ V.
+
+%worlds () (notin-void _ _ _).
+%total IN (notin-void IN _ _).
+
 det-lookup : gamma-lookup F G' -> wf-def G D G' -> def-lookup D F T -> def-lookup D F T'
 %%
 	     -> tm-eq T T' -> type.
@@ -334,20 +344,19 @@ det-lookup : gamma-lookup F G' -> wf-def G D G' -> def-lookup D F T -> def-looku
 - : det-lookup GL WFD def-lookup/hit def-lookup/hit tm-eq/.
 
 - : det-lookup (gamma-lookup/miss GL') (wf-def/s WFD' _ _)
-          (def-lookup/miss DL1 _) (def-lookup/miss DL2 _) EQ
+          (def-lookup/miss DL1) (def-lookup/miss DL2) EQ
      <- det-lookup GL' WFD' DL1 DL2 EQ.
 
-- : det-lookup gamma-lookup/hit (wf-def/s _ _ _) (def-lookup/miss DL1 NEQ1)
-            (def-lookup/miss DL2 _) EQ
-     <- nat-eq-neq-void nat-eq/refl NEQ1 V
+- : det-lookup gamma-lookup/hit (wf-def/s WFD NI _) (def-lookup/miss DL1) (def-lookup/miss DL2) EQ
+     <- notin-void NI DL1 V
      <- void-tm-eq V EQ.
 
-- : det-lookup GL (wf-def/s _ _ _) def-lookup/hit (def-lookup/miss DL2 NEQ) EQ
-     <- nat-eq-neq-void nat-eq/refl NEQ V
+- : det-lookup GL (wf-def/s WFD NI _) def-lookup/hit (def-lookup/miss DL2) EQ
+     <- notin-void NI DL2 V
      <- void-tm-eq V EQ.
 
-- : det-lookup GL (wf-def/s _ _ _) (def-lookup/miss DL1 NEQ) def-lookup/hit EQ
-     <- nat-eq-neq-void nat-eq/refl NEQ V
+- : det-lookup GL (wf-def/s WFD NI _) (def-lookup/miss DL1) def-lookup/hit EQ
+     <- notin-void NI DL1 V
      <- void-tm-eq V EQ.
 
 %worlds () (det-lookup _ _ _ _ _).

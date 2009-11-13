@@ -2,7 +2,6 @@
    working with function calls
 
    TODO:
-   Kill NEQs in gamma-lookup
    Build 2 systems: One with def-lookup having NEQ and one without.
 
 }%
@@ -180,15 +179,33 @@ progress-tm-semi : pgood D T -> pgood D (tm/semi T T2) -> type.
 %worlds () (progress-tm-semi _ _).
 %total PG (progress-tm-semi PG _).
 
+%% Helper: If f is not in the list, then for any g in the list, we have f /= g
+%%   under the assumptions of wellformedness
+
+notin-neq : f-notin (fid/ N1) D -> wf-def G D G' -> gamma-lookup (fid/ N2) G'
+						 -> nat-neq N1 N2 -> type.
+%mode notin-neq +FIN +WFD +GL -NEQ.
+
+- : notin-neq (f-notin/s _ NEQ) (wf-def/s _ _ _) gamma-lookup/hit NEQ.
+
+- : notin-neq (f-notin/s R _) (wf-def/s WFD _  _) (gamma-lookup/miss GL) NEQ
+     <- notin-neq R WFD GL NEQ.
+
+%worlds () (notin-neq _ _ _ _).
+%total IN (notin-neq IN _ _ _).
+
 %% Helper relating a gamma-lookup to a definition lookup if we know [ G |- d : G' ]
 lookup-good : wf-def G D G' -> gamma-lookup F G' -> def-lookup D F T -> type.
 %mode lookup-good +WFD +GL -DL.
 
 - : lookup-good (wf-def/s _ _ _) gamma-lookup/hit def-lookup/hit.
 
-- : lookup-good (wf-def/s WFD _ _) (gamma-lookup/miss GL NEQ) (def-lookup/miss DL NEQ')
-     <- nat-neq-sym NEQ NEQ'
+- : lookup-good (wf-def/s WFD NI  _) (gamma-lookup/miss GL) (def-lookup/miss DL NEQ)
+     <- notin-neq NI WFD GL NEQ
      <- lookup-good WFD GL DL.
+
+%%- : lookup-good (wf-def/s WFD FNotin _) (gamma-lookup/miss GL) (def-lookup/miss DL _).
+
 
 %% Lemma, progress on terms.
 progress-tm : {T : tm} wf G T -> wf-def G D G -> pgood D T -> type.
@@ -246,7 +263,7 @@ preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
 
 - : preserv-lookup def-lookup/hit (wf-def/s WFD _ WF) WF.
 
-- : preserv-lookup (def-lookup/miss L NEQ) (wf-def/s WFD _ WF) Q
+- : preserv-lookup (def-lookup/miss L _) (wf-def/s WFD _ WF) Q
      <- preserv-lookup L WFD Q.
 
 
@@ -316,21 +333,20 @@ det-lookup : gamma-lookup F G' -> wf-def G D G' -> def-lookup D F T -> def-looku
 
 - : det-lookup GL WFD def-lookup/hit def-lookup/hit tm-eq/.
 
-- : det-lookup (gamma-lookup/miss GL1 NEQ1) WFD def-lookup/hit def-lookup/hit tm-eq/.
-
-- : det-lookup (gamma-lookup/miss GL' _) (wf-def/s WFD' _ _)
+- : det-lookup (gamma-lookup/miss GL') (wf-def/s WFD' _ _)
           (def-lookup/miss DL1 _) (def-lookup/miss DL2 _) EQ
      <- det-lookup GL' WFD' DL1 DL2 EQ.
 
-- : det-lookup gamma-lookup/hit WFD (def-lookup/miss DL1 NEQ) (def-lookup/miss DL2 NEQ2) EQ
+- : det-lookup gamma-lookup/hit (wf-def/s _ _ _) (def-lookup/miss DL1 NEQ1)
+            (def-lookup/miss DL2 _) EQ
+     <- nat-eq-neq-void nat-eq/refl NEQ1 V
+     <- void-tm-eq V EQ.
+
+- : det-lookup GL (wf-def/s _ _ _) def-lookup/hit (def-lookup/miss DL2 NEQ) EQ
      <- nat-eq-neq-void nat-eq/refl NEQ V
      <- void-tm-eq V EQ.
 
-- : det-lookup GL WFD def-lookup/hit (def-lookup/miss DL2 NEQ) EQ
-     <- nat-eq-neq-void nat-eq/refl NEQ V
-     <- void-tm-eq V EQ.
-
-- : det-lookup GL WFD (def-lookup/miss DL1 NEQ) def-lookup/hit EQ
+- : det-lookup GL (wf-def/s _ _ _) (def-lookup/miss DL1 NEQ) def-lookup/hit EQ
      <- nat-eq-neq-void nat-eq/refl NEQ V
      <- void-tm-eq V EQ.
 

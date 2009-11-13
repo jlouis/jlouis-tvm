@@ -1,0 +1,401 @@
+%{ Small playtoy language for
+   working with function calls
+
+   TODO:
+   Build 2 systems: One with def-lookup having NEQ and one without.
+
+}%
+
+%{ ** SYNTAX ** }%
+
+%% Function id's. These are just natural numbers
+fid : type.
+fid/ : nat -> fid.
+
+%% Terms
+tm : type. %name tm Tm.
+
+tm/skip : tm.
+tm/semi : tm -> tm -> tm.
+tm/fcall : fid -> tm.
+
+%% Function definition lists
+defs : type. %name defs Defs.
+
+defs/z : defs.
+defs/s : fid -> tm -> defs -> defs.
+
+%% Programs
+pgm : type.
+
+pgm/ : defs -> tm -> pgm.
+
+%{ ** Operational semantics ** }%
+
+%% Function definition lookup.
+def-lookup : defs -> fid -> tm -> type. %name def-lookup DL.
+%mode def-lookup +D +F -T.
+
+def-lookup/hit : def-lookup (defs/s F B _) F B.
+def-lookup/miss : def-lookup (defs/s (fid/ N1) _ R) (fid/ N2) Q
+		   <- nat-neq N1 N2
+		   <- def-lookup R (fid/ N2) Q.
+
+%% Term evaluation
+step : defs -> tm -> tm -> type.
+%mode step +D +T -T'.
+
+step/skip : step _ (tm/semi tm/skip T) T.
+step/semi : step D (tm/semi T T2) (tm/semi T' T2)
+	   <- step D T T'.
+step/fcall : step D (tm/fcall F) B
+	    <- def-lookup D F B.
+
+%% Program evaluation
+step-pgm : pgm -> pgm -> type.
+%mode step-pgm +P -P'.
+
+step-pgm/ : step-pgm (pgm/ Defs T) (pgm/ Defs T')
+	   <- step Defs T T'.
+
+
+%{ ** TESTS ************************************************************* }%
+
+pgm_1 = pgm/ defs/z tm/skip.
+%query 0 1 (step-pgm pgm_1 (pgm/ defs/z tm/skip)).
+
+pgm_2 = pgm/ defs/z (tm/semi (tm/semi tm/skip tm/skip) (tm/skip)).
+%query 1 2 (step-pgm pgm_2 (pgm/ defs/z (tm/semi tm/skip tm/skip))).
+
+pgm_3 = pgm/ defs/z (tm/semi tm/skip tm/skip).
+%query 1 2 (step-pgm pgm_3 (pgm/ defs/z tm/skip)).
+
+f = (fid/ 0).
+g = (fid/ 1).
+
+pgm_4_x = [x] pgm/ (defs/s f tm/skip (defs/s g (tm/semi tm/skip tm/skip) defs/z)) x.
+
+pgm_4 = pgm_4_x (tm/semi (tm/fcall f) (tm/fcall g)).
+%query 1 2 (step-pgm pgm_4 (pgm_4_x (tm/semi tm/skip (tm/fcall g)))).
+
+pgm_5 = pgm_4_x (tm/semi (tm/fcall g) (tm/fcall f)).
+%query 1 2 (step-pgm pgm_5 (pgm_4_x (tm/semi (tm/semi tm/skip tm/skip) (tm/fcall f)))).
+
+%% This one shows that we always pick the first definition if there are multiple. We want
+%%   to catch things like this later on.
+pgm_6 = [x] pgm/ (defs/s f tm/skip (defs/s g tm/skip (defs/s f (tm/semi tm/skip tm/skip) defs/z))) x.
+%query 1 2 (step-pgm (pgm_6 (tm/fcall f)) X).
+
+%{ ********************************************************************** }%
+
+
+%{ ** Type system ** }%
+
+%% Helping type environment for functions
+gamma : type. %name gamma G.
+
+gamma/z : gamma.
+gamma/s : fid -> gamma -> gamma.
+
+gamma-lookup : fid -> gamma -> type. %name gamma-lookup GL.
+%mode gamma-lookup +F +G.
+
+gamma-lookup/hit : gamma-lookup F (gamma/s F _).
+gamma-lookup/miss : gamma-lookup (fid/ N) (gamma/s (fid/ N') R)
+		     <- gamma-lookup (fid/ N) R.
+
+%% Uniqueness relation of definitions: [ f \notin D ]
+%%   used to eradicate multiple definitions of the same function definition.
+
+f-notin : fid -> defs -> type.
+%mode f-notin +F +D.
+
+f-notin/z : f-notin F defs/z.
+f-notin/s : f-notin (fid/ N1) (defs/s (fid/ N2) _ R)
+	     <- nat-neq N1 N2
+	     <- f-notin (fid/ N1) R.
+
+%% Welformednesss relation. Defines when a term abides a Gamma-typing.
+%%   notated as [ G |- t ]
+wf : gamma -> tm -> type. %name wf Wf.
+%mode wf +G +T.
+
+wf/skip : wf _ tm/skip.
+wf/semi : wf G (tm/semi T1 T2)
+	   <- wf G T1
+	   <- wf G T2.
+wf/fcall : wf G (tm/fcall F)
+	    <- gamma-lookup F G.
+
+%% Wellformedness relation on definitions [ G |- d : G' ]
+wf-def : gamma -> defs -> gamma -> type. %name wf-def WFD.
+%mode wf-def +G +D +G'.
+
+wf-def/z : wf-def G defs/z gamma/z.
+wf-def/s : wf-def G (defs/s F T DR) (gamma/s F GR)
+	    <- wf G T
+	    <- f-notin F DR
+	    <- wf-def G DR GR.
+
+%% Wellformedness on programs [ |- P ]
+
+wf-pgm : pgm -> type.
+
+%% Perhaps we should derive Gamma explicitly. It is fairly easy.
+wf-pgm/ : wf-pgm (pgm/ D T)
+	   <- wf-def G D G
+	   <- wf G T.
+
+%{ ** TESTS ** }%
+
+%% We'll try looking up wellformedness of our programs by search.
+%query 1 2 (wf-pgm pgm_1).
+%query 1 2 (wf-pgm pgm_2).
+%query 1 2 (wf-pgm pgm_3).
+%query 1 2 (wf-pgm pgm_4).
+%query 1 2 (wf-pgm pgm_5).
+%% This one defines f twice and is supposed to fail.
+%query 0 1 (wf-pgm (pgm_6 (tm/fcall f))).
+
+%{ **** PROPERTIES **** }%
+
+%{ PROGRESS }%
+%% Helper. Defines when progress is good for a term.
+pgood : defs -> tm -> type.
+
+pgood/v : pgood _ tm/skip.
+pgood/s : pgood D T
+	   <- step D T T'.
+
+%% Lemma, output-factored progress on fst of Semi operation
+progress-tm-semi : pgood D T -> pgood D (tm/semi T T2) -> type.
+%mode +{T} +{T2} +{D} +{PG : pgood D T} -{Q : pgood D (tm/semi T T2)}
+      progress-tm-semi PG Q.
+
+- : progress-tm-semi pgood/v (pgood/s step/skip).
+
+- : progress-tm-semi (pgood/s SP) (pgood/s (step/semi SP)).
+
+%worlds () (progress-tm-semi _ _).
+%total PG (progress-tm-semi PG _).
+
+%% Helper: If f is not in the list, then for any g in the list, we have f /= g
+%%   under the assumptions of wellformedness
+
+notin-neq : f-notin (fid/ N1) D -> wf-def G D G' -> gamma-lookup (fid/ N2) G'
+						 -> nat-neq N1 N2 -> type.
+%mode notin-neq +FIN +WFD +GL -NEQ.
+
+- : notin-neq (f-notin/s _ NEQ) (wf-def/s _ _ _) gamma-lookup/hit NEQ.
+
+- : notin-neq (f-notin/s R _) (wf-def/s WFD _  _) (gamma-lookup/miss GL) NEQ
+     <- notin-neq R WFD GL NEQ.
+
+%worlds () (notin-neq _ _ _ _).
+%total IN (notin-neq IN _ _ _).
+
+%% Helper relating a gamma-lookup to a definition lookup if we know [ G |- d : G' ]
+lookup-good : wf-def G D G' -> gamma-lookup F G' -> def-lookup D F T -> type.
+%mode lookup-good +WFD +GL -DL.
+
+- : lookup-good (wf-def/s _ _ _) gamma-lookup/hit def-lookup/hit.
+
+- : lookup-good (wf-def/s WFD NI  _) (gamma-lookup/miss GL) (def-lookup/miss DL NEQ)
+     <- notin-neq NI WFD GL NEQ
+     <- lookup-good WFD GL DL.
+
+%%- : lookup-good (wf-def/s WFD FNotin _) (gamma-lookup/miss GL) (def-lookup/miss DL _).
+
+
+%% Lemma, progress on terms.
+progress-tm : {T : tm} wf G T -> wf-def G D G -> pgood D T -> type.
+%mode progress-tm +T +WF +WFD -PG.
+
+- : progress-tm tm/skip _ _ pgood/v.
+
+- : progress-tm (tm/semi T1 T2) (wf/semi W2 W1) WFD Q
+     <- progress-tm T1 W1 WFD PG1
+     <- progress-tm-semi PG1 Q.
+
+- : progress-tm (tm/fcall F) (wf/fcall GL) WFD (pgood/s (step/fcall DL))
+     <- lookup-good WFD GL DL.
+
+%% Disjunction for progress on programs.
+pgood-pgm : pgm -> type.
+
+pgood-pgm/v : pgood-pgm (pgm/ D tm/skip).
+pgood-pgm/s : pgood-pgm (pgm/ D T)
+	       <- step D T T'.
+
+%% Helper for progress on programs.
+progress-pgm-h : pgood D T -> pgood-pgm (pgm/ D T) -> type.
+%mode progress-pgm-h +PG -PGG.
+
+- : progress-pgm-h pgood/v pgood-pgm/v.
+
+- : progress-pgm-h (pgood/s SP) (pgood-pgm/s SP).
+
+%worlds () (progress-pgm-h _ _).
+%total PG (progress-pgm-h PG _).
+
+progress : {P : pgm} wf-pgm P -> pgood-pgm P -> type.
+%mode progress +P +WF -PG.
+
+- : progress (pgm/ _ tm/skip) _ pgood-pgm/v.
+
+- : progress (pgm/ Defs T) (wf-pgm/ WF WFD) Q
+     <- progress-tm T WF WFD PG
+     <- progress-pgm-h PG Q.
+
+%% Progress runs in a world where there is presence of gammas:
+%worlds () (lookup-good _ _ _).
+%worlds () (progress-tm _ _ _ _).
+%worlds () (progress _ _ _).
+%total Wf (lookup-good Wf _ _).
+%total T (progress-tm T _ _ _).
+%total P (progress P _ _).
+
+
+%{ PRESERVATION }%
+
+preserv-lookup : def-lookup D F T -> wf-def G D G' -> wf G T -> type.
+%mode preserv-lookup +DL +WFD -WF.
+
+- : preserv-lookup def-lookup/hit (wf-def/s WFD _ WF) WF.
+
+- : preserv-lookup (def-lookup/miss L _) (wf-def/s WFD _ WF) Q
+     <- preserv-lookup L WFD Q.
+
+
+
+preserv-tm : wf G T -> wf-def G D G -> step D T T' -> wf G T' -> type.
+%mode preserv-tm +WF +WFD +SD -WF'.
+
+- : preserv-tm (wf/semi WF2 WF1) WFD step/skip WF2.
+
+- : preserv-tm (wf/semi WF2 WF1) WFD (step/semi T1) (wf/semi WF2 WF1')
+     <- preserv-tm WF1 WFD T1 WF1'.
+
+- : preserv-tm (wf/fcall GL) WFD (step/fcall DL) WF
+     <- preserv-lookup DL WFD WF.
+
+
+
+preservation : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
+%mode preservation +WFP +SP -WFP'.
+
+- : preservation (wf-pgm/ WF WFD) (step-pgm/ TSP) (wf-pgm/ WF' WFD)
+     <- preserv-tm WF WFD TSP WF'.
+
+%worlds () (preserv-lookup _ _ _).
+%worlds () (preserv-tm _ _ _ _).
+%worlds () (preservation _ _ _).
+
+%total DL (preserv-lookup DL _ _).
+%total WF (preserv-tm WF _ _ _).
+%total S  (preservation _ S _).
+
+%{ DETERMINISM }%
+
+%% Helper, syntactic equality on terms and programs.
+tm-eq : tm -> tm -> type.
+tm-eq/ : tm-eq T T.
+pgm-eq : pgm -> pgm -> type.
+pgm-eq/ : pgm-eq P P.
+
+
+det-tm-semi : tm-eq T T' -> tm-eq (tm/semi T T2) (tm/semi T' T2) -> type.
+%mode +{T} +{T'} +{T2}
+      +{EQI : tm-eq T T'} -{EQO : tm-eq (tm/semi T T2) (tm/semi T' T2)}
+      det-tm-semi EQI EQO.
+
+- : det-tm-semi tm-eq/ tm-eq/.
+
+%worlds () (det-tm-semi _ _).
+%total EQ (det-tm-semi EQ _).
+
+void-tm-eq : void -> tm-eq T T' -> type.
+%mode +{T} +{T'}
+      +{V : void} -{EQ : tm-eq T T'}
+      void-tm-eq V EQ.
+
+%worlds () (void-tm-eq _ _).
+%total V (void-tm-eq V _).
+
+det-lookup : gamma-lookup F G' -> wf-def G D G' -> def-lookup D F T -> def-lookup D F T'
+%%
+	     -> tm-eq T T' -> type.
+%mode +{F} +{G} +{G'} +{T1} +{T2} +{D}
+      +{GL : gamma-lookup F G'}
+      +{WFD : wf-def G D G'}
+      +{DL1 : def-lookup D F T1} +{DL2 : def-lookup D F T2} -{EQ : tm-eq T1 T2}
+      det-lookup GL WFD DL1 DL2 EQ.
+
+- : det-lookup GL WFD def-lookup/hit def-lookup/hit tm-eq/.
+
+- : det-lookup (gamma-lookup/miss GL') (wf-def/s WFD' _ _)
+          (def-lookup/miss DL1 _) (def-lookup/miss DL2 _) EQ
+     <- det-lookup GL' WFD' DL1 DL2 EQ.
+
+- : det-lookup gamma-lookup/hit (wf-def/s _ _ _) (def-lookup/miss DL1 NEQ1)
+            (def-lookup/miss DL2 _) EQ
+     <- nat-eq-neq-void nat-eq/refl NEQ1 V
+     <- void-tm-eq V EQ.
+
+- : det-lookup GL (wf-def/s _ _ _) def-lookup/hit (def-lookup/miss DL2 NEQ) EQ
+     <- nat-eq-neq-void nat-eq/refl NEQ V
+     <- void-tm-eq V EQ.
+
+- : det-lookup GL (wf-def/s _ _ _) (def-lookup/miss DL1 NEQ) def-lookup/hit EQ
+     <- nat-eq-neq-void nat-eq/refl NEQ V
+     <- void-tm-eq V EQ.
+
+%worlds () (det-lookup _ _ _ _ _).
+%total GL (det-lookup GL _ _ _ _).
+
+det-tm : wf G T -> wf-def G D G -> step D T T' -> step D T T'' -> tm-eq T' T'' -> type.
+%mode det-tm +WF +WFD +SP1 +SP2 -EQ.
+
+- : det-tm _ _ step/skip step/skip tm-eq/.
+
+- : det-tm (wf/semi WF2 WF1) WFD (step/semi SP1) (step/semi SP1') EQ
+     <- det-tm WF1 WFD SP1 SP1' EQ'
+     <- det-tm-semi EQ' EQ.
+
+- : det-tm (wf/fcall GL) WFD (step/fcall DL) (step/fcall DL') EQ
+     <- det-lookup GL WFD DL DL' EQ.
+
+%worlds () (det-tm _ _ _ _ _).
+%total S (det-tm _ _ S _ _).
+
+det-tm-pgm : tm-eq T T' -> pgm-eq (pgm/ D T) (pgm/ D T') -> type.
+%mode +{D} +{T} +{T'} +{P : pgm} +{P' : pgm}
+      +{IEQ : tm-eq T T'} -{OEQ : pgm-eq (pgm/ D T) (pgm/ D T')}
+      det-tm-pgm IEQ OEQ.
+
+- : det-tm-pgm tm-eq/ pgm-eq/.
+
+%worlds () (det-tm-pgm _ _).
+%total EQ (det-tm-pgm EQ _).
+
+det : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
+%mode det +WFP +SP1 +SP2 -EQ.
+
+- : det (wf-pgm/ WF WFD) (step-pgm/ (SP1 : step D T T')) (step-pgm/ (SP2 : step D T T'')) PEQ
+     <- det-tm WF WFD SP1 SP2 EQ
+     <- det-tm-pgm EQ PEQ.
+
+%worlds () (det _ _ _ _).
+%total SP (det _ SP _ _ ).
+
+%{ SOUNDNESS }%
+
+soundness : wf-pgm P -> step-pgm P P' -> pgood-pgm P' -> type.
+%mode soundness +WFP +SP -PG.
+
+- : soundness WFP SPP PGG
+     <- preservation WFP SPP WFP'
+     <- progress P' WFP' PGG.
+
+%worlds () (soundness _ _ _).
+%total SP (soundness _ SP _).

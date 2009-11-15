@@ -202,9 +202,6 @@ lookup-good : wf-def G D G' -> gamma-lookup F G' -> def-lookup D F T -> type.
 - : lookup-good (wf-def/s WFD NI  _) (gamma-lookup/miss GL) (def-lookup/miss DL)
      <- lookup-good WFD GL DL.
 
-%%- : lookup-good (wf-def/s WFD FNotin _) (gamma-lookup/miss GL) (def-lookup/miss DL _).
-
-
 %% Lemma, progress on terms.
 progress-tm : {T : tm} wf G T -> wf-def G D G -> pgood D T -> type.
 %mode progress-tm +T +WF +WFD -PG.

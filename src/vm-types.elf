@@ -4,77 +4,88 @@
 
 }%
 
-fun-tp-list : type.
+%{ Gamma is the typing environment }%
+gamma : type.
 
-fun-tp-list/nil : fun-tp-list.
-fun-tp-list/cons : nat -> tp -> tp-list -> fun-tp-list -> fun-tp-list.
+gamma/z : gamma.
+gamma/s : fid -> tp-list -> tp -> gamma -> gamma.
 
+gamma-lookup : gamma -> fid -> tp-list -> tp -> type.
+%mode gamma-lookup +G +F -TL -T.
 
-fun-tp-list-lookup : nat -> fun-tp-list -> tp -> tp-list -> type.
-%mode fun-tp-list-lookup +N +FTL -T -TL.
+gamma-lookup/hit : gamma-lookup (gamma/s F TL T _) F TL T.
 
-fun-tp-list-lookup/hit : fun-tp-list-lookup N (fun-tp-list/cons N T TL _) T TL.
-fun-tp-list-lookup/miss : fun-tp-list-lookup N (fun-tp-list/cons _ _ _ R) T TL
-			   <- fun-tp-list-lookup N R T TL.
+gamma-lookup/miss : gamma-lookup (gamma/s F' _ _ R) F TL T
+		     <- gamma-lookup R F TL T.
 
-fun-discover-type : fun-list -> fun-tp-list -> type.
+%{ F \notin D -- says that F is not present as a function name in D }%
+f-notin : fid -> defs -> type.
+%mode f-notin +F +D.
 
-fun-discover-type/main : fun-discover-type (fun-list/main _) fun-tp-list/nil.
-fun-discover-type/cons : fun-discover-type
-			    (fun-list/cons (fun-id/ N) (_ : fun-decl R TL) Rest)
-			    (fun-tp-list/cons N R TL Q)
-			  <- fun-discover-type Rest Q.
+f-notin/z : f-notin F defs/z.
+f-notin/s : f-notin (fid/ N1) (defs/s (fid/ N2) _ R)
+	     <- nat-neq N1 N2
+	     <- f-notin (fid/ N1) R.
 
-fun-check-insn : fun-tp-list -> insn T -> type.
+%{ Wellformedness of terms [ G |- t ] }%
+wf : gamma -> insn T -> type.
+%mode wf +G +Insns.
+%{ Wellformedness of basic blocks [ G |- bb ] }%
+wf-bb : gamma -> bb-def T -> type.
+%mode wf-bb +G +BBD.
 
-fun-check-insn/return : fun-check-insn TPL (insn/return _).
+wf-bb/phi  : wf-bb G (bb-def/phi PHI)
+	      <- ({r} wf-bb G (PHI r)).
+wf-bb/body : wf-bb G (bb-def/body Insn)
+	      <- wf G Insn.
 
-fun-check-insn/br     : fun-check-insn TPL (insn/br _ _).
+%{ Wellformedness of pbundles [ G |- pb ] }%
+wf-pb : gamma -> bb-def-list FTL -> type.
+%mode wf-pb +G +BBD.
 
-fun-check-insn/brc    : fun-check-insn TPL (insn/brc _ _ _ _ _).
-
-fun-check-insn/do     : fun-check-insn TPL (insn/do C ([r] C1 r))
-			 <- fun-check-insn TPL C
-			 <- ({r} fun-check-insn TPL (C1 r)).
-
-fun-check-insn/let    : fun-check-insn TPL (insn/let _ ([r] C r))
-			 <- ({r} fun-check-insn TPL (C r)).
-
-%{
-   TODO: Missing
-fun-check-insn/letrec : fun-check-insn TPL (insn/letrec ([pb] ...
-}%
-
-fun-check-insn/call   : fun-check-insn TPL (insn/call (fun-id/ N)
-					              (_ : reg-list TL)
-					              ([r : reg T] I r))
-			 <- fun-tp-list-lookup N TPL T TL.
+wf-pb/nil  : wf-pb G bb-def-list/nil.
+wf-pb/cons : wf-pb G (bb-def-list/cons BBD R)
+	      <- wf-bb G BBD
+	      <- wf-pb G R.
 
 
-fun-check-decl : fun-tp-list -> fun-decl R TL -> type.
+wf/return : wf G (insn/return R).
+wf/br     : wf G (insn/br _ _).
+wf/brc    : wf G (insn/brc _ _ _ _ _).
+wf/let    : wf G (insn/let Op Bdy)
+	     <- ({r} wf G (Bdy r)).
+wf/letrec : wf G (insn/letrec Defs Bdy)
+	     <- ({pb : pbundle FTL} wf-pb G (Defs pb))
+	     <- ({pb : pbundle FTL} wf G (Bdy pb)).
+wf/do     : wf G (insn/do I Bdy)
+	     <- wf G I
+	     <- ({r} wf G (Bdy r)).
+wf/call   : wf G (insn/call ((fun-id/ N) : fun-id T TL) _ Bdy)
+	     <- gamma-lookup G (fid/ N) TL T
+	     <- ({r} wf G (Bdy r)).
 
-fun-check-decl/parm : fun-check-decl TL (fun-decl/parm ([x] FD x))
-		       <- ({x} fun-check-decl TL (FD x)).
+wf-decl : gamma -> fun-decl -> tp-list -> tp -> type.
+%mode wf-decl +G +FD +TL +T.
 
-fun-check-decl/body : fun-check-decl TL (fun-decl/body Insn)
-		       <- fun-check-insn TL Insn.
-
-
-fun-check-type : fun-tp-list -> fun-list -> type.
-
-fun-check-type/main : fun-check-type _ (fun-list/main _).
-fun-check-type/cons : fun-check-type TL (fun-list/cons (fun-id/ N)
-					               (FDecl : fun-decl R RL)
-					               Rest)
-		       <- fun-tp-list-lookup N TL R RL
-		       <- fun-check-decl TL FDecl
-		       <- fun-check-type TL Rest.
+wf-decl/parm : wf-decl G (fun-decl/parm [r : reg T] FD r) (tp-list/cons T TR) Tp
+		<- ({r : reg T} wf-decl G (FD r) TR Tp).
+wf-decl/body : wf-decl G (fun-decl/body (I : insn Tp)) tp-list/nil Tp
+		<- wf G I.
 
 
+%{ Wellformedness of definitions [ G |- D : G' ] }%
+wf-defs : gamma -> defs -> gamma -> type.
+%mode wf-defs +G +D +G'.
 
-check : fun-list -> type.
+wf-defs/z : wf-defs G defs/z gamma/z.
 
-check/ : check FL
-	  <- fun-discover-type FL TL
-	  <- fun-check-type TL FL.
+wf-defs/s : wf-defs G (defs/s F Decl DR) (gamma/s F TL T GR)
+	     <- wf-decl G Decl TL T
+	     <- f-notin F DR
+	     <- wf-defs G DR GR.
 
+wf-pgm : pgm -> type.
+
+wf-pgm/ : wf-pgm (pgm/ D T)
+	   <- wf G T
+	   <- wf-defs G D G.

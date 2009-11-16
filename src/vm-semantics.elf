@@ -27,6 +27,9 @@ value/ret : value (insn/return _).
 bb-bind : pbundle FTL -> bb-def-list FTL -> type.
 %mode bb-bind +PB -BBDef.
 
+def-bind : defs -> type.
+%mode def-bind +D.
+
 %{ This is to work around a bug in Twelfs splitter }%
 bb-bind0 : bb-bind pbundle0 bb-def-list/nil.
 
@@ -47,12 +50,19 @@ bb-apply/body : bb-apply (bb-def/body E) reg-list/nil E.
 bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
 		 <- bb-apply (R E) EL Q.
 
-function-lookup : fun-id R TL -> fun-decl R TL -> type.
+%% This needs a definition
+function-lookup : fun-id R TL -> defs -> fun-decl -> type.
+
+function-lookup/hit : function-lookup (fun-id/ N) (defs/s (fid/ N) FD R) FD.
+
+function-lookup/miss : function-lookup (fun-id/ N) (defs/s (fid/ N') _ R) Q
+			<- function-lookup (fun-id/ N) R Q.
 
 
-function-apply : fun-decl R TL -> reg-list TL -> insn R -> type.
 
-function-apply/body : function-apply (fun-decl/body B) reg-list/nil B.
+function-apply : fun-decl -> reg-list TL -> insn R -> type.
+
+function-apply/body : function-apply (fun-decl/body BB) reg-list/nil B.
 
 function-apply/parm : function-apply (fun-decl/parm [r] FD r)
 		                     (reg-list/cons R RL) Q
@@ -96,7 +106,8 @@ step/br : step (insn/br (f-hd PB) RL) E
 
 step/call : step (insn/call Fid RL ([r] Body r))
 	         (insn/do T ([r] Body r))
-	     <- function-lookup Fid FDecl
+	     <- def-bind Defs
+	     <- function-lookup Fid Defs FDecl
 	     <- function-apply FDecl RL T.
 
 %{
@@ -120,15 +131,9 @@ steps-to/ : steps-to T V
 	     <- value V.
 
 
-eval-program : fun-list -> reg T -> type.
 
-eval-program/main : eval-program (fun-list/main Fid) R
-		     <- function-lookup Fid FDecl
-		     <- function-apply FDecl reg-list/nil IS
-		     <- steps-to IS (insn/return R).
+step-pgm : pgm -> pgm -> type.
 
-eval-program/cons : eval-program (fun-list/cons Fid FDecl Rest) Q
-		     <- (function-lookup Fid FDecl ->
-			   eval-program Rest Q).
-
+step-pgm/ : step-pgm (pgm/ D T) (pgm/ D T')
+	     <- (def-bind D -> step T T').
 

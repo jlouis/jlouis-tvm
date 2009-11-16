@@ -95,7 +95,6 @@ op-eq : op T -> op T -> type.
 op-eq/refl : op-eq T T.
 
 
-%% These ought to be natural numbers for now.
 fun-id : tp -> tp-list -> type.
 
 fun-id/ : nat -> fun-id T TL.
@@ -139,22 +138,23 @@ insn/call : fun-id T TL -> reg-list TL -> (reg T -> insn T) -> insn T.
 
 %{ **** Functions **** }%
 
-%{ ** Function declarations ** }%
-%%         Return  Parms
-fun-decl : tp ->   tp-list -> type.
+fid : type.
+fid/ : nat -> fid.
 
-%% HOAS, parameters.
-fun-decl/parm : (reg T -> fun-decl R TL) -> fun-decl R (tp-list/cons T TL).
-fun-decl/body : insn R -> fun-decl R tp-list/nil.
 
-%{ ** Program **
+%% TODO: Should functions bear static information about their types?
+fun-decl : type.
 
-   A fun-list
-}%
-fun-list : type.
+fun-decl/parm : (reg T -> fun-decl) -> fun-decl.
+fun-decl/body : insn T -> fun-decl.
 
-fun-list/main : fun-id T TL -> fun-list.
-fun-list/cons : fun-id R TL -> fun-decl R TL -> fun-list -> fun-list.
 
+defs : type.
+
+defs/z : defs.
+defs/s : fid -> fun-decl -> defs -> defs.
+
+pgm : type.
+pgm/ : defs -> insn T -> pgm.
 
 

@@ -85,6 +85,11 @@ pgm_5 = pgm_4_x (tm/semi (tm/fcall g) (tm/fcall f)).
 pgm_6 = [x] pgm/ (defs/s f tm/skip (defs/s g tm/skip (defs/s f (tm/semi tm/skip tm/skip) defs/z))) x.
 %query 2 3 (step-pgm (pgm_6 (tm/fcall f)) X).
 
+pgm_7 = [x] pgm/ (defs/s f (tm/semi (tm/fcall g) tm/skip)
+		    (defs/s g (tm/semi tm/skip (tm/fcall f)) defs/z)) x.
+%query 1 3 (step-pgm (pgm_7 (tm/fcall f)) X).
+%query 1 3 (step-pgm (pgm_7 (tm/fcall g)) X).
+
 %{ ********************************************************************** }%
 
 

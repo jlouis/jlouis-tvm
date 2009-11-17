@@ -18,6 +18,9 @@ where each variable is explicitly passed on.
 
 }%
 
+f  = fun-id/ z.
+f' = fid/ z.
+
 gauss = fun-id/ z.
 dgauss = fid/ z.
 
@@ -26,37 +29,86 @@ b1 = [pb] f-hd (f-tl/s (f-tl/z pb)).
 b2 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/z pb))).
 b3 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/s (f-tl/z pb)))).
 
-entry = [l-if-then] [l-if-else] [n : reg tp/nat]
-	 (bb-def/body (insn/let (op/cmp-lt n (reg/cst-n 0))
-			 ([r : reg tp/bool] (insn/brc r l-if-then reg-list/nil l-if-else reg-list/nil)))).
-
-if-then = [l-ret] (bb-def/body (insn/br l-ret reg-list/nil)).
-
-if-else = [n : reg tp/nat] [l-ret]
-		   (bb-def/body
-		      (insn/let (op/mone n (reg/cst-n 1))
-			 ([sub : reg tp/nat] (insn/call gauss (reg-list/cons sub reg-list/nil)
-						([call : reg tp/nat] insn/let (op/plus call n)
-						   ([mul] insn/br l-ret reg-list/nil)))))).
-
-return = (bb-def/phi [retval]
-		    (bb-def/body
-		       (insn/return retval))).
-
-
 pgm_1 = pgm/ (defs/s dgauss
 		(fun-decl/parm ([n]
 				 fun-decl/body
 				 (insn/letrec
-				    ([pb] (bb-def-list/cons           (entry (b1 pb) (b2 pb) n)
-					     (bb-def-list/cons        (if-then (b3 pb))
-						(bb-def-list/cons     (if-else n (b3 pb))
-						   (bb-def-list/cons  return
-						      bb-def-list/nil)))))
+				    ([pb] (bb-def-list/cons
+					     (bb-def/body (insn/let (op/cmp-lt n (reg/cst-n 1))
+							     ([r : reg tp/bool] (insn/brc r (b1 pb) reg-list/nil (b2 pb) reg-list/nil))))
+					  (bb-def-list/cons
+					     (bb-def/body (insn/br (b3 pb) (reg-list/cons (reg/cst-n 0) reg-list/nil)))
+					  (bb-def-list/cons
+					     (bb-def/body
+						(insn/let (op/mone n (reg/cst-n 1))
+						   ([sub : reg tp/nat] (insn/call gauss (reg-list/cons sub reg-list/nil)
+									  ([call : reg tp/nat] insn/let (op/plus call n)
+									     ([plus] insn/br (b3 pb) (reg-list/cons plus reg-list/nil)))))))
+					  (bb-def-list/cons
+					     (bb-def/phi [retval]
+						(bb-def/body (insn/return retval)))
+					     bb-def-list/nil)))))
 				    ([pb] insn/br (b0 pb) reg-list/nil))))
 		defs/z)
 	 (insn/call gauss (reg-list/cons (reg/cst-n 3) reg-list/nil)
 	    ([r] insn/return r)).
+
+pgm_2 = pgm/ (defs/s f'
+		(fun-decl/parm
+		   ([n] fun-decl/body
+		      (insn/let (op/plus n (reg/cst-n 1))
+			 ([plus] insn/return plus))))
+		defs/z)
+	 (insn/call f (reg-list/cons (reg/cst-n 2) reg-list/nil)
+	    ([r] insn/return r)).
+
+pgm_3 = pgm/ (defs/s f'
+		(fun-decl/parm
+		   ([n] fun-decl/body
+		      (insn/return (reg/cst-n 1))))
+		defs/z)
+	 (insn/call f (reg-list/cons (reg/cst-n 2) reg-list/nil)
+	    ([r] insn/return r)).
+
+
+
+step2 : pgm -> pgm -> type.
+step2/ : step2 P P'
+	  <- step-pgm P P''
+	  <- step-pgm P'' P'.
+
+step3 : pgm -> pgm -> type.
+step3/ : step3 P1 P4
+	  <- step-pgm P1 P2
+	  <- step-pgm P2 P3
+	  <- step-pgm P3 P4.
+
+step4 : pgm -> pgm -> type.
+step4/ : step4 P1 P4
+	  <- step3 P1 P3
+	  <- step-pgm P3 P4.
+
+
+step5 : pgm -> pgm -> type.
+step5/ : step5 P1 P4
+	  <- step4 P1 P3
+	  <- step-pgm P3 P4.
+
+step6 : pgm -> pgm -> type.
+step6/ : step6 P1 P4
+	  <- step5 P1 P3
+	  <- step-pgm P3 P4.
+
+%query 1 2 (step2 pgm_3 X).
+%query 1 2 (step3 pgm_2 X).
+%query 1 2 (step-pgm pgm_1 X).
+%query 1 2 (step2 pgm_1 X).
+%query 1 2 (step3 pgm_1 X).
+%query 1 2 (step4 pgm_1 X).
+%query 1 2 (step5 pgm_1 X).
+%query 1 2 (step6 pgm_1 X).
+
+%query 1 2 (steps-to pgm_1 X).
 
 
 

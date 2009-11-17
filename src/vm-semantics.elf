@@ -62,7 +62,7 @@ function-lookup/miss : function-lookup (fun-id/ N) (defs/s (fid/ N') _ R) Q
 
 function-apply : fun-decl -> reg-list TL -> insn R -> type.
 
-function-apply/body : function-apply (fun-decl/body BB) reg-list/nil B.
+function-apply/body : function-apply (fun-decl/body BB) reg-list/nil BB.
 
 function-apply/parm : function-apply (fun-decl/parm [r] FD r)
 		                     (reg-list/cons R RL) Q
@@ -74,6 +74,8 @@ step-op : op T -> reg T -> type.
 
 step-op/plus : step-op (op/plus (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)
 		<- nat-plus N1 N2 N3.
+step-op/mone : step-op (op/mone (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)
+		<- nat-mone N1 N2 N3.
 
 step-op/cmp-lt : step-op (op/cmp-lt (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-b B)
 		  <- nat-lt N1 N2 B.
@@ -110,30 +112,30 @@ step/call : step (insn/call Fid RL ([r] Body r))
 	     <- function-lookup Fid Defs FDecl
 	     <- function-apply FDecl RL T.
 
+
+step-pgm : pgm -> pgm -> type.
+
+step-pgm/ : step-pgm (pgm/ D T) (pgm/ D T')
+	     <- (def-bind D -> step T T').
+
 %{
 
 **** Iterated step relations ****
 
 }%
 
-steps : insn T -> insn T -> type.
+steps : pgm -> pgm -> type.
 
-steps/0 : steps T T.
+steps/0 : steps P P.
 
-steps/s : steps T T'
-	   <- step T T''
-	   <- steps T'' T'.
+steps/s : steps P P'
+	   <- step-pgm P P''
+	   <- steps P'' P'.
 
-steps-to : insn T -> insn T -> type.
+steps-to : pgm -> pgm -> type.
 
-steps-to/ : steps-to T V
-	     <- steps T V
+steps-to/ : steps-to (pgm/ D T) (pgm/ D V)
+	     <- steps (pgm/ D T) (pgm/ D V)
 	     <- value V.
 
-
-
-step-pgm : pgm -> pgm -> type.
-
-step-pgm/ : step-pgm (pgm/ D T) (pgm/ D T')
-	     <- (def-bind D -> step T T').
 

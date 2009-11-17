@@ -18,6 +18,45 @@ where each variable is explicitly passed on.
 
 }%
 
+gauss = fun-id/ z.
+dgauss = fid/ z.
+
+b0 = [pb] f-hd (f-tl/z pb).
+b1 = [pb] f-hd (f-tl/s (f-tl/z pb)).
+b2 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/z pb))).
+b3 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/s (f-tl/z pb)))).
+
+entry = [l-if-then] [l-if-else] [n : reg tp/nat]
+	 (bb-def/body (insn/let (op/cmp-lt n (reg/cst-n 0))
+			 ([r : reg tp/bool] (insn/brc r l-if-then reg-list/nil l-if-else reg-list/nil)))).
+
+if-then = [l-ret] (bb-def/body (insn/br l-ret reg-list/nil)).
+
+if-else = [n : reg tp/nat] [l-ret]
+		   (bb-def/body
+		      (insn/let (op/mone n (reg/cst-n 1))
+			 ([sub : reg tp/nat] (insn/call gauss (reg-list/cons sub reg-list/nil)
+						([call : reg tp/nat] insn/let (op/plus call n)
+						   ([mul] insn/br l-ret reg-list/nil)))))).
+
+return = (bb-def/phi [retval]
+		    (bb-def/body
+		       (insn/return retval))).
+
+
+pgm_1 = pgm/ (defs/s dgauss
+		(fun-decl/parm ([n]
+				 fun-decl/body
+				 (insn/letrec
+				    ([pb] (bb-def-list/cons           (entry (b1 pb) (b2 pb) n)
+					     (bb-def-list/cons        (if-then (b3 pb))
+						(bb-def-list/cons     (if-else n (b3 pb))
+						   (bb-def-list/cons  return
+						      bb-def-list/nil)))))
+				    ([pb] insn/br (b0 pb) reg-list/nil))))
+		defs/z)
+	 (insn/call gauss (reg-list/cons (reg/cst-n 3) reg-list/nil)
+	    ([r] insn/return r)).
 
 
 

@@ -121,8 +121,9 @@ bb-list/cons : bb-def FT -> bb-list FTL -> bb-list (bb-tp-list/cons FT FTL).
 op/reg : reg T -> op T.
 
 %{ Operations on registers }%
-op/plus  : reg tp/nat -> reg tp/nat -> op tp/nat.
+op/plus   : reg tp/nat -> reg tp/nat -> op tp/nat.
 op/cmp-lt : reg tp/nat -> reg tp/nat -> op tp/bool.
+op/mone   : reg tp/nat -> reg tp/nat -> op tp/nat.
 
 %{ Binding }%
 insn/return : reg T -> insn T.

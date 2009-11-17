@@ -4,17 +4,8 @@
 
 %{
 
-The following encodes a slightly altered version of Appels
-example in the [SSA is Functional Programming] paper. The
-changes ensures there are no dead basic blocks and it fixes
-a typo.
-
-We also lowered to number of rounds on the while loop; it
-proves no point to keep iterating but to stress Twelfs (prolog)
-evaluator.
-
-The code is from the [Appel-SSA] paper. It is the 'dumb' version,
-where each variable is explicitly passed on.
+The following pgm_1 encodes a gauss addition, i.e. gauss 3 = 1+2+3 = 6, by
+recursive calls to ourselves.
 
 }%
 

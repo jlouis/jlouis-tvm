@@ -5,46 +5,50 @@
 }%
 
 
-%block det-1 : some {FTL} {Defs : fbundle FTL -> fun-def-list FTL}
-	       block {fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}.
+%block det-1 : some {FTL} {Defs : pbundle FTL -> bb-def-list FTL}
+	       block {pb : pbundle FTL} {bbind : bb-bind pb (Defs pb)}.
 
-%worlds (det-1) (fbundle-lookup _ _) (fun-apply _ _ _) (fb-bind _ _).
+%worlds (det-1) (pbundle-lookup _ _) (bb-apply _ _ _) (bb-bind _ _).
 
 %{
 
 **** MAPS ****
 
 }%
-fb-bind-map : {FB : fbundle FTL} fb-bind FB Defs -> type.
-%mode fb-bind-map +F -B.
+pb-bind-map : {PB : pbundle FTL} bb-bind FB Defs -> type.
+%mode pb-bind-map +F -B.
 
 %{ To appease Twelfs splitter }%
-fb-bind-map0 : fb-bind-map fbundle0 fb-bind0.
+fb-bind-map0 : pb-bind-map pbundle0 bb-bind0.
 
 
-fdef-eq : fun-def FT -> fun-def FT -> type.
+bb-def-eq : bb-def FT -> bb-def FT -> type.
 
-fdef-eq/refl : fdef-eq FD FD.
+bb-def-eq/refl : bb-def-eq FD FD.
 
-fbundle-lookup-unique : fbundle-lookup FB (fun-def-list/cons FD1 _)
-		     -> fbundle-lookup FB (fun-def-list/cons FD2 _) -> fdef-eq FD1 FD2 -> type.
-%mode fbundle-lookup-unique +FB1 +FB2 -FDEF.
+pbundle-lookup-unique : pbundle-lookup FB (bb-def-list/cons FD1 _)
+		     -> pbundle-lookup FB (bb-def-list/cons FD2 _) -> bb-def-eq FD1 FD2 -> type.
+%mode pbundle-lookup-unique +FB1 +FB2 -FDEF.
 
-- : fbundle-lookup-unique FB1 FB2 fdef-eq/refl.
+- : pbundle-lookup-unique FB1 FB2 bb-def-eq/refl.
+
+insn-eq : insn T -> insn T -> type.
+
+insn-eq/ : insn-eq I I.
 
 
-function-apply-unique : fdef-eq FD1 FD2 -> fun-apply FD1 TL E1 -> fun-apply FD2 TL E2
-			 -> tm-eq E1 E2 -> type.
+function-apply-unique : bb-def-eq FD1 FD2 -> bb-apply FD1 TL E1 -> bb-apply FD2 TL E2
+			 -> insn-eq E1 E2 -> type.
 %mode function-apply-unique +EQ +FA1 +FA2 -TMEQ.
 
-- : function-apply-unique fdef-eq/refl fun-apply/body fun-apply/body tm-eq/refl.
+- : function-apply-unique bb-def-eq/refl bb-apply/body bb-apply/body insn-eq/.
 
-- : function-apply-unique fdef-eq/refl (fun-apply/parm FA1) (fun-apply/parm FA2) Q
-     <- function-apply-unique fdef-eq/refl FA1 FA2 Q.
+- : function-apply-unique bb-def-eq/refl (bb-apply/phi FA1) (bb-apply/phi FA2) Q
+     <- function-apply-unique bb-def-eq/refl FA1 FA2 Q.
 
 %{ General relation capturing the basics of type progress }%
 
-progress-good : tm T -> type.
+progress-good : insn T -> type.
 
 progress-good/value : progress-good V
 		       <- value V.
@@ -55,29 +59,28 @@ progress-good/step : progress-good E
 
 
 
-can-fbundle-lookup : {FB : fbundle+ (fun-tp-list/cons FT FTL)}
-		      fbundle-lookup FB FDL -> type.
+can-pbundle-lookup : {FB : pbundle+ (bb-tp-list/cons FT FTL)}
+		      pbundle-lookup FB FDL -> type.
+%mode can-pbundle-lookup +FB -FL.
 
-%mode can-fbundle-lookup +FB -FL.
+- : can-pbundle-lookup (f-tl/z FB) (pbundle-lookup/ctx-hit FBBind)
+     <- pb-bind-map FB FBBind.
 
-- : can-fbundle-lookup (f-tl/z FB) (fbundle-lookup/ctx-hit FBBind)
-     <- fb-bind-map FB FBBind.
-
-- : can-fbundle-lookup (f-tl/s FB) (fbundle-lookup/dig Q)
-     <- can-fbundle-lookup FB Q.
+- : can-pbundle-lookup (f-tl/s FB) (pbundle-lookup/dig Q)
+     <- can-pbundle-lookup FB Q.
 
 
-can-fun-apply : {RL : reg-list TL} fun-apply Parms RL T -> type.
+can-bb-apply : {RL : reg-list TL} bb-apply Parms RL T -> type.
 %mode +{T : tp} +{TL : tp-list} +{Parms}
-      -{E : tm T}
+      -{E : insn T}
       +{RL : reg-list TL}
-      -{FA : fun-apply Parms RL E}
-      can-fun-apply RL FA.
+      -{FA : bb-apply Parms RL E}
+      can-bb-apply RL FA.
 
-- : can-fun-apply reg-list/nil fun-apply/body.
+- : can-bb-apply reg-list/nil bb-apply/body.
 
-- : can-fun-apply (reg-list/cons E EL) (fun-apply/parm Q)
-     <- can-fun-apply EL Q.
+- : can-bb-apply (reg-list/cons E EL) (bb-apply/phi Q)
+     <- can-bb-apply EL Q.
 
 %{
 progress-if : progress-good B -> progress-good (tm/if B T F) -> type.
@@ -93,7 +96,9 @@ progress-if : progress-good B -> progress-good (tm/if B T F) -> type.
 - : progress-if (progress-good/value VP) (progress-good/step step/if-f).
 }%
 
-progress-let : progress-good T -> progress-good (tm/let T B) -> type.
+
+%{
+progress-let : progress-good T -> progress-good (insn/let T B) -> type.
 %mode +{A : tp} +{B : tp} +{T : tm A} +{Bdy : reg A -> tm B}
       +{TG : progress-good T}
       -{BG : progress-good (tm/let T Bdy)}
@@ -102,16 +107,16 @@ progress-let : progress-good T -> progress-good (tm/let T B) -> type.
 - : progress-let (progress-good/value VP) (progress-good/step (step/let-a VP)).
 
 - : progress-let (progress-good/step SP) (progress-good/step (step/let-s SP)).
+}%
 
-
-progress-letrec : ({F : fbundle FTL} {FB : fb-bind F (Defs F)}
+progress-letrec : ({F : pbundle FTL} {FB : bb-bind F (Defs F)}
 		     progress-good (Body F))
-		   -> progress-good (tm/letrec Defs ([fb] Body fb)) -> type.
-%mode +{FTL} +{T} +{F : fbundle FTL}
-      +{Body : fbundle FTL -> tm T}
-      +{Defs : fbundle FTL -> fun-def-list FTL}
+		   -> progress-good (insn/letrec Defs ([fb] Body fb)) -> type.
+%mode +{FTL} +{T} +{F : pbundle FTL}
+      +{Body : pbundle FTL -> insn T}
+      +{Defs : pbundle FTL -> bb-def-list FTL}
       +{PG : {F} {FB} progress-good (Body F)}
-      -{PGG : progress-good (tm/letrec Defs Body)}
+      -{PGG : progress-good (insn/letrec Defs Body)}
       progress-letrec PG PGG.
 
 - : progress-letrec ([fb] [fbind] progress-good/value VP)
@@ -126,123 +131,124 @@ progress-letrec : ({F : fbundle FTL} {FB : fb-bind F (Defs F)}
 
 }%
 
-progress : {E : tm T} progress-good E -> type.
+progress : {E : insn T} progress-good E -> type.
 %mode progress +E -PG.
 
 
--/c : progress (tm/reg _) (progress-good/value value/reg).
+-/return : progress (insn/return _) (progress-good/value value/return).
 
--/plus : progress (tm/plus (reg/cst-n N1) (reg/cst-n N2))
-	     (progress-good/step (step/plus CNP))
-	  <- can-nat-plus N1 N2 CNP.
-
--/if-t : progress (tm/if (reg/cst-b z) T F) (progress-good/step step/if-f).
-
--/if-f : progress (tm/if (reg/cst-b (s _)) T F) (progress-good/step step/if-t).
-
--/let : progress (tm/let T B) Q
-	 <- progress T PG
-	 <- progress-let PG Q.
-
--/lr : progress (tm/letrec (Defs : fbundle FTL -> fun-def-list FTL) Body) Q
-	<- ({fb : fbundle FTL} {fbind : fb-bind fb (Defs fb)}
-	      fb-bind-map fb fbind ->
+-/lr : progress (insn/letrec (Defs : pbundle FTL -> bb-def-list FTL) Body) Q
+	<- ({fb : pbundle FTL} {fbind : bb-bind fb (Defs fb)}
+	      pb-bind-map fb fbind ->
 	        progress (Body fb) (PG fb fbind))
 	<- progress-letrec PG Q.
 
--/call : progress (tm/br (f-hd FB) EL)
-	       (progress-good/step (step/call CFA CFL))
-	  <- can-fbundle-lookup FB CFL
-	  <- can-fun-apply EL CFA.
+-/br : progress (insn/br (f-hd FB) EL)
+	    (progress-good/step (step/br CFA CFL))
+	<- can-pbundle-lookup FB CFL
+	<- can-bb-apply EL CFA.
+
+%{
+-/let : progress (insn/let T B) Q
+	 <- progress T PG
+	 <- progress-let PG Q.
+-/plus : progress (tm/plus (reg/cst-n N1) (reg/cst-n N2))
+	     (progress-good/step (step/plus CNP))
+	  <- can-nat-plus N1 N2 CNP.
+-/if-t : progress (tm/if (reg/cst-b z) T F) (progress-good/step step/if-f).
+
+-/if-f : progress (tm/if (reg/cst-b (s _)) T F) (progress-good/step step/if-t).
+}%
 
 %{ Congruence on letrec }%
-tm-eq-letrec-cong : ({fb} {fbind: fb-bind fb (Defs fb)} tm-eq (B1 fb) (B2 fb)) ->
-		      tm-eq (tm/letrec Defs B1) (tm/letrec Defs B2) -> type.
-%mode tm-eq-letrec-cong +EQ -TEQLR.
+insn-eq-letrec-cong : ({fb} {fbind: bb-bind fb (Defs fb)} insn-eq (B1 fb) (B2 fb)) ->
+		      insn-eq (insn/letrec Defs B1) (insn/letrec Defs B2) -> type.
+%mode insn-eq-letrec-cong +EQ -TEQLR.
 
-- : tm-eq-letrec-cong ([fb] [fbind] tm-eq/refl) tm-eq/refl.
+- : insn-eq-letrec-cong ([fb] [fbind] insn-eq/) insn-eq/.
 
 
-
-tm-eq-let-cong : tm-eq T1 T2
-	       -> tm-eq (tm/let T1 B) (tm/let T2 B) -> type.
+%{
+insn-eq-let-cong : insn-eq T1 T2
+	       -> insn-eq (insn/let T1 B) (insn/let T2 B) -> type.
 %mode +{A : tp} +{B : tp} +{T1 : tm A} +{T2 : tm A} +{B : reg A -> tm B}
-      +{EQ1 : tm-eq T1 T2}
-      -{LEQ : tm-eq (tm/let T1 B) (tm/let T2 B)}
-      tm-eq-let-cong EQ1 LEQ.
+      +{EQ1 : insn-eq T1 T2}
+      -{LEQ : insn-eq (tm/let T1 B) (tm/let T2 B)}
+      insn-eq-let-cong EQ1 LEQ.
 
-- : tm-eq-let-cong tm-eq/refl tm-eq/refl.
-
+- : insn-eq-let-cong insn-eq/refl insn-eq/refl.
+}%
 
 
 %{ Determinism of the system }%
-det : step T T1 -> step T T2 -> tm-eq T1 T2 -> type.
+det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 %mode det +S1 +S2 -EQ.
 
-- : det (step/plus SP1) (step/plus SP2) tm-eq/refl.
+%{
+- : det (step/plus SP1) (step/plus SP2) insn-eq/refl.
 
-- : det step/if-t step/if-t tm-eq/refl.
+- : det step/if-t step/if-t insn-eq/refl.
 
-- : det step/if-f step/if-f tm-eq/refl.
+- : det step/if-f step/if-f insn-eq/refl.
 
-- : det (step/let-a VP) (step/let-a VP1) tm-eq/refl.
+- : det (step/let-a VP) (step/let-a VP1) insn-eq/refl.
 
 - : det (step/let-s SP) (step/let-s SP1) Q
      <- det SP SP1 TEQ
-     <- tm-eq-let-cong TEQ Q.
+     <- insn-eq-let-cong TEQ Q.
 
-- : det (step/letrec-v VP) (step/letrec-v VP') tm-eq/refl.
+- : det (step/letrec-v VP) (step/letrec-v VP') insn-eq/refl.
 
 - : det (step/letrec-s ([fb] [fbind] Run1 fb fbind))
         (step/letrec-s ([fb] [fbind] Run2 fb fbind)) Q
-     <- ({fb : fbundle FTL}
+     <- ({fb : pbundle FTL}
 	   {fbind : fb-bind fb (Defs fb)}
 	   det (Run1 fb fbind) (Run2 fb fbind) (INEQ fb fbind))
-     <- tm-eq-letrec-cong INEQ Q.
+     <- insn-eq-letrec-cong INEQ Q.
 
 
 - : det (step/call FA1 FL1) (step/call FA2 FL2) Q
-     <- fbundle-lookup-unique FL1 FL2 FBEQ
+     <- pbundle-lookup-unique FL1 FL2 FBEQ
      <- function-apply-unique FBEQ FA1 FA2 Q.
-
+}%
 
 
 %{ Blocks we need. The first one gives us the block we need in step relations }%
-%block progress-1 : some {FTL : fun-tp-list} {Defs}
-                    block {fb : fbundle FTL}
-		          {bind : fb-bind fb (Defs fb)}
-		          {map : fb-bind-map fb bind}.
+%block progress-1 : some {FTL : bb-tp-list} {Defs}
+                    block {fb : pbundle FTL}
+		          {bind : bb-bind fb (Defs fb)}
+		          {map : pb-bind-map fb bind}.
 
 %worlds (progress-1) (progress-letrec _ _)
-                     (progress-let _ _)
-                     (fb-bind-map _ _)
+                     (pb-bind-map _ _)
                      (progress _ _)
-                     (can-fun-apply _ _) (can-fbundle-lookup _ _).
+                     (can-bb-apply _ _) (can-pbundle-lookup _ _).
 
-%worlds (det-1) (tm-eq-let-cong _ _)
-                (tm-eq-letrec-cong _ _)
-                (fbundle-lookup-unique _ _ _)
+%worlds (det-1) (insn-eq-letrec-cong _ _)
+                (pbundle-lookup-unique _ _ _)
                 (function-apply-unique _ _ _ _).
 
 %worlds (det-1) (det _ _ _).
 
 %{ Various obvious uniqueness lemmas }%
-%unique fun-apply +FD +TL -1T.
-%unique fb-bind +F -1B.
-%unique fbundle-lookup +FB -1FDef.
+%unique bb-apply +FD +TL -1T.
+%unique bb-bind +F -1B.
+%unique pbundle-lookup +FB -1FDef.
 
+%{
 %{ Progress totality }%
-%total E (can-fun-apply E _).
+%total E (can-bb-apply E _).
 %total PG (progress-letrec PG _).
-%total PG (progress-let PG _).
-%total E (fb-bind-map E _).
-%total (T N) (can-fbundle-lookup N _) (progress T _).
+%%total PG (progress-let PG _).
+%total E (pb-bind-map E _).
+%total (T N) (can-pbundle-lookup N _) (progress T _).
 
 %{ Determinism totality }%
-%total FB (fbundle-lookup-unique FB _ _).
+%total FB (pbundle-lookup-unique FB _ _).
 %total FB (function-apply-unique _ FB _ _).
-%total T (tm-eq-let-cong T _).
-%total FB (tm-eq-letrec-cong FB _).
+%total T (insn-eq-let-cong T _).
+%total FB (insn-eq-letrec-cong FB _).
 %total S (det S _ _).
 
 
+}%

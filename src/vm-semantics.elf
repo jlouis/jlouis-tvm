@@ -14,7 +14,7 @@ Jesper Louis Andersen, 2009
 
 value : insn T -> type.
 
-value/ret : value (insn/return _).
+value/return : value (insn/return _).
 
 
 

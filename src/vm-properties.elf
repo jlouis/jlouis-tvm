@@ -15,7 +15,8 @@
 **** MAPS ****
 
 }%
-pb-bind-map : {PB : pbundle FTL} bb-bind FB Defs -> type.
+
+pb-bind-map : {PB : pbundle FTL} bb-bind PB Defs -> type.
 %mode pb-bind-map +F -B.
 
 %{ To appease Twelfs splitter }%
@@ -125,6 +126,16 @@ progress-letrec : ({F : pbundle FTL} {FB : bb-bind F (Defs F)}
 - : progress-letrec ([fb] [fbind] progress-good/step (SP fb fbind))
      (progress-good/step (step/letrec-s ([fb] [fbind] SP fb fbind))).
 
+progress-do : progress-good I1 -> progress-good (insn/do I1 B) -> type.
+%mode +{T} +{T'}
+      +{I1 : insn T'} +{B : (reg T' -> insn T)} +{PG : progress-good I1}
+      -{PGG : progress-good (insn/do I1 B)}
+      progress-do PG PGG.
+
+- : progress-do (progress-good/value VP) (progress-good/step step/do-v).
+
+- : progress-do (progress-good/step SP) (progress-good/step (step/do-s SP)).
+
 %{
 
 **** MAIN PROGRESS LEMMA ****
@@ -147,6 +158,18 @@ progress : {E : insn T} progress-good E -> type.
 	    (progress-good/step (step/br CFA CFL))
 	<- can-pbundle-lookup FB CFL
 	<- can-bb-apply EL CFA.
+
+-/brc-t : progress (insn/brc (reg/cst-b (s _)) _ _ _ _)
+	   (progress-good/step step/brc-t).
+
+-/brc-f : progress (insn/brc (reg/cst-b z) L1 R1 L2 R2)
+	   (progress-good/step step/brc-f).
+
+%{
+-/do-s : progress (insn/do T1 B) Q
+	  <- progress T1 PG
+	  <- progress-do PG Q.
+}%
 
 %{
 -/let : progress (insn/let T B) Q
@@ -220,6 +243,7 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 		          {map : pb-bind-map fb bind}.
 
 %worlds (progress-1) (progress-letrec _ _)
+                     (progress-do _ _)
                      (pb-bind-map _ _)
                      (progress _ _)
                      (can-bb-apply _ _) (can-pbundle-lookup _ _).
@@ -235,13 +259,18 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 %unique bb-bind +F -1B.
 %unique pbundle-lookup +FB -1FDef.
 
-%{
+
 %{ Progress totality }%
 %total E (can-bb-apply E _).
 %total PG (progress-letrec PG _).
+%total T  (progress-do T _).
 %%total PG (progress-let PG _).
 %total E (pb-bind-map E _).
 %total (T N) (can-pbundle-lookup N _) (progress T _).
+
+%{
+%total (T N) (can-pbundle-lookup N _) (progress T _).
+
 
 %{ Determinism totality }%
 %total FB (pbundle-lookup-unique FB _ _).

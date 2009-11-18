@@ -62,11 +62,12 @@ wf/call   : wf G (insn/call F RL Bdy)
 	     <- gamma-lookup G F
 	     <- ({r} wf G (Bdy r)).
 
-wf-decl : gamma -> fun-decl -> tp-list -> tp -> type.
+wf-decl : gamma -> fun-decl R TL -> type.
 
-wf-decl/parm : wf-decl G (fun-decl/parm [r : reg T] FD r) (tp-list/cons T TR) Tp
-		<- ({r : reg T} wf-decl G (FD r) TR Tp).
-wf-decl/body : wf-decl G (fun-decl/body (I : insn Tp)) tp-list/nil Tp
+wf-decl/parm : wf-decl G (fun-decl/parm [r : reg T] FD r)
+		<- ({r : reg T} wf-decl G (FD r)).
+
+wf-decl/body : wf-decl G (fun-decl/body (I : insn Tp))
 		<- wf G I.
 
 
@@ -75,8 +76,8 @@ wf-defs : gamma -> defs -> gamma -> type.
 
 wf-defs/z : wf-defs G defs/z gamma/z.
 
-wf-defs/s : wf-defs G (defs/s F Decl DR) (gamma/s F GR)
-	     <- wf-decl G Decl TL T
+wf-defs/s : wf-defs G (defs/s (F : fun-id T TL) (Decl : fun-decl T TL) DR) (gamma/s F GR)
+	     <- wf-decl G Decl
 	     <- f-notin F DR
 	     <- wf-defs G DR GR.
 

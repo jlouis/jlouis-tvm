@@ -140,16 +140,10 @@ lookup-good : wf-defs G D G' -> gamma-lookup G' F
      <- lookup-good WFD GL DL.
 
 
-fun-lookup-good : {F : fun-id T TL} wf-defs G D G' -> function-lookup F D FD ->
-			wf-decl G FD TL T -> type.
-%mode fun-lookup-good +F +WFD +FL -WFDecl.
-
-- : fun-lookup-good F (wf-defs/s _ _ Q) function-lookup/hit Q.
-
 %% Effectiveness, we can always function apply
-can-function-apply : {FD : fun-decl} {RL : reg-list TL} function-apply FD RL T -> type.
-%mode +{TL:tp-list} +{Tp1:tp} -{T:insn Tp1} +{FD:fun-decl} +{RL:reg-list TL}
-   -{FA:function-apply FD RL T} (can-function-apply FD RL FA).
+can-function-apply : {FD : fun-decl T TL} {RL : reg-list TL} function-apply FD RL I -> type.
+%mode +{TL:tp-list} +{T:tp} -{I:insn T} +{FD:fun-decl T TL} +{RL:reg-list TL}
+   -{FA:function-apply FD RL I} (can-function-apply FD RL FA).
 
 - : can-function-apply (fun-decl/body B) reg-list/nil function-apply/body.
 

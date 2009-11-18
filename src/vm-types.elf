@@ -8,15 +8,15 @@
 gamma : type.
 
 gamma/z : gamma.
-gamma/s : fun-id T TL -> tp-list -> tp -> gamma -> gamma.
+gamma/s : fun-id T TL -> gamma -> gamma.
 
-gamma-lookup : gamma -> fun-id T TL -> tp-list -> tp -> type.
-%mode gamma-lookup +G +F -TL -T.
+gamma-lookup : gamma -> fun-id T TL -> type.
+%mode gamma-lookup +G +F.
 
-gamma-lookup/hit : gamma-lookup (gamma/s F TL T _) F TL T.
+gamma-lookup/hit : gamma-lookup (gamma/s F _) F.
 
-gamma-lookup/miss : gamma-lookup (gamma/s F' _ _ R) F TL T
-		     <- gamma-lookup R F TL T.
+gamma-lookup/miss : gamma-lookup (gamma/s F' R) F
+		     <- gamma-lookup R F.
 
 %{ F \notin D -- says that F is not present as a function name in D }%
 f-notin : fun-id T TL -> defs -> type.
@@ -59,7 +59,7 @@ wf/do     : wf G (insn/do I Bdy)
 	     <- ({r} wf G (Bdy r)).
 
 wf/call   : wf G (insn/call F RL Bdy)
-	     <- gamma-lookup G F TL T
+	     <- gamma-lookup G F
 	     <- ({r} wf G (Bdy r)).
 
 wf-decl : gamma -> fun-decl -> tp-list -> tp -> type.
@@ -75,7 +75,7 @@ wf-defs : gamma -> defs -> gamma -> type.
 
 wf-defs/z : wf-defs G defs/z gamma/z.
 
-wf-defs/s : wf-defs G (defs/s F Decl DR) (gamma/s F TL T GR)
+wf-defs/s : wf-defs G (defs/s F Decl DR) (gamma/s F GR)
 	     <- wf-decl G Decl TL T
 	     <- f-notin F DR
 	     <- wf-defs G DR GR.

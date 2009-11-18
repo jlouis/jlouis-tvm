@@ -131,7 +131,7 @@ progress-do : progress-good D I1 -> progress-good D (insn/do I1 B) -> type.
 
 %% Relate a Gamma lookup to a function lookup if good
 
-lookup-good : wf-defs G D G' -> gamma-lookup G' F TL T
+lookup-good : wf-defs G D G' -> gamma-lookup G' F
 			     -> function-lookup F D FD -> type.
 %mode lookup-good +WFD +GL -FLU.
 
@@ -142,7 +142,8 @@ lookup-good : wf-defs G D G' -> gamma-lookup G' F TL T
 
 %% Effectiveness, we can always function apply
 can-function-apply : {FD : fun-decl} {RL : reg-list TL} function-apply FD RL T -> type.
-%mode can-function-apply +FD +RL -FA.
+%mode +{TL:tp-list} +{Tp1:tp} -{T:insn Tp1} +{FD:fun-decl} +{RL:reg-list TL}
+   -{FA:function-apply FD RL T} (can-function-apply FD RL FA).
 
 - : can-function-apply (fun-decl/body B) reg-list/nil function-apply/body.
 

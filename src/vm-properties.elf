@@ -130,7 +130,6 @@ progress-do : progress-good D I1 -> progress-good D (insn/do I1 B) -> type.
 - : progress-do (progress-good/step SP) (progress-good/step (step/do-s SP)).
 
 %% Relate a Gamma lookup to a function lookup if good
-
 lookup-good : wf-defs G D G' -> gamma-lookup G' F
 			     -> function-lookup F D FD -> type.
 %mode lookup-good +WFD +GL -FLU.
@@ -139,6 +138,13 @@ lookup-good : wf-defs G D G' -> gamma-lookup G' F
 
 - : lookup-good (wf-defs/s WFD NI _) (gamma-lookup/miss GL) (function-lookup/miss DL)
      <- lookup-good WFD GL DL.
+
+
+fun-lookup-good : {F : fun-id T TL} wf-defs G D G' -> function-lookup F D FD ->
+			wf-decl G FD TL T -> type.
+%mode fun-lookup-good +F +WFD +FL -WFDecl.
+
+- : fun-lookup-good F (wf-defs/s _ _ Q) function-lookup/hit Q.
 
 %% Effectiveness, we can always function apply
 can-function-apply : {FD : fun-decl} {RL : reg-list TL} function-apply FD RL T -> type.
@@ -309,7 +315,6 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 %total T  (progress-do T _).
 %total E (pb-bind-map E _).
 %total WF (lookup-good WF _ _).
-%trustme
 %total FA (can-function-apply FA _ _).
 %total (T N) (can-pbundle-lookup N _) (progress T _ _ _).
 

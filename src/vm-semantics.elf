@@ -72,6 +72,8 @@ function-apply/parm : function-apply (fun-decl/parm [r] FD r)
 
 step-op : op T -> reg T -> type.
 
+step-op/reg : step-op (op/reg R) R.
+
 step-op/plus : step-op (op/plus (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)
 		<- nat-plus N1 N2 N3.
 step-op/mone : step-op (op/mone (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)
@@ -106,12 +108,13 @@ step/br : step (insn/br (f-hd PB) RL) E
 	   <- pbundle-lookup PB (bb-def-list/cons BBDef _)
 	   <- bb-apply BBDef RL E.
 
+%{
 step/call : step (insn/call Fid RL ([r] Body r))
 	         (insn/do T ([r] Body r))
 	     <- def-bind Defs
 	     <- function-lookup Fid Defs FDecl
 	     <- function-apply FDecl RL T.
-
+}%
 
 step-pgm : pgm -> pgm -> type.
 

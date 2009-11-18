@@ -83,32 +83,24 @@ can-bb-apply : {RL : reg-list TL} bb-apply Parms RL T -> type.
 - : can-bb-apply (reg-list/cons E EL) (bb-apply/phi Q)
      <- can-bb-apply EL Q.
 
-%{
-progress-if : progress-good B -> progress-good (tm/if B T F) -> type.
-%mode +{A : tp} +{B : tm tp/bool} +{T : tm A} +{F : tm A}
-      +{PG : progress-good B}
-      -{PGG : progress-good (tm/if B T F)}
-      progress-if PG PGG.
+%{ Effectiveness, step-op }%
 
-- : progress-if (progress-good/step SP) (progress-good/step (step/if-1 SP)).
+can-step-op : {O : op T} step-op O V -> type.
+%mode can-step-op +O -SOP.
 
-- : progress-if (progress-good/value VP) (progress-good/step step/if-t).
+- : can-step-op (op/reg R) step-op/reg.
 
-- : progress-if (progress-good/value VP) (progress-good/step step/if-f).
-}%
+- : can-step-op (op/plus _ _) (step-op/plus CNP)
+     <- can-nat-plus _ _ CNP.
+
+- : can-step-op (op/mone _ _) (step-op/mone CNM)
+     <- can-nat-mone _ _ CNM.
+
+- : can-step-op (op/cmp-lt _ _) (step-op/cmp-lt CLT)
+     <- can-nat-lt _ _ CLT.
 
 
-%{
-progress-let : progress-good T -> progress-good (insn/let T B) -> type.
-%mode +{A : tp} +{B : tp} +{T : tm A} +{Bdy : reg A -> tm B}
-      +{TG : progress-good T}
-      -{BG : progress-good (tm/let T Bdy)}
-      progress-let TG BG.
 
-- : progress-let (progress-good/value VP) (progress-good/step (step/let-a VP)).
-
-- : progress-let (progress-good/step SP) (progress-good/step (step/let-s SP)).
-}%
 
 progress-letrec : ({F : pbundle FTL} {FB : bb-bind F (Defs F)}
 		     progress-good (Body F))
@@ -165,23 +157,14 @@ progress : {E : insn T} progress-good E -> type.
 -/brc-f : progress (insn/brc (reg/cst-b z) L1 R1 L2 R2)
 	   (progress-good/step step/brc-f).
 
-%{
--/do-s : progress (insn/do T1 B) Q
-	  <- progress T1 PG
-	  <- progress-do PG Q.
-}%
+-/let : progress (insn/let Op _) (progress-good/step (step/let SOP))
+	 <- can-step-op Op SOP.
 
-%{
--/let : progress (insn/let T B) Q
-	 <- progress T PG
-	 <- progress-let PG Q.
--/plus : progress (tm/plus (reg/cst-n N1) (reg/cst-n N2))
-	     (progress-good/step (step/plus CNP))
-	  <- can-nat-plus N1 N2 CNP.
--/if-t : progress (tm/if (reg/cst-b z) T F) (progress-good/step step/if-f).
+-/do : progress (insn/do T1 B) Q
+	<- progress T1 PG
+	<- progress-do PG Q.
 
--/if-f : progress (tm/if (reg/cst-b (s _)) T F) (progress-good/step step/if-t).
-}%
+
 
 %{ Congruence on letrec }%
 insn-eq-letrec-cong : ({fb} {fbind: bb-bind fb (Defs fb)} insn-eq (B1 fb) (B2 fb)) ->
@@ -190,51 +173,68 @@ insn-eq-letrec-cong : ({fb} {fbind: bb-bind fb (Defs fb)} insn-eq (B1 fb) (B2 fb
 
 - : insn-eq-letrec-cong ([fb] [fbind] insn-eq/) insn-eq/.
 
+op-eq : op A -> op A -> type.
+op-eq/ : op-eq O O.
+reg-eq : reg T -> reg T -> type.
+reg-eq/ : reg-eq R R.
 
-%{
-insn-eq-let-cong : insn-eq T1 T2
-	       -> insn-eq (insn/let T1 B) (insn/let T2 B) -> type.
-%mode +{A : tp} +{B : tp} +{T1 : tm A} +{T2 : tm A} +{B : reg A -> tm B}
+insn-eq-let-cong : {Bd : reg T -> insn T'} reg-eq R1 R2 -> insn-eq (Bd R1) (Bd R2) -> type.
+%mode +{T : tp} +{T' : tp} +{R1 : reg T} +{R2 : reg T}
+      +{Bd : reg T -> insn T'}
+      +{EQ : reg-eq R1 R2}
+      -{IEQ : insn-eq (Bd R1) (Bd R2)}
+      insn-eq-let-cong Bd EQ IEQ.
+
+- : insn-eq-let-cong Bd reg-eq/ insn-eq/.
+
+
+insn-eq-do-cong : insn-eq T1 T2 -> insn-eq (insn/do T1 B) (insn/do T2 B) -> type.
+%mode +{A : tp} +{B : tp} +{T1 : insn A} +{T2 : insn A} +{Bd : reg A -> insn B}
       +{EQ1 : insn-eq T1 T2}
-      -{LEQ : insn-eq (tm/let T1 B) (tm/let T2 B)}
-      insn-eq-let-cong EQ1 LEQ.
+      -{DEQ : insn-eq (insn/do T1 Bd) (insn/do T2 Bd)}
+      insn-eq-do-cong EQ1 DEQ.
 
-- : insn-eq-let-cong insn-eq/refl insn-eq/refl.
-}%
+- : insn-eq-do-cong insn-eq/ insn-eq/.
 
+
+det-op : step-op O R1 -> step-op O R2 -> reg-eq R1 R2 -> type.
+%mode det-op +SOP1 +SOP -REQ.
+
+- : det-op step-op/reg step-op/reg reg-eq/.
+- : det-op (step-op/plus P1) (step-op/plus P2) reg-eq/.
+- : det-op (step-op/mone M1) (step-op/mone M2) reg-eq/.
+- : det-op (step-op/cmp-lt L1) (step-op/cmp-lt L2) reg-eq/.
 
 %{ Determinism of the system }%
 det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 %mode det +S1 +S2 -EQ.
 
-%{
-- : det (step/plus SP1) (step/plus SP2) insn-eq/refl.
+- : det ((step/let SOP1) : step (insn/let O B) (B R1)) (step/let SOP2) insn-eq/
+     <- det-op SOP1 SOP2 REQ
+     <- insn-eq-let-cong B REQ Q.
 
-- : det step/if-t step/if-t insn-eq/refl.
-
-- : det step/if-f step/if-f insn-eq/refl.
-
-- : det (step/let-a VP) (step/let-a VP1) insn-eq/refl.
-
-- : det (step/let-s SP) (step/let-s SP1) Q
-     <- det SP SP1 TEQ
-     <- insn-eq-let-cong TEQ Q.
-
-- : det (step/letrec-v VP) (step/letrec-v VP') insn-eq/refl.
+- : det (step/letrec-v VP) (step/letrec-v VP') insn-eq/.
 
 - : det (step/letrec-s ([fb] [fbind] Run1 fb fbind))
         (step/letrec-s ([fb] [fbind] Run2 fb fbind)) Q
      <- ({fb : pbundle FTL}
-	   {fbind : fb-bind fb (Defs fb)}
+	   {fbind : bb-bind fb (Defs fb)}
 	   det (Run1 fb fbind) (Run2 fb fbind) (INEQ fb fbind))
      <- insn-eq-letrec-cong INEQ Q.
 
+- : det step/brc-t step/brc-t insn-eq/.
 
-- : det (step/call FA1 FL1) (step/call FA2 FL2) Q
+- : det step/brc-f step/brc-f insn-eq/.
+
+- : det (step/do-s SP1) (step/do-s SP2) Q
+     <- det SP1 SP2 IEQ
+     <- insn-eq-do-cong IEQ Q.
+
+- : det step/do-v step/do-v insn-eq/.
+
+- : det (step/br FA1 FL1) (step/br FA2 FL2) Q
      <- pbundle-lookup-unique FL1 FL2 FBEQ
      <- function-apply-unique FBEQ FA1 FA2 Q.
-}%
-
 
 %{ Blocks we need. The first one gives us the block we need in step relations }%
 %block progress-1 : some {FTL : bb-tp-list} {Defs}
@@ -246,38 +246,42 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
                      (progress-do _ _)
                      (pb-bind-map _ _)
                      (progress _ _)
+                     (can-step-op _ _)
                      (can-bb-apply _ _) (can-pbundle-lookup _ _).
 
 %worlds (det-1) (insn-eq-letrec-cong _ _)
+                (insn-eq-do-cong _ _)
+                (insn-eq-let-cong _ _ _)
+                (det-op _ _ _)
                 (pbundle-lookup-unique _ _ _)
                 (function-apply-unique _ _ _ _).
 
 %worlds (det-1) (det _ _ _).
 
 %{ Various obvious uniqueness lemmas }%
+%unique det-op +SOP1 +SOP2 -1REQ.
 %unique bb-apply +FD +TL -1T.
 %unique bb-bind +F -1B.
 %unique pbundle-lookup +FB -1FDef.
-
+%unique can-nat-plus +N1 +N2 -CNP.
+%unique can-nat-mone +N1 +N2 -CNM.
+%unique can-nat-lt +N1 +N2 -CLT.
+%unique can-step-op +O -R.
 
 %{ Progress totality }%
 %total E (can-bb-apply E _).
+%total O (can-step-op O _).
 %total PG (progress-letrec PG _).
 %total T  (progress-do T _).
-%%total PG (progress-let PG _).
 %total E (pb-bind-map E _).
 %total (T N) (can-pbundle-lookup N _) (progress T _).
-
-%{
-%total (T N) (can-pbundle-lookup N _) (progress T _).
-
 
 %{ Determinism totality }%
 %total FB (pbundle-lookup-unique FB _ _).
 %total FB (function-apply-unique _ FB _ _).
-%total T (insn-eq-let-cong T _).
+%total T (insn-eq-let-cong T _ _).
+%total IEQ (insn-eq-do-cong IEQ _).
 %total FB (insn-eq-letrec-cong FB _).
+%total S (det-op S _ _).
 %total S (det S _ _).
 
-
-}%

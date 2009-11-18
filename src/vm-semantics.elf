@@ -82,44 +82,41 @@ step-op/mone : step-op (op/mone (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)
 step-op/cmp-lt : step-op (op/cmp-lt (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-b B)
 		  <- nat-lt N1 N2 B.
 
-step : insn T -> insn T -> type.
+step : defs -> insn T -> insn T -> type.
 
-step/let : step (insn/let T B) (B V)
+step/let : step D (insn/let T B) (B V)
 	    <- step-op T V.
 
-step/letrec-v : step (insn/letrec ([pb] Defs pb) ([pb] V)) V
+step/letrec-v : step D (insn/letrec ([pb] Defs pb) ([pb] V)) V
 		 <- value V.
 
-step/letrec-s : step (insn/letrec ([pb] Defs pb) ([pb] Body pb))
+step/letrec-s : step D (insn/letrec ([pb] Defs pb) ([pb] Body pb))
                      (insn/letrec ([pb] Defs pb) ([pb] Body' pb))
 		 <- ({pb} bb-bind pb (Defs pb) ->
-		         step (Body pb) (Body' pb)).
+		         step D (Body pb) (Body' pb)).
 
-step/brc-t : step (insn/brc (reg/cst-b (s _)) L RL _ _) (insn/br L RL).
+step/brc-t : step D (insn/brc (reg/cst-b (s _)) L RL _ _) (insn/br L RL).
 
-step/brc-f : step (insn/brc (reg/cst-b z) _ _ L RL) (insn/br L RL).
+step/brc-f : step D (insn/brc (reg/cst-b z) _ _ L RL) (insn/br L RL).
 
-step/do-s : step (insn/do T B) (insn/do T' B)
-	   <- step T T'.
+step/do-s : step D (insn/do T B) (insn/do T' B)
+	   <- step D T T'.
 
-step/do-v : step (insn/do (insn/return R) B) (B R).
+step/do-v : step D (insn/do (insn/return R) B) (B R).
 
-step/br : step (insn/br (f-hd PB) RL) E
+step/br : step D (insn/br (f-hd PB) RL) E
 	   <- pbundle-lookup PB (bb-def-list/cons BBDef _)
 	   <- bb-apply BBDef RL E.
 
-%{
-step/call : step (insn/call Fid RL ([r] Body r))
+step/call : step Defs (insn/call Fid RL ([r] Body r))
 	         (insn/do T ([r] Body r))
-	     <- def-bind Defs
 	     <- function-lookup Fid Defs FDecl
 	     <- function-apply FDecl RL T.
-}%
 
 step-pgm : pgm -> pgm -> type.
 
 step-pgm/ : step-pgm (pgm/ D T) (pgm/ D T')
-	     <- (def-bind D -> step T T').
+	     <- step D T T'.
 
 %{
 

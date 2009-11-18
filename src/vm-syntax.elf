@@ -135,9 +135,7 @@ insn/let : op T1 -> (reg T1 -> insn T) -> insn T.
 insn/letrec : (pbundle FTL -> bb-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.
 insn/do : insn T' -> (reg T' -> insn T) -> insn T. %% Only internally used
-%{
 insn/call : fun-id T TL -> reg-list TL -> (reg T -> insn T) -> insn T.
-}%
 
 %{ **** Functions **** }%
 

@@ -60,12 +60,12 @@ wf/letrec : wf G (insn/letrec Defs Bdy)
 wf/do     : wf G (insn/do I Bdy)
 	     <- wf G I
 	     <- ({r} wf G (Bdy r)).
-%{
+
 wf/call   : wf G (insn/call ((fun-id/ N) : fun-id T TL) _ Bdy)
 	     <- gamma-lookup G (fid/ N) TL T
 	     <- ({r} wf G (Bdy r)).
-}%
 
+%{ TODO: Perhaps we need to utilize the TL and R here }%
 wf-decl : gamma -> fun-decl -> tp-list -> tp -> type.
 %mode wf-decl +G +FD +TL +T.
 

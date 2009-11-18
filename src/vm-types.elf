@@ -8,9 +8,9 @@
 gamma : type.
 
 gamma/z : gamma.
-gamma/s : fid -> tp-list -> tp -> gamma -> gamma.
+gamma/s : fun-id T TL -> tp-list -> tp -> gamma -> gamma.
 
-gamma-lookup : gamma -> fid -> tp-list -> tp -> type.
+gamma-lookup : gamma -> fun-id T TL -> tp-list -> tp -> type.
 %mode gamma-lookup +G +F -TL -T.
 
 gamma-lookup/hit : gamma-lookup (gamma/s F TL T _) F TL T.
@@ -19,20 +19,18 @@ gamma-lookup/miss : gamma-lookup (gamma/s F' _ _ R) F TL T
 		     <- gamma-lookup R F TL T.
 
 %{ F \notin D -- says that F is not present as a function name in D }%
-f-notin : fid -> defs -> type.
-%mode f-notin +F +D.
+f-notin : fun-id T TL -> defs -> type.
 
 f-notin/z : f-notin F defs/z.
-f-notin/s : f-notin (fid/ N1) (defs/s (fid/ N2) _ R)
+f-notin/s : f-notin (fun-id/ N1) (defs/s (fun-id/ N2) _ R)
 	     <- nat-neq N1 N2
-	     <- f-notin (fid/ N1) R.
+	     <- f-notin (fun-id/ N1) R.
 
 %{ Wellformedness of terms [ G |- t ] }%
 wf : gamma -> insn T -> type.
-%mode wf +G +Insns.
+
 %{ Wellformedness of basic blocks [ G |- bb ] }%
 wf-bb : gamma -> bb-def T -> type.
-%mode wf-bb +G +BBD.
 
 wf-bb/phi  : wf-bb G (bb-def/phi PHI)
 	      <- ({r} wf-bb G (PHI r)).
@@ -41,7 +39,6 @@ wf-bb/body : wf-bb G (bb-def/body Insn)
 
 %{ Wellformedness of pbundles [ G |- pb ] }%
 wf-pb : gamma -> bb-def-list FTL -> type.
-%mode wf-pb +G +BBD.
 
 wf-pb/nil  : wf-pb G bb-def-list/nil.
 wf-pb/cons : wf-pb G (bb-def-list/cons BBD R)
@@ -62,12 +59,10 @@ wf/do     : wf G (insn/do I Bdy)
 	     <- ({r} wf G (Bdy r)).
 
 wf/call   : wf G (insn/call ((fun-id/ N) : fun-id T TL) _ Bdy)
-	     <- gamma-lookup G (fid/ N) TL T
+	     <- gamma-lookup G (fun-id/ N) TL T
 	     <- ({r} wf G (Bdy r)).
 
-%{ TODO: Perhaps we need to utilize the TL and R here }%
 wf-decl : gamma -> fun-decl -> tp-list -> tp -> type.
-%mode wf-decl +G +FD +TL +T.
 
 wf-decl/parm : wf-decl G (fun-decl/parm [r : reg T] FD r) (tp-list/cons T TR) Tp
 		<- ({r : reg T} wf-decl G (FD r) TR Tp).
@@ -77,7 +72,6 @@ wf-decl/body : wf-decl G (fun-decl/body (I : insn Tp)) tp-list/nil Tp
 
 %{ Wellformedness of definitions [ G |- D : G' ] }%
 wf-defs : gamma -> defs -> gamma -> type.
-%mode wf-defs +G +D +G'.
 
 wf-defs/z : wf-defs G defs/z gamma/z.
 

@@ -139,10 +139,6 @@ insn/call : fun-id T TL -> reg-list TL -> (reg T -> insn T) -> insn T.
 
 %{ **** Functions **** }%
 
-fid : type.
-fid/ : nat -> fid.
-
-
 %% TODO: Should functions bear static information about their types?
 fun-decl : type.
 
@@ -153,7 +149,7 @@ fun-decl/body : insn T -> fun-decl.
 defs : type.
 
 defs/z : defs.
-defs/s : fid -> fun-decl -> defs -> defs.
+defs/s : fun-id T TL -> fun-decl -> defs -> defs.
 
 pgm : type.
 pgm/ : defs -> insn T -> pgm.

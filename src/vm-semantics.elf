@@ -53,9 +53,9 @@ bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
 %% This needs a definition
 function-lookup : fun-id R TL -> defs -> fun-decl -> type.
 
-function-lookup/hit : function-lookup (fun-id/ N) (defs/s (fid/ N) FD R) FD.
+function-lookup/hit : function-lookup (fun-id/ N) (defs/s (fun-id/ N) FD R) FD.
 
-function-lookup/miss : function-lookup (fun-id/ N) (defs/s (fid/ N') _ R) Q
+function-lookup/miss : function-lookup (fun-id/ N) (defs/s (fun-id/ N') _ R) Q
 			<- function-lookup (fun-id/ N) R Q.
 
 
@@ -108,9 +108,9 @@ step/br : step D (insn/br (f-hd PB) RL) E
 	   <- pbundle-lookup PB (bb-def-list/cons BBDef _)
 	   <- bb-apply BBDef RL E.
 
-step/call : step Defs (insn/call Fid RL ([r] Body r))
+step/call : step Defs (insn/call Fun-id RL ([r] Body r))
 	         (insn/do T ([r] Body r))
-	     <- function-lookup Fid Defs FDecl
+	     <- function-lookup Fun-id Defs FDecl
 	     <- function-apply FDecl RL T.
 
 step-pgm : pgm -> pgm -> type.

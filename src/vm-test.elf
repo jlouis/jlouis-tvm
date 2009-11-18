@@ -10,17 +10,15 @@ recursive calls to ourselves.
 }%
 
 f  = fun-id/ z.
-f' = fid/ z.
 
 gauss = fun-id/ z.
-dgauss = fid/ z.
 
 b0 = [pb] f-hd (f-tl/z pb).
 b1 = [pb] f-hd (f-tl/s (f-tl/z pb)).
 b2 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/z pb))).
 b3 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/s (f-tl/z pb)))).
 
-pgm_1 = pgm/ (defs/s dgauss
+pgm_1 = pgm/ (defs/s gauss
 		(fun-decl/parm ([n]
 				 fun-decl/body
 				 (insn/letrec
@@ -44,7 +42,7 @@ pgm_1 = pgm/ (defs/s dgauss
 	 (insn/call gauss (reg-list/cons (reg/cst-n 3) reg-list/nil)
 	    ([r] insn/return r)).
 
-pgm_2 = pgm/ (defs/s f'
+pgm_2 = pgm/ (defs/s f
 		(fun-decl/parm
 		   ([n] fun-decl/body
 		      (insn/let (op/plus n (reg/cst-n 1))
@@ -53,7 +51,7 @@ pgm_2 = pgm/ (defs/s f'
 	 (insn/call f (reg-list/cons (reg/cst-n 2) reg-list/nil)
 	    ([r] insn/return r)).
 
-pgm_3 = pgm/ (defs/s f'
+pgm_3 = pgm/ (defs/s f
 		(fun-decl/parm
 		   ([n] fun-decl/body
 		      (insn/return (reg/cst-n 1))))

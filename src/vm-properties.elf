@@ -131,15 +131,16 @@ progress-do : progress-good D I1 -> progress-good D (insn/do I1 B) -> type.
 
 %% Relate a Gamma lookup to a function lookup if good
 
-lookup-good : wf-defs G D G' -> gamma-lookup G' (fid/ N1) TL T
-			     -> function-lookup (fun-id/ N1) D FD -> type.
-%mode -{FLU : function-lookup 
-      lookup-good WFD GL FLU.
+lookup-good : wf-defs G D G' -> gamma-lookup G' F TL T
+			     -> function-lookup F D FD -> type.
+%mode lookup-good +WFD +GL -FLU.
 
 - : lookup-good (wf-defs/s _ _ _) gamma-lookup/hit function-lookup/hit.
 
 - : lookup-good (wf-defs/s WFD NI _) (gamma-lookup/miss GL) (function-lookup/miss DL)
      <- lookup-good WFD GL DL.
+
+%% Effectiveness, we can always function apply
 
 %{
 
@@ -183,7 +184,8 @@ progress : {E : insn T} wf G E -> wf-defs G D G -> progress-good D E -> type.
 %{
 -/call : progress (insn/call (fun-id/ N1) RL1 Bdy) (wf/call GL WFBdy) WFD
 	     (progress-good/step (step/call FL FA))
-	  <- lookup-good WFD GL FL.
+	  <- lookup-good WFD GL FL
+          <- can-function-apply RL1 FL FA
 }%
 
 %{ Congruence on letrec }%
@@ -299,7 +301,7 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 %total T  (progress-do T _).
 %total E (pb-bind-map E _).
 %total WF (lookup-good WF _ _).
-%total (T N) (can-pbundle-lookup N _) (progress T _ _ _).
+%%total (T N) (can-pbundle-lookup N _) (progress T _ _ _).
 
 %{
 %{ Determinism totality }%

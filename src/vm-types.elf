@@ -58,8 +58,8 @@ wf/do     : wf G (insn/do I Bdy)
 	     <- wf G I
 	     <- ({r} wf G (Bdy r)).
 
-wf/call   : wf G (insn/call ((fun-id/ N) : fun-id T TL) _ Bdy)
-	     <- gamma-lookup G (fun-id/ N) TL T
+wf/call   : wf G (insn/call F RL Bdy)
+	     <- gamma-lookup G F TL T
 	     <- ({r} wf G (Bdy r)).
 
 wf-decl : gamma -> fun-decl -> tp-list -> tp -> type.

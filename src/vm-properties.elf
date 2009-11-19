@@ -195,6 +195,37 @@ progress : {E : insn T} wf G E -> wf-defs G D G -> progress-good D E -> type.
 	  <- lookup-good WFD GL FL
 	  <- can-function-apply _ RL1 FA.
 
+
+pgm-progress-good : pgm -> type.
+
+pgm-progress-good/value : pgm-progress-good (pgm/ D T)
+			   <- value T.
+
+pgm-progress-good/step  : pgm-progress-good (pgm/ D T)
+			   <- step D T T'.
+
+progress-pgm-factor : (progress-good D I) -> pgm-progress-good (pgm/ D I) -> type.
+%mode progress-pgm-factor +PG -PGG.
+
+- : progress-pgm-factor (progress-good/value VP) (pgm-progress-good/value VP).
+- : progress-pgm-factor (progress-good/step SP)  (pgm-progress-good/step SP).
+
+progress-pgm : {P : pgm} wf-pgm P -> pgm-progress-good P -> type.
+%mode progress-pgm +P +WF -PG.
+
+- : progress-pgm (pgm/ D T) (wf-pgm/ WFD WF) Q
+     <- progress T WF WFD IPP
+     <- progress-pgm-factor IPP Q.
+
+%{
+
+
+**** MAIN PRESERVATION THEOREM ****
+
+}%
+
+
+
 %{ Congruence on letrec }%
 insn-eq-letrec-cong : ({fb} {fbind: bb-bind fb (Defs fb)} insn-eq (B1 fb) (B2 fb)) ->
 		      insn-eq (insn/letrec Defs B1) (insn/letrec Defs B2) -> type.
@@ -282,6 +313,9 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
                      (can-function-apply _ _ _)
                      (can-bb-apply _ _) (can-pbundle-lookup _ _).
 
+%worlds () (progress-pgm-factor _ _)
+           (progress-pgm _ _ _).
+
 %worlds (det-1) (insn-eq-letrec-cong _ _)
                 (insn-eq-do-cong _ _)
                 (insn-eq-let-cong _ _ _)
@@ -311,6 +345,8 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 %total WF (lookup-good WF _ _).
 %total FA (can-function-apply FA _ _).
 %total (T N) (can-pbundle-lookup N _) (progress T _ _ _).
+%total PG (progress-pgm-factor PG _).
+%total P  (progress-pgm P _ _).
 
 %{
 %{ Determinism totality }%

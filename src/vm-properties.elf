@@ -132,9 +132,8 @@ progress-do : progress-good D I1 -> progress-good D (insn/do I1 B) -> type.
 
 %% Helper: If f is not in the list, then for any g in the list, we have f /= g
 %%   under the assumptions of wellformedness
-
-notin-neq : f-notin (fun-id/ N1) D -> wf-defs G D G' -> gamma-lookup G' (fun-id/ N2)
-						    -> nat-neq N1 N2 -> type.
+notin-neq : f-notin (fun-id/ N1) D -> wf-defs G D G'
+		-> gamma-lookup G' (fun-id/ N2) -> nat-neq N1 N2 -> type.
 %mode notin-neq +FIN +WFD +GL -NEQ.
 
 - : notin-neq (f-notin/s _ NEQ) (wf-defs/s _ _ _) gamma-lookup/hit NEQ.
@@ -149,8 +148,7 @@ lookup-good : wf-defs G D G' -> gamma-lookup G' F
 
 - : lookup-good (wf-defs/s _ _ _) gamma-lookup/hit function-lookup/hit.
 
-- : lookup-good (wf-defs/s WFD NI _) (gamma-lookup/miss GL) (function-lookup/miss DL NEQ)
-     <- notin-neq NI WFD GL NEQ
+- : lookup-good (wf-defs/s WFD NI _) (gamma-lookup/miss GL) (function-lookup/miss DL)
      <- lookup-good WFD GL DL.
 
 
@@ -278,6 +276,15 @@ void-eq-fun-decl : void -> eq-fun-decl FD FD' -> type.
 %mode +{Tp1:tp} +{TpL1:tp-list} +{FD:fun-decl Tp1 TpL1} +{FD':fun-decl Tp1 TpL1}
    +{V:void} -{EQ:eq-fun-decl FD FD'} (void-eq-fun-decl V EQ).
 
+notin-void : f-notin F D -> function-lookup F D T -> void -> type.
+%mode notin-void +FIN +DL -V.
+
+- : notin-void (f-notin/s R NEQ) (function-lookup/miss DL) V
+     <- notin-void R DL V.
+
+- : notin-void (f-notin/s R NEQ) function-lookup/hit V
+     <- nat-eq-neq-void nat-eq/refl NEQ V.
+
 function-lookup-unique : gamma-lookup G' F -> wf-defs G D G' ->
 			  function-lookup F D FD1 -> function-lookup F D FD2
 						  -> eq-fun-decl FD1 FD2 -> type.
@@ -286,24 +293,23 @@ function-lookup-unique : gamma-lookup G' F -> wf-defs G D G' ->
 - : function-lookup-unique GL WFD function-lookup/hit function-lookup/hit eq-fun-decl/.
 
 - : function-lookup-unique (gamma-lookup/miss GL') (wf-defs/s WFD' _ _)
-       (function-lookup/miss DL1 _) (function-lookup/miss DL2 _) EQ
+       (function-lookup/miss DL1) (function-lookup/miss DL2) EQ
      <- function-lookup-unique GL' WFD' DL1 DL2 EQ.
 
 - : function-lookup-unique gamma-lookup/hit (wf-defs/s WFD NI _)
-       (function-lookup/miss DL1 NEQ1) (function-lookup/miss DL2 _) EQ
-     <- nat-eq-neq-void nat-eq/refl NEQ1 V
+       (function-lookup/miss DL1) (function-lookup/miss DL2) EQ
+     <- notin-void NI DL1 V
      <- void-eq-fun-decl V EQ.
 
-- : function-lookup-unique GL (wf-defs/s WFD NI _) function-lookup/hit (function-lookup/miss DL2 NEQ) EQ
-     <- nat-eq-neq-void nat-eq/refl NEQ V
+- : function-lookup-unique GL (wf-defs/s WFD NI _) function-lookup/hit
+          (function-lookup/miss DL2) EQ
+     <- notin-void NI DL2 V
      <- void-eq-fun-decl V EQ.
 
-- : function-lookup-unique GL (wf-defs/s WFD NI _) (function-lookup/miss DL1 NEQ) function-lookup/hit EQ
-     <- nat-eq-neq-void nat-eq/refl NEQ V
+- : function-lookup-unique GL (wf-defs/s WFD NI _) (function-lookup/miss DL1)
+         function-lookup/hit EQ
+     <- notin-void NI DL1 V
      <- void-eq-fun-decl V EQ.
-
-
-
 
 
 fap-unique : eq-fun-decl FD1 FD2 -> function-apply FD1 RL T1 -> function-apply FD2 RL T2
@@ -381,6 +387,7 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
 
 %worlds (det-1)
   (void-eq-fun-decl _ _)
+  (notin-void _ _ _)
   (function-lookup-unique _ _ _ _ _)
   (fap-unique _ _ _ _)
   (det _ _ _ _ _).
@@ -402,7 +409,6 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
 %total T  (progress-do T _).
 %total E (pb-bind-map E _).
 %total IN (notin-neq IN _ _ _).
-%trustme
 %total WF (lookup-good WF _ _).
 %total FA (can-function-apply FA _ _).
 %total (T N) (can-pbundle-lookup N _) (progress T _ _ _).
@@ -417,9 +423,9 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
 %total FB (insn-eq-letrec-cong FB _).
 %total S (det-op S _ _).
 %total V (void-eq-fun-decl V _).
+%total DL (notin-void _ DL _).
 %total GL (function-lookup-unique GL _ _ _ _).
 %total FA1 (fap-unique _ FA1 _ _).
-
 %total S (det _ _ S _ _).
 
 

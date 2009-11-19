@@ -56,7 +56,6 @@ function-lookup : fun-id R TL -> defs -> fun-decl R TL -> type.
 function-lookup/hit : function-lookup F (defs/s F FD R) FD.
 
 function-lookup/miss : function-lookup (fun-id/ F) (defs/s (fun-id/ F') _ R) Q
-			<- nat-neq F F'
 			<- function-lookup (fun-id/ F) R Q.
 
 

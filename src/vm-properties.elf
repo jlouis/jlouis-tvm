@@ -463,16 +463,15 @@ wf-bb-bind : bb-bind PB FL -> wf-pb G FL -> type.
 
 wf-bb-bind0 : wf-bb-bind bb-bind0 (wf-pb/nil : wf-pb gamma/z _).
 
-preservation-pbundle-lookup : pbundle-lookup PB BBDef -> wf-pb G BBDef -> type.
-%mode +{BBTpL1:bb-tp-list} +{PB:pbundle+ BBTpL1} +{BBDef:bb-def-list BBTpL1}
-   -{G:gamma} +{PBL:pbundle-lookup PB BBDef} -{WFPB:wf-pb G BBDef}
-   (preservation-pbundle-lookup PBL WFPB).
+preservation-pbundle-lookup : pbundle-lookup PB (bb-def-list/cons BB _) -> wf-defs G D G
+									-> wf-bb G BB -> type.
+%mode preservation-pbundle-lookup +PL +WFD -WF.
 
-- : preservation-pbundle-lookup (pbundle-lookup/ctx-hit BB) WFPB
-     <- wf-bb-bind BB WFPB.
+- : preservation-pbundle-lookup (pbundle-lookup/ctx-hit BB) WFD Q
+     <- wf-bb-bind BB (wf-pb/cons _ Q).
 
-- : preservation-pbundle-lookup (pbundle-lookup/dig PBL) PB
-     <- preservation-pbundle-lookup PBL (wf-pb/cons PB BB).
+- : preservation-pbundle-lookup (pbundle-lookup/dig PBL) WFD Q
+     <- preservation-pbundle-lookup PBL WFD Q.
 
 preservation-pbundle-apply : wf-bb G BB -> bb-apply BB RL T -> wf G T -> type.
 %mode preservation-pbundle-apply +WFBB +BB -WF.
@@ -518,11 +517,9 @@ preservation : wf G I -> wf-defs G D G -> step D I I' -> wf G I' -> type.
      <- ({pb} {pbind} {wb : wf-pb G (WFPB pb)} wf-bb-bind pbind wb ->
 		 preservation (WFB pb wb) WFD (ISP pb pbind) (WFB' pb wb)).
 
-%{
 - : preservation wf/br WFD (step/br BBA PBL) Q
-     <- preservation-pbundle-lookup PBL ((wf-pb/cons BB PB) : wf-pb G _)
-     <- preservation-pbundle-apply (_ : wf-bb G _) BBA Q.
-}%
+     <- preservation-pbundle-lookup PBL WFD BB
+     <- preservation-pbundle-apply BB BBA Q.
 
 - : preservation (wf/call WFBdy GL) WFD (step/call FA FL) (wf/do WFBdy Q)
      <- preservation-lookup FL WFD WFDecl
@@ -543,14 +540,14 @@ preservation-pgm : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 %worlds (preservation-1) (preservation _ _ _ _)
                          (preservation-pgm _ _ _)
                          (preservation-pbundle-apply _ _ _)
-                         (preservation-pbundle-lookup _ _)
+                         (preservation-pbundle-lookup _ _ _)
                          (preservation-lookup _ _ _)
                          (preservation-fun-apply _ _ _)
                          (wf-bb-bind _ _).
 
 %total B  (wf-bb-bind B _).
 %trustme
-%total E  (preservation-pbundle-lookup E _).
+%total E  (preservation-pbundle-lookup E _ _).
 %total WF (preservation-pbundle-apply WF _ _).
 %total FL  (preservation-lookup FL _ _).
 %total FA  (preservation-fun-apply _ FA _).

@@ -18,13 +18,30 @@ gamma-lookup/hit : gamma-lookup (gamma/s F _) F.
 gamma-lookup/miss : gamma-lookup (gamma/s F' R) F
 		     <- gamma-lookup R F.
 
+%{ fun-id equality }%
+fun-id-eq : fun-id T TL -> fun-id T TL -> bool -> type.
+fun-id-eq/eq : fun-id-eq (fun-id/ N) (fun-id/ N') true
+		 <- nat-eq N N'.
+fun-id-eq/neq : fun-id-eq (fun-id/ N) (fun-id/ N') false
+		 <- nat-neq N N'.
+
+%{ It has the property that it can't be true and false at the same time }%
+fun-id-eq-neq : fun-id-eq F1 F2 true -> fun-id-eq F1 F2 false -> void -> type.
+%mode fun-id-eq-neq +T +F -V.
+
+- : fun-id-eq-neq (fun-id-eq/eq EQ) (fun-id-eq/neq NEQ) V
+     <- nat-eq-neq-void EQ NEQ V.
+
+%worlds () (fun-id-eq-neq _ _ _).
+%total FEQ (fun-id-eq-neq FEQ _ _).
+
 %{ F \notin D -- says that F is not present as a function name in D }%
 f-notin : fun-id T TL -> defs -> type.
 
 f-notin/z : f-notin F defs/z.
-f-notin/s : f-notin (fun-id/ N1) (defs/s (fun-id/ N2) _ R)
-	     <- nat-neq N1 N2
-	     <- f-notin (fun-id/ N1) R.
+f-notin/s : f-notin F1 (defs/s F2 _ R)
+	     <- fun-id-eq F1 F2 false
+	     <- f-notin F1 R.
 
 %{ Wellformedness of terms [ G |- t ] }%
 wf : gamma -> insn T -> type.

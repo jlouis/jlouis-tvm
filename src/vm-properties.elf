@@ -269,6 +269,11 @@ fap-unique : eq-fun-decl FD1 FD2 -> function-apply FD1 RL T1 -> function-apply F
 							     -> insn-eq T1 T2 -> type.
 %mode fap-unique +EQ +FA1 +FA2 -IEQ.
 
+- : fap-unique eq-fun-decl/ function-apply/body function-apply/body insn-eq/.
+
+- : fap-unique eq-fun-decl/ (function-apply/parm FA1) (function-apply/parm FA2) EQ
+     <- fap-unique eq-fun-decl/ FA1 FA2 EQ.
+
 
 %{ Determinism of the system }%
 det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> type.
@@ -368,7 +373,6 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
 %total S (det-op S _ _).
 %trustme
 %total GL (function-lookup-unique GL _ _ _ _).
-%trustme
 %total FA1 (fap-unique _ FA1 _ _).
 %total S (det _ _ S _ _).
 

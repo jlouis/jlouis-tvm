@@ -53,10 +53,11 @@ bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
 %% This needs a definition
 function-lookup : fun-id R TL -> defs -> fun-decl R TL -> type.
 
-function-lookup/hit : function-lookup (fun-id/ N) (defs/s (fun-id/ N) FD R) FD.
+function-lookup/hit : function-lookup F (defs/s F FD R) FD.
 
-function-lookup/miss : function-lookup (fun-id/ N) (defs/s (fun-id/ N') _ R) Q
-			<- function-lookup (fun-id/ N) R Q.
+function-lookup/miss : function-lookup (fun-id/ F) (defs/s (fun-id/ F') _ R) Q
+			<- nat-neq F F'
+			<- function-lookup (fun-id/ F) R Q.
 
 
 

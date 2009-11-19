@@ -260,10 +260,42 @@ det-op : step-op O R1 -> step-op O R2 -> reg-eq R1 R2 -> type.
 eq-fun-decl : fun-decl T1 T2 -> fun-decl T1 T2 -> type.
 eq-fun-decl/ : eq-fun-decl FD FD.
 
+void-eq-fun-decl : void -> eq-fun-decl FD FD' -> type.
+%mode +{Tp1:tp} +{TpL1:tp-list} +{FD:fun-decl Tp1 TpL1} +{FD':fun-decl Tp1 TpL1}
+   +{V:void} -{EQ:eq-fun-decl FD FD'} (void-eq-fun-decl V EQ).
+
+notin-void : f-notin F D -> function-lookup F D T -> void -> type.
+%mode notin-void +FIN +DL -V.
+
+
+
 function-lookup-unique : gamma-lookup G' F -> wf-defs G D G' ->
 			  function-lookup F D FD1 -> function-lookup F D FD2
 						  -> eq-fun-decl FD1 FD2 -> type.
 %mode function-lookup-unique +GL +WFD +FD1 +FD2 -EQ.
+
+- : function-lookup-unique GL WFD function-lookup/hit function-lookup/hit eq-fun-decl/.
+
+- : function-lookup-unique (gamma-lookup/miss GL') (wf-defs/s WFD' _ _)
+       (function-lookup/miss DL1) (function-lookup/miss DL2) EQ
+     <- function-lookup-unique GL' WFD' DL1 DL2 EQ.
+
+- : function-lookup-unique gamma-lookup/hit (wf-defs/s WFD NI _)
+       (function-lookup/miss DL1) (function-lookup/miss DL2) EQ
+     <- notin-void NI DL1 V
+     <- void-eq-fun-decl V EQ.
+
+- : function-lookup-unique GL (wf-defs/s WFD NI _) function-lookup/hit (function-lookup/miss DL2) EQ
+     <- notin-void NI DL2 V
+     <- void-eq-fun-decl V EQ.
+
+- : function-lookup-unique GL (wf-defs/s WFD NI _) (function-lookup/miss DL1) function-lookup/hit EQ
+     <- notin-void NI DL1 V
+     <- void-eq-fun-decl V EQ.
+
+
+
+
 
 fap-unique : eq-fun-decl FD1 FD2 -> function-apply FD1 RL T1 -> function-apply FD2 RL T2
 							     -> insn-eq T1 T2 -> type.
@@ -338,6 +370,8 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
                 (function-apply-unique _ _ _ _).
 
 %worlds (det-1)
+  (void-eq-fun-decl _ _)
+  (notin-void _ _ _)
   (function-lookup-unique _ _ _ _ _)
   (fap-unique _ _ _ _)
   (det _ _ _ _ _).
@@ -372,6 +406,9 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
 %total FB (insn-eq-letrec-cong FB _).
 %total S (det-op S _ _).
 %trustme
+%total GL (notin-void GL _ _).
+%trustme
+%total V (void-eq-fun-decl V _).
 %total GL (function-lookup-unique GL _ _ _ _).
 %total FA1 (fap-unique _ FA1 _ _).
 %total S (det _ _ S _ _).

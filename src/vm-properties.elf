@@ -464,7 +464,9 @@ wf-bb-bind : bb-bind PB FL -> wf-pb G FL -> type.
 wf-bb-bind0 : wf-bb-bind bb-bind0 (wf-pb/nil : wf-pb gamma/z _).
 
 preservation-pbundle-lookup : pbundle-lookup PB BBDef -> wf-pb G BBDef -> type.
-%mode preservation-pbundle-lookup +PBL -WFPB.
+%mode +{BBTpL1:bb-tp-list} +{PB:pbundle+ BBTpL1} +{BBDef:bb-def-list BBTpL1}
+   -{G:gamma} +{PBL:pbundle-lookup PB BBDef} -{WFPB:wf-pb G BBDef}
+   (preservation-pbundle-lookup PBL WFPB).
 
 - : preservation-pbundle-lookup (pbundle-lookup/ctx-hit BB) WFPB
      <- wf-bb-bind BB WFPB.
@@ -480,6 +482,23 @@ preservation-pbundle-apply : wf-bb G BB -> bb-apply BB RL T -> wf G T -> type.
      <- preservation-pbundle-apply (WFP E) BBP Q.
 
 - : preservation-pbundle-apply (wf-bb/body WF) bb-apply/body WF.
+
+preservation-lookup : function-lookup F D Df -> wf-defs G D G' -> wf-decl G Df -> type.
+%mode preservation-lookup +FL +WFD -Decl.
+
+- : preservation-lookup function-lookup/hit (wf-defs/s WFD _ WF) WF.
+
+- : preservation-lookup (function-lookup/miss L) (wf-defs/s WFD _ WF) Q
+     <- preservation-lookup L WFD Q.
+
+preservation-fun-apply : wf-decl G Df -> function-apply Df RL I -> wf G I -> type.
+%mode preservation-fun-apply +Decl +FA -WF.
+
+- : preservation-fun-apply (wf-decl/body WF) function-apply/body WF.
+
+- : preservation-fun-apply (wf-decl/parm WD)
+         ((function-apply/parm FA') : function-apply _ (reg-list/cons E _) _) Q
+     <- preservation-fun-apply (WD E) FA' Q.
 
 preservation : wf G I -> wf-defs G D G -> step D I I' -> wf G I' -> type.
 %mode preservation +WF +WFD +SD -WF'.
@@ -499,30 +518,15 @@ preservation : wf G I -> wf-defs G D G -> step D I I' -> wf G I' -> type.
      <- ({pb} {pbind} {wb : wf-pb G (WFPB pb)} wf-bb-bind pbind wb ->
 		 preservation (WFB pb wb) WFD (ISP pb pbind) (WFB' pb wb)).
 
-- : preservation wf/br WFD (step/br BBA PBL) Q
-     <- preservation-pbundle-lookup PBL (wf-pb/cons PB BB)
-     <- preservation-pbundle-apply BB BBA Q.
-
-
 %{
-- : preservation wf/br WFD (step/br BBA PBL)
+- : preservation wf/br WFD (step/br BBA PBL) Q
+     <- preservation-pbundle-lookup PBL ((wf-pb/cons BB PB) : wf-pb G _)
+     <- preservation-pbundle-apply (_ : wf-bb G _) BBA Q.
 }%
-%{ TODO: This one needs some helper lemmas
 
-%% Use trustme aggressively first on these ones and then pushback the proofs needed slowly.
-%% Formulating the lemmas is half the battle.
-
-%% This one requires a context in which a pb is bound to its wellformedness assertion.
-%% Then a lemma on PBL asserts that the bb-def-list has the wf-bb property.
-%% And then a lemma on BBA asserts that the bb-def-list with wf-bb has a well-formed body.
-%% PHEW!
-- : preservation wf/br WFD (step/br BBA PBL)
-
-%% Should utilize two helpers. First, a variant of preserv-lookup stating that lookups on
-%%   wellformed Defs returns wellformed content.
-%%   2nd: That Function applying to well-formed content yields wellformed content.
-- : preservation _     _   (step/call FAP FLP)
-}%
+- : preservation (wf/call WFBdy GL) WFD (step/call FA FL) (wf/do WFBdy Q)
+     <- preservation-lookup FL WFD WFDecl
+     <- preservation-fun-apply WFDecl FA Q.
 
 preservation-pgm : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 %mode preservation-pgm +WFP +SP -WFP'.
@@ -540,12 +544,17 @@ preservation-pgm : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
                          (preservation-pgm _ _ _)
                          (preservation-pbundle-apply _ _ _)
                          (preservation-pbundle-lookup _ _)
+                         (preservation-lookup _ _ _)
+                         (preservation-fun-apply _ _ _)
                          (wf-bb-bind _ _).
 
 %total B  (wf-bb-bind B _).
 %trustme
 %total E  (preservation-pbundle-lookup E _).
 %total WF (preservation-pbundle-apply WF _ _).
+%total FL  (preservation-lookup FL _ _).
+%total FA  (preservation-fun-apply _ FA _).
+
 %total SP (preservation _ _ SP _).
 %total SP (preservation-pgm _ SP _).
 

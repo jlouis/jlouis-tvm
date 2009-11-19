@@ -76,7 +76,7 @@ wf-defs : gamma -> defs -> gamma -> type.
 
 wf-defs/z : wf-defs G defs/z gamma/z.
 
-wf-defs/s : wf-defs G (defs/s (F : fun-id T TL) (Decl : fun-decl T TL) DR) (gamma/s F GR)
+wf-defs/s : wf-defs G (defs/s F Decl DR) (gamma/s F GR)
 	     <- wf-decl G Decl
 	     <- f-notin F DR
 	     <- wf-defs G DR GR.

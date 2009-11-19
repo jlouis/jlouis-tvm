@@ -50,7 +50,7 @@ bb-apply/body : bb-apply (bb-def/body E) reg-list/nil E.
 bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
 		 <- bb-apply (R E) EL Q.
 
-%% This needs a definition
+
 function-lookup : fun-id R TL -> defs -> fun-decl R TL -> type.
 
 function-lookup/hit : function-lookup F (defs/s F FD R) FD.

@@ -323,6 +323,7 @@ void-tm-eq : void -> tm-eq T T' -> type.
 %total V (void-tm-eq V _).
 
 notin-void : f-notin F D -> def-lookup D F T -> void -> type.
+
 %mode notin-void +FIN +DL -V.
 
 - : notin-void (f-notin/s R NEQ) (def-lookup/miss DL) V

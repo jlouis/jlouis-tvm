@@ -361,6 +361,21 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
 
 - : det WF WFD step/do-v step/do-v insn-eq/.
 
+pgm-eq : pgm -> pgm -> type.
+pgm-eq/ : pgm-eq P P.
+
+det-pgm-cong : insn-eq I1 I2 -> pgm-eq (pgm/ D I1) (pgm/ D I2) -> type.
+%mode +{Tp1:tp} +{I1:insn Tp1} +{I2:insn Tp1} +{D:defs} +{EQ:insn-eq I1 I2}
+   -{Q:pgm-eq (pgm/ D I1) (pgm/ D I2)} (det-pgm-cong EQ Q).
+
+- : det-pgm-cong insn-eq/ pgm-eq/.
+
+det-pgm : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
+%mode det-pgm +WF +SP1 +SP2 -PEQ.
+
+- : det-pgm (wf-pgm/ WFD WF) (step-pgm/ SP1) (step-pgm/ SP2) EQ
+     <- det WF WFD SP1 SP2 IEQ
+     <- det-pgm-cong IEQ EQ.
 
 %{ Blocks we need. The first one gives us the block we need in step relations }%
 %block progress-1 : some {FTL : bb-tp-list} {Defs}
@@ -393,6 +408,9 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
   (function-lookup-unique _ _ _ _ _)
   (fap-unique _ _ _ _)
   (det _ _ _ _ _).
+
+%worlds () (det-pgm-cong _ _)
+           (det-pgm _ _ _ _).
 
 %{ Various obvious uniqueness lemmas }%
 %unique det-op +SOP1 +SOP2 -1REQ.
@@ -429,10 +447,11 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
 %total FA1 (fap-unique _ FA1 _ _).
 %total S (det _ _ S _ _).
 
+%total D (det-pgm-cong D _).
+%total P (det-pgm _ P _ _).
 
 
 %{
-
 %{
 
 **** MAIN PRESERVATION THEOREM ****
@@ -469,4 +488,3 @@ preservation-pgm : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 
 
 
-}%

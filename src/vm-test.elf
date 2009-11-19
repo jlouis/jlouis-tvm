@@ -97,6 +97,7 @@ step6/ : step6 P1 P4
 %query 1 2 (step5 pgm_1 X).
 %query 1 2 (step6 pgm_1 X).
 
+%query 1 1 (wf-pgm pgm_1).
 %query 1 2 (steps-to pgm_1 X).
 
 

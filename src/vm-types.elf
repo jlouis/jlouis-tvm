@@ -50,13 +50,13 @@ wf/return : wf G (insn/return R).
 wf/br     : wf G (insn/br _ _).
 wf/brc    : wf G (insn/brc _ _ _ _ _).
 wf/let    : wf G (insn/let Op Bdy)
-	     <- ({r} wf G (Bdy r)).
+	     <- ({r : reg T} wf G (Bdy r)).
 wf/letrec : wf G (insn/letrec Defs Bdy)
 	     <- ({pb : pbundle FTL} wf-pb G (Defs pb))
 	     <- ({pb : pbundle FTL} wf G (Bdy pb)).
 wf/do     : wf G (insn/do I Bdy)
 	     <- wf G I
-	     <- ({r} wf G (Bdy r)).
+	     <- ({r : reg T} wf G (Bdy r)).
 
 wf/call   : wf G (insn/call F RL Bdy)
 	     <- gamma-lookup G F

@@ -217,15 +217,6 @@ progress-pgm : {P : pgm} wf-pgm P -> pgm-progress-good P -> type.
      <- progress T WF WFD IPP
      <- progress-pgm-factor IPP Q.
 
-%{
-
-
-**** MAIN PRESERVATION THEOREM ****
-
-}%
-
-
-
 %{ Congruence on letrec }%
 insn-eq-letrec-cong : ({fb} {fbind: bb-bind fb (Defs fb)} insn-eq (B1 fb) (B2 fb)) ->
 		      insn-eq (insn/letrec Defs B1) (insn/letrec Defs B2) -> type.
@@ -265,39 +256,57 @@ det-op : step-op O R1 -> step-op O R2 -> reg-eq R1 R2 -> type.
 - : det-op (step-op/mone M1) (step-op/mone M2) reg-eq/.
 - : det-op (step-op/cmp-lt L1) (step-op/cmp-lt L2) reg-eq/.
 
-%{ TODO: Determinism
-%{ Determinism of the system }%
-det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
-%mode det +S1 +S2 -EQ.
 
-- : det ((step/let SOP1) : step (insn/let O B) (B R1)) (step/let SOP2) insn-eq/
+eq-fun-decl : fun-decl T1 T2 -> fun-decl T1 T2 -> type.
+eq-fun-decl/ : eq-fun-decl FD FD.
+
+function-lookup-unique : gamma-lookup G' F -> wf-defs G D G' ->
+			  function-lookup F D FD1 -> function-lookup F D FD2
+						  -> eq-fun-decl FD1 FD2 -> type.
+%mode function-lookup-unique +GL +WFD +FD1 +FD2 -EQ.
+
+fap-unique : eq-fun-decl FD1 FD2 -> function-apply FD1 RL T1 -> function-apply FD2 RL T2
+							     -> insn-eq T1 T2 -> type.
+%mode fap-unique +EQ +FA1 +FA2 -IEQ.
+
+
+%{ Determinism of the system }%
+det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> type.
+%mode det +WF +WFD +S1 +S2 -EQ.
+
+- : det _ _ ((step/let SOP1) : step D (insn/let O B) (B R1)) (step/let SOP2) insn-eq/
      <- det-op SOP1 SOP2 REQ
      <- insn-eq-let-cong B REQ Q.
 
-- : det (step/letrec-v VP) (step/letrec-v VP') insn-eq/.
+- : det _ _ (step/letrec-v VP) (step/letrec-v VP') insn-eq/.
 
-- : det (step/letrec-s ([fb] [fbind] Run1 fb fbind))
+- : det (wf/letrec WFB WFPB) WFD (step/letrec-s ([fb] [fbind] Run1 fb fbind))
         (step/letrec-s ([fb] [fbind] Run2 fb fbind)) Q
      <- ({fb : pbundle FTL}
 	   {fbind : bb-bind fb (Defs fb)}
-	   det (Run1 fb fbind) (Run2 fb fbind) (INEQ fb fbind))
+	   det (WFB fb) WFD (Run1 fb fbind) (Run2 fb fbind) (INEQ fb fbind))
      <- insn-eq-letrec-cong INEQ Q.
 
-- : det step/brc-t step/brc-t insn-eq/.
+- : det _ _ step/brc-t step/brc-t insn-eq/.
 
-- : det step/brc-f step/brc-f insn-eq/.
+- : det _ _ step/brc-f step/brc-f insn-eq/.
 
-- : det (step/do-s SP1) (step/do-s SP2) Q
-     <- det SP1 SP2 IEQ
+- : det (wf/do DB DI) WFD(step/do-s SP1) (step/do-s SP2) Q
+     <- det DI WFD SP1 SP2 IEQ
      <- insn-eq-do-cong IEQ Q.
 
-- : det step/do-v step/do-v insn-eq/.
-
-- : det (step/br FA1 FL1) (step/br FA2 FL2) Q
+- : det WF WFD (step/br FA1 FL1) (step/br FA2 FL2) Q
      <- pbundle-lookup-unique FL1 FL2 FBEQ
      <- function-apply-unique FBEQ FA1 FA2 Q.
 
-}%
+- : det (wf/call WFB GL) WFD (step/call FA1 FL1) (step/call FA2 FL2) Q
+     <- function-lookup-unique GL WFD FL1 FL2 FBEQ
+     <- fap-unique FBEQ FA1 FA2 IEQ
+     <- insn-eq-do-cong IEQ Q.
+
+- : det WF WFD step/do-v step/do-v insn-eq/.
+
+
 %{ Blocks we need. The first one gives us the block we need in step relations }%
 %block progress-1 : some {FTL : bb-tp-list} {Defs}
                     block {fb : pbundle FTL}
@@ -322,9 +331,11 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
                 (det-op _ _ _)
                 (pbundle-lookup-unique _ _ _)
                 (function-apply-unique _ _ _ _).
-%{
-%worlds (det-1) (det _ _ _).
-}%
+
+%worlds (det-1)
+  (function-lookup-unique _ _ _ _ _)
+  (fap-unique _ _ _ _)
+  (det _ _ _ _ _).
 
 %{ Various obvious uniqueness lemmas }%
 %unique det-op +SOP1 +SOP2 -1REQ.
@@ -348,7 +359,6 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 %total PG (progress-pgm-factor PG _).
 %total P  (progress-pgm P _ _).
 
-%{
 %{ Determinism totality }%
 %total FB (pbundle-lookup-unique FB _ _).
 %total FB (function-apply-unique _ FB _ _).
@@ -356,5 +366,50 @@ det : step T T1 -> step T T2 -> insn-eq T1 T2 -> type.
 %total IEQ (insn-eq-do-cong IEQ _).
 %total FB (insn-eq-letrec-cong FB _).
 %total S (det-op S _ _).
-%total S (det S _ _).
+%trustme
+%total GL (function-lookup-unique GL _ _ _ _).
+%trustme
+%total FA1 (fap-unique _ FA1 _ _).
+%total S (det _ _ S _ _).
+
+
+
+%{
+
+%{
+
+**** MAIN PRESERVATION THEOREM ****
+
+}%
+
+preservation : wf G I -> wf-defs G D G -> step D I I' -> wf G I' -> type.
+%mode preservation +WF +WFD +SD -WF'.
+
+- : preservation (wf/let WB) WFD (step/let SOP)
+
+- : preservation wf/brc WFD step/brc-t wf/br.
+- : preservation wf/brc WFD step/brc-f wf/br.
+- : preservation wf/br  WFD (step/br _ _) wf/br.
+- : preservation (wf/do WB WI) WFD (step/do-s SI) (wf/do WB WFI)
+     <- preservation WI WFD SI WFI.
+
+
+%{ TODO: This one needs some helper lemmas
+- : preservation wf/br WFD (step/br BBA PBL)
+}%
+
+preservation-pgm : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
+%mode preservation-pgm +WFP +SP -WFP'.
+
+- : preservation-pgm (wf-pgm/ WFD WF) (step-pgm/ TSP) (wf-pgm/ WFD WF')
+     <- preservation WF WFD TSP WF'.
+
+%worlds () (preservation _ _ _ _)
+           (preservation-pgm _ _ _).
+
+%total SP (preservation _ _ SP _).
+%total SP (preservation-pgm _ SP _).
+
+
+
 }%

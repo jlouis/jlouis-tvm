@@ -1,16 +1,8 @@
 \documentclass[a4paper, oneside, 10pt, draft]{memoir}
-\input{packages}
+
 \chapterstyle{culver}
+\RequirePackage[english]{jlouis}
 
-\usepackage{fixme}
-\usepackage[english]{babel}
-%\usepackage[utopia]{mathdesign}
-
-\usepackage[osf,sc]{mathpazo}
-\linespread{1.05}
-%\usepackage{fourier}
-
-\usepackage{semantic}
 \author{Jesper Louis
   Andersen\\jesper.louis.andersen@gmail.com\\140280-2029}
 \title{Formalizing a Virtual Machine}
@@ -33,26 +25,84 @@
 \tableofcontents{}
 \chapter{Introduction}
 
-The Low-Level Virtual Machine \cite{llvm:homepage} is a framework for
-constructing programming language tool-chains. It provisions for
-building JIT compilers, or traditional static compilations. LLVM
-provides a low-level language, much like an idealized typed assembler
-as an API for compiler writers to target. This language is an
-Intermediate Language (IL) from which the LLVM backend can emit code,
-optimize programs and the like.
+It is well known in compiler construction, that intermediate languages
+is a useful and beneficial abstraction\cite{appel:1998:modern,
+  mogensen:2008:basics} Rather than targeting the instruction set
+architecture directly, the compiler constructor first targets an
+intermediate language (IL). Then optimization are carried out on the
+IL and is afterwards compiled to the target machines instruction
+set. Schematically, the phases can be described as:
+\begin{equation*}
+  L ->^{fe} IL ->^{be} Q
+\end{equation*}
+where $L$ is the source language, the arrow marked by $fe$ the
+front-end compilation into the IL and the arrow marked by $be$ is the
+back-end compilation onto the machine language $Q$. The construction
+is advantageous because it lets the compiler writer share either the
+front-end among several back-ends or the other way round.
 
-The goal of LLVM is to make the work of compiler writers easier. It
-provides a stepping stone as soon as you can target its IL. The idea
-is then that many optimizations come ``for free'' in the sense that
-the LLVM backend is able to carry them out.
+A popular extension of this strategy is to stage the compilation
+into two parts: the front-end delivers IL code which is then typically
+encoded in a binary format for transport. Arriving at the target
+machine, this \emph{bytecode} is either interpreted, compiled or
+employed in a hybrid approach where parts are interpreted and parts
+are compiled. Usually, the run-time responsible for executing the
+back-ends parts is named a ``Virtual Machine'' (VM) because the IL is
+regarded as a machine abstraction.
 
-Unfortunately, the description of the LLVM IL is completely
-informal. The main reference document \cite{llvm:reference} contains
-next to no specification in any formal language. There is a complete
-lack of (E)BNF grammar syntax, semantics and type system.
+ILs are usually chosen to make front-end construction easier. The IL
+can specifically factor out details of the underlying machine thus
+simplifying compiler implementation greatly. Most VMs, for instance,
+carries out register allocation and the programmer is given an
+abstraction: Either a stack or an infinite set of registers. Some VMs
+are designed with a fairly broad IL intended to capture many different
+kinds of languages while others are more constrained, often tied to a
+single intended language. Examples of the former is the Java JVM
+runtime\cite{lindholm.frank:1999:jvm} and the .NET
+CLR/CIL\fixme{CITE ECMA-335}, while examples of the latter is the spineless
+tagless G-machine\fixme{CITE} (used for lazy evaluation of Haskell programs) and
+the Erlang Runtime System (a register machine with a built-in novel
+set of concurrency primitives)\fixme{CITE}.
 
-This report establishes a preliminary syntax and semantics for LLVM
-from which one can build a complete work.
+\section{LLVM}
+
+This report concerns itself with a virtual machine named LLVM, the Low
+Level Virtual Machine. It adopted this name because the LLVM IL is
+close to an idealized assembler language, though with several
+convenient differences of which we list some:
+\begin{itemize}
+\item All LLVM IL programs are statically typed. This rules out many
+  common programming errors and fits well into compilations schemes
+  where intermediate stage transforms are type-checked.
+\item There is an infinite amount of registers and register allocation
+  is carried out by the LLVM system.
+\item Correct LLVM IL programs have the SSA-property: A variable has
+  only one (static/syntactic) point in the program where it is
+  \emph{defined}. All \emph{uses} of a variable must then be from this
+  single static assignment. The usual $\phi$-node method is used to
+  handle the case where control flow joins in the CFG.
+\item LLVM has a built-in exception primitive.
+\end{itemize}
+
+LLVM carries quite a few optimizations, hence it has been of interest
+to compiler writers; good performance can be achieved if targeting the
+LLVM IL.
+
+However, one Achilles heel of the LLVM IL is the lack of
+formality. There is no EBNF of its grammar available for instance and
+thus no attempts have been made to define its semantics operationally.
+
+In this report, we aim for a subset of the LLVM IL language and
+provide a syntax description, an operational (small-step) semantics and a type
+system. We prove the system fulfills the usual meta-theoretical
+properties of \emph{progress} and \emph{preservation} as well as
+\emph{determinism}.
+
+The state-of-the-art emphasized by the PoPLMark challenge\fixme{CITE},
+is the encoding of syntax, semantics and proofs into a proof assistant
+or logical framework. In this report, every description has been
+encoded into the logical framework of Twelf\fixme{CITE} for
+verification.
 
 \chapter{Design considerations}
 

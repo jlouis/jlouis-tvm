@@ -1,0 +1,62 @@
+\ProvidesPackage{jlouis}[2009/11/20 version 1.0, Jesper Louis Andersen]
+\NeedsTeXFormat{LaTeX2e}
+
+\DeclareOption{danish}{
+  \PassOptionsToPackage{danish}{babel}
+}
+
+\DeclareOption{english}{
+  \PassOptionsToPackage{english}{babel}
+}
+
+\ProcessOptions
+
+\RequirePackage{fixme}
+\RequirePackage{babel}
+%% *** BASICS
+
+\RequirePackage{microtype}
+\RequirePackage[utf8x]{inputenc}
+\RequirePackage{ucs}
+\RequirePackage{graphicx}
+\RequirePackage[T1]{fontenc}
+\RequirePackage{lmodern}
+
+\RequirePackage{amsmath}
+\RequirePackage{amsthm}
+\theoremstyle{plain}
+\newtheorem{axm}{Axiom}
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem*{cor}{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{exmp}[thm]{Example}
+\theoremstyle{remark}
+\newtheorem*{rem}{Remark}
+\newtheorem*{note}{Note}
+\newtheorem{case}{Case}
+\RequirePackage{semantic}
+\RequirePackage[osf]{mathpazo}
+\linespread{1.05}
+
+%% Hyperref should be last
+\RequirePackage{hyperref}
+
+%% *** Author
+\author{\href{mailto:jesper.louis.andersen@gmail.com}{Jesper Louis
+    Andersen}}
+
+%% *** Links
+\hypersetup{
+  urlcolor=black,
+  colorlinks=true,
+  citecolor=black,
+  linkcolor=black,
+  pdfauthor={Alexander Færøy}
+}
+
+

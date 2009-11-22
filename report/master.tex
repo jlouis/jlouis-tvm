@@ -28,6 +28,7 @@
 \newpage{}
 \chapter{Introduction}
 
+\fixme{This whole chapter needs some tidying up}
 It is well known in compiler construction, that intermediate languages
 is a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics} Rather than targeting the instruction set
@@ -119,6 +120,7 @@ SSA-form and its implications.
 
 \chapter{Design considerations}
 
+\fixme{This whole chapter needs more work as well}
 In this section, we limit the scope of the formalization and present
 the main design considerations before attempting to formalize the work.
 
@@ -221,8 +223,206 @@ compatible way as long as it remains a version 2.x.
 
 \chapter{Syntax of Mini-LLVM}
 
-In this section, we present the syntax of Mini-LLVM.
+\newcommand{\variables}{\mathrm{Variables}}
+\newcommand{\BBlabels}{\mathrm{BB Labels}}
+\newcommand{\tnat}{\mathbf{nat}}
+\newcommand{\tbool}{\mathbf{bool}}
+\newcommand{\types}{\mathrm{Types}}
+\newcommand{\typelist}{\mathrm{Type lists}}
+\newcommand{\bbtype}{\mathrm{BB Type}}
+\newcommand{\ftype}{\mathrm{Fun Contexts}}
+\newcommand{\tpenv}{\mathrm{Var Contexts}}
+\newcommand{\bbenv}{\mathrm{BB Contexts}}
+\newcommand{\bor}{\; \vert \;}
 
+\begin{figure}
+  \begin{align*}
+    \types \ni \tau & ::= \tnat \bor \tbool \\
+    \typelist \ni [\tau] & ::= \cdot \bor \tau -> [\tau] \\
+    \bbtype \ni Bb \tau   & ::= [\tau] \quad \quad \quad \quad \quad \text{Notation:} \; \tau -> \dotsc -> \tau' -> \cdot\\
+    \ftype \ni D & ::= \cdot \bor f \mapsto (\tau_1 -> \dotsc ->
+    \tau_n) : D \\
+    \tpenv \ni \Gamma & ::= \cdot \bor x \mapsto \tau : \Gamma\\
+    \bbenv \ni \Psi   & ::= \cdot \bor bb \mapsto [Bb \tau_1, \dotsc Bb
+    \tau_n] : \Psi
+  \end{align*}
+  \caption{Type system}
+  \label{fig:type-system}
+\end{figure}
+
+In this section, we present the syntax of Mini-LLVM in a formal BNF
+grammar. We also describe the type system as well as the basic domains
+from which we draw values.
+
+\paragraph{Types} The language employs a simple type system as in
+figure \ref{fig:type-system}. There are two primitive base types,
+natural numbers and boolean values. For handling passing of parameters
+between basic blocks via $\phi$-nodes, there is a $\bbtype$
+designation stating a (possibly empty) list of formal parameters. We
+notate such lists as $\tau -> \dotsc \tau' -> \cdot$ where the last
+``$\cdot$'' states that it is a function but without return type.
+
+The choice of two primitive types is deliberate. It is the simplest
+non-trivial choice of types possible. Had there only been one base
+type, all typing degenerates into questions on type arity in basic
+block definitions.
+
+\newcommand{\numbers}{\mathrm{Numbers}}
+\newcommand{\booleans}{\mathrm{Booleans}}
+\newcommand{\nat}{n}
+\newcommand{\bool}{b}
+\newcommand{\BB}{\mathbb{B}}
+\newcommand{\btrue}{\mathbf{True}}
+\newcommand{\bfalse}{\mathbf{False}}
+
+\paragraph{Domains}
+
+Our language will be using several syntactic domains, the existence of
+which we assume (figure \ref{fig:syntactic-domains}). We have
+variables, $x_1, x_2, \dotsc$ used for naming and discriminating
+registers from each others. For simplicity we restrict the language to
+natural numbers only. This restriction is due to Twelf: we need to
+encode the system of numbers and Peano-style natural numbers are
+fairly simple to work with and handle. Verification in other systems
+might have chosen another domain. We only utilize basic properties of
+arithmetic in our verification, hence it might be possible to change
+this later on.
+\begin{figure}
+  \begin{align*}
+    \variables \ni V & ::= x_1, x_2, \dotsc \\
+    \numbers \ni \NN, \nat & ::= 0 \bor 1 \bor 2 \bor \dotsc\\
+    \booleans \ni \BB, \bool & ::= \btrue \bor \bfalse \\
+    \BBlabels \ni bb & ::= bb_1, bb_2, bb_3, \dotsc
+  \end{align*}
+  \caption{Syntactic domains}
+  \label{fig:syntactic-domains}
+\end{figure}
+
+Boolean values are either the true value or the false
+value. Internally these are encoded as the natural numbers $0$ and
+$1$, but the type system is intended to restrict the use to these
+values only. Finally, we assume a set of Basic Block names. These are used to refer
+to groups of basic blocks.
+
+\paragraph{Inner function syntax}
+
+\fixme{Describe call}
+\fixme{Add call to syntax}
+The LLVM IL severely limits extent where one is allowed to use a
+specific syntactic class. This is probably due to the ILs heritage; it
+is essentially an imperative, typed assembly language. In the course
+of development, we started with a language more closely resembling a
+functional language and then gradually stratified the syntactic
+classes until it matched that of LLVM as much as possible.
+
+Of course, since LLVM has no formal description and the informal
+description lacks precision\cite{lattner.ea:2009:llvm-ref}, we run the
+risk of having mistaken something in the definition.
+
+\newcommand{\registers}{\mathrm{Registers}}
+\newcommand{\constants}{\mathrm{Constants}}
+\newcommand{\operations}{\mathrm{Operations}}
+\newcommand{\instructions}{\mathrm{Instructions}}
+\newcommand{\iret}[1]{\mathbf{ret} \; #1}
+
+\newcommand{\ibr}[2]{\mathbf{br} \; #1 \; #2}
+\newcommand{\ibrc}[5]{\mathbf{brc} \; #1 \; #2 \; #3 \; #4 \; #5}
+\newcommand{\ilet}[3]{\mathbf{let} \; #1 = #2 \; \mathbf{in} \; #3}
+\newcommand{\iletrec}[3]{\mathbf{letrec} \; #1 = #2 \; \mathbf{in} \; #3}
+\newcommand{\ido}[3]{\mathbf{do} \; #1 = #2 \; \mathbf{in} \; #3}
+\newcommand{\icall}[2]{\mathbf{call} \; #1 \; #2}
+\begin{figure}
+  \begin{align*}
+    \registers \ni r & ::= x_1, x_2, x_3, \dotsc\\
+    \constants \ni c & ::= \; r \bor \nat \bor \bool \\
+    \operations \ni op & ::= c \\
+                       & \bor \quad c + c \\
+                       & \bor \quad c - c \\
+                       & \bor \quad c < c \\
+   \instructions \ni i & ::= \iret{c} \\
+                       & \bor \quad \ibr{bb^n}{(c_1, \dotsc, c_n)} \\
+                       & \bor \quad \ibrc{c}{bb^n}{(c_1, \dotsc, c_n)}{bb^n}{(c'_1, \dotsc, c'_n)}\\
+                       & \bor \quad \ilet{r}{op}{i} \\
+                       & \bor \quad \iletrec{bb}{(d_1, d_2, \dotsc, d_n)}{i} \\
+                       & \bor \quad \ido{r}{i_1}{i_2}\\
+                       & \bor \quad \icall{f}{(c_1, \dotsc, c_n)}
+  \end{align*}
+  \caption{Inner function syntax}
+  \label{fig:inner-syntax}
+\end{figure}
+
+\newcommand{\tpc}{|-_{c}}
+\newcommand{\tpop}{|-_{o}}
+\newcommand{\tpb}{|-_{b}}
+\begin{figure}
+  \begin{gather*}
+    \text{Constants:} \quad \boxed{\Gamma \tpc c : \tau}\\
+    \inference[TpC-Var]{\Gamma(x) = \tau}{\Gamma \tpc x : \tau}\\
+    \inference[TpC-Nat]{}{\Gamma \tpc n : \tnat} \quad
+    \inference[TpC-Bool]{}{\Gamma \tpc b : \tbool}
+  \end{gather*}
+  \begin{gather*}
+    \text{Operations:} \quad \boxed{\Gamma \tpop op : \tau} \\
+    \inference[TpOp-Cst]{\Gamma \tpc c : \tau}{\Gamma |- c : \tau}\\\\
+    \inference[TpOp-Plus]{\Gamma \tpop o_1 : \tnat \quad \Gamma
+      \tpop o_2 : \tnat}{\Gamma \tpop o_1 + o_2 : \tnat} \quad
+    \inference[TpOp-Mone]{\Gamma \tpop o_1 : \tnat \quad \Gamma
+      \tpop o_2 : \tnat}{\Gamma \tpop o_1 - o_2 : \tnat}\\\\
+    \inference[TpOp-Let]{\Gamma \tpop o_1 : \tnat \quad \Gamma
+      \tpop o_2 : \tnat}{\Gamma \tpop o_1 < o_2 : \tbool}
+  \end{gather*}
+  \begin{gather*}
+    \text{Basic block Definitions:} \quad \boxed{D;\Psi;\Gamma \tpb d
+      : \tau}
+  \end{gather*}
+  \begin{gather*}
+    \text{Instructions:} \quad \boxed{D ; \Psi ; \Gamma |- i : \tau}\\\\
+    \inference[Tp-ret]{D ; \Psi ; \Gamma |- i : \tau}{D ; \Psi ;
+      \Gamma |- \iret{i} : \tau} \quad
+    \inference[Tp-let]{\Gamma \tpop op : \tau_1 \quad D ; \Psi ;
+      \Gamma[x \mapsto \tau_1] |- i : \tau}{D ; \Psi ; \Gamma |-
+      \ilet{x}{op}{i} : \tau}\\\\
+    \inference[Tp-do]{D;\Psi;\Gamma |- i_1 : \tau_1 \quad
+      D;\Psi;\Gamma[x \mapsto \tau_1] |- i_2 : \tau} {D;\Psi;\Gamma |-
+      \ido{x}{i_1}{i_2} : \tau}\\\\
+    \inference[Tp-br]{\Psi(bb^n) = \tau_1 -> \tau_2 -> \dotsc ->
+      \tau_n -> \cdot\\
+      c_1 : \tau_1 \quad c_2 : \tau_2 \quad \dotsb \quad c_n : \tau_n}
+    {D;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
+    \inference[Tp-brc]{\Gamma \tpc x : \tbool \\ D;\Psi;\Gamma |-
+      \ibr{bb^k}{(c_1, \dotsc c_n)} : \tau \\
+    D;\Psi;\Gamma |- \ibr{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}{D;\Psi;\Gamma |- \ibrc{x}{bb^k}{(c_1, \dotsc,
+        c_n)}{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau} \\\\
+    \inference[Tp-letrec]{D;\Psi;\Gamma \tpb d_1 : Bb \tau_1 \quad
+      \dotsb \quad D;\Psi;\Gamma \tpb d_n : Bb
+      \tau_n \\
+      D;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
+      \tau_n)];\Gamma |- i : \tau}{D;\Psi;\Gamma |- \iletrec{bb}{(d1,
+        \dotsc, d_n)}{i} : \tau}\\\\
+    \inference[Tp-call]{D(f) = \tau_1 -> \dotsc -> \tau_n -> \tau\\
+    c_1 : \tau_1 \quad \dotsb \quad c_n : \tau_n}{D;\Psi;\Gamma |- \icall{f}{(c_1, \dotsc,
+        c_n)} : \tau}
+  \end{gather*}
+  \caption{Type Judgement}
+  \label{fig:type-judgement}
+\end{figure}
+
+\newcommand{\eop}{->_{o}}
+\begin{figure}
+  \begin{gather*}
+    \text{Operations:} \quad \boxed{R |- op \eop n}\\
+    \inference[E-Reg]{R(x) = n}{R |- x \eop n} \quad
+    \inference[E-Plus]{R |- c_1 \eop n_1 \quad R |- c_2 \eop n_2 \quad
+      n_1 + n_2 = n}{R |- c_1 + c_2 \eop n}\\\\
+    \inference[E-Mone]{R |- c_1 \eop n_1 \quad R |- c_2 \eop n_2 \quad
+      n_1 - n_2 = n}{R |- c_1 - c_2 \eop n}\\\\
+    \inference[E-Lt]{R |- c_1 \eop n_1 \quad R |- c_2 \eop n_2 \quad
+      n_1 < n_2 = b}{R |- c_1  < c_2 \eop b}
+  \end{gather*}
+
+  \caption{Semantics}
+  \label{fig:semantics}
+\end{figure}
 
 \bibliography{biblio}
 % State what the goals of this project is.

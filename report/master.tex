@@ -308,6 +308,7 @@ to groups of basic blocks.
 
 \fixme{Describe call}
 \fixme{Add call to syntax}
+\fixme{Describe $\Phi$ as an environment}
 The LLVM IL severely limits extent where one is allowed to use a
 specific syntactic class. This is probably due to the ILs heritage; it
 is essentially an imperative, typed assembly language. In the course
@@ -330,7 +331,9 @@ risk of having mistaken something in the definition.
 \newcommand{\ilet}[3]{\mathbf{let} \; #1 = #2 \; \mathbf{in} \; #3}
 \newcommand{\iletrec}[3]{\mathbf{letrec} \; #1 = #2 \; \mathbf{in} \; #3}
 \newcommand{\ido}[3]{\mathbf{do} \; #1 = #2 \; \mathbf{in} \; #3}
-\newcommand{\icall}[2]{\mathbf{call} \; #1 \; #2}
+\newcommand{\icall}[4]{\mathbf{call} \; #1 = #2 #3\; \mathbf{in} \;
+  #4}
+\newcommand{\ipgm}[2]{\mathbf{Def} \; #1 \; \mathbf{in} \; #2}
 \begin{figure}
   \begin{align*}
     \registers \ni r & ::= x_1, x_2, x_3, \dotsc\\
@@ -345,7 +348,7 @@ risk of having mistaken something in the definition.
                        & \bor \quad \ilet{r}{op}{i} \\
                        & \bor \quad \iletrec{bb}{(d_1, d_2, \dotsc, d_n)}{i} \\
                        & \bor \quad \ido{r}{i_1}{i_2}\\
-                       & \bor \quad \icall{f}{(c_1, \dotsc, c_n)}
+                       & \bor \quad \icall{r}{f}{(c_1, \dotsc, c_n)}{i}
   \end{align*}
   \caption{Inner function syntax}
   \label{fig:inner-syntax}
@@ -407,19 +410,45 @@ risk of having mistaken something in the definition.
   \label{fig:type-judgement}
 \end{figure}
 
-\newcommand{\eop}{->_{o}}
+\newcommand{\eop}{=>_{o}}
 \begin{figure}
   \begin{gather*}
-    \text{Operations:} \quad \boxed{R |- op \eop n}\\
-    \inference[E-Reg]{R(x) = n}{R |- x \eop n} \quad
-    \inference[E-Plus]{R |- c_1 \eop n_1 \quad R |- c_2 \eop n_2 \quad
-      n_1 + n_2 = n}{R |- c_1 + c_2 \eop n}\\\\
-    \inference[E-Mone]{R |- c_1 \eop n_1 \quad R |- c_2 \eop n_2 \quad
-      n_1 - n_2 = n}{R |- c_1 - c_2 \eop n}\\\\
-    \inference[E-Lt]{R |- c_1 \eop n_1 \quad R |- c_2 \eop n_2 \quad
-      n_1 < n_2 = b}{R |- c_1  < c_2 \eop b}
+    \text{Operations:} \quad \boxed{|- op \eop n}\\
+    \inference[E-Cst]{}{|- c \eop n} \quad
+    \inference[E-Plus]{|- c_1 \eop n_1 \quad |- c_2 \eop n_2 \quad
+      n_1 + n_2 = n}{|- c_1 + c_2 \eop n}\\\\
+    \inference[E-Mone]{|- c_1 \eop n_1 \quad |- c_2 \eop n_2 \quad
+      n_1 - n_2 = n}{|- c_1 - c_2 \eop n}\\\\
+    \inference[E-Lt]{|- c_1 \eop n_1 \quad |- c_2 \eop n_2 \quad
+      n_1 < n_2 = b}{|- c_1  < c_2 \eop b}
   \end{gather*}
-
+  \begin{gather*}
+    \text{Instructions:} \quad \boxed{\Phi;BB |- i -> i'}\\
+    \inference[S-let]{|- o \eop v}{\Phi;BB |- \ilet{x}{o}{i} ->
+      i[x/v]}\\\\
+    \inference[S-letrec-v]{}{\Phi;BB |- \iletrec{bb}{(d_1, \dotsc,
+        d_n)}{\iret{v}} -> v}\\\\
+    \inference[S-letrec-s]{\Phi;BB[bb \mapsto Dt] |- i -> i'}
+    {\Phi;BB |- \iletrec{bb}{Dt}{i} -> \iletrec{bb}{Dt}{i'}}\\\\
+    \inference[S-brc-t]{}{\Phi;BB |-
+      \ibrc{\btrue}{bb^k}{Ps}{bb^{k'}}{Ps'} -> \ibr{bb^k}{Ps}}\\\\
+    \inference[S-brc-f]{}{\Phi;BB |-
+      \ibrc{\bfalse}{bb^k}{Ps}{bb^{k'}}{Ps'} ->
+      \ibr{bb^{k'}}{Ps'}}\\\\
+    \inference[S-do-s]{\Phi;BB |- i_1 -> i'_1}{\Phi;BB |-
+      \ido{x}{i_1}{i_2} -> \ido{x}{i'_1}{i_2}}\\\\
+    \inference[S-do-v]{}{\Phi;BB |- \ido{x}{\iret v}{i_2} ->
+      i_2[x/v]}\\\\
+    \inference[S-call]{\Phi(f) = f(x_1, x_2, \dotsc, x_n)}{\Phi;BB |-
+      \icall{r}{f}{(c_1, c_2, \dotsc, c_n)}{i} -> \ido{r}{f(c_1, c_2,
+        \dotsc, c_n)}{i}}\\\\
+    \inference[S-br]{BB(bb) = Ks \quad Ks(k) = i(x_1, \dotsc, x_n)}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
+      i(c_1, \dotsc, c_n)}
+ \end{gather*}
+ \begin{gather*}
+   \text{Programs:} \quad \boxed{|- P --> P'}\\
+   \inference[SP]{\Phi;\cdot |- i -> i'}{\ipgm{\Phi}{i} --> \ipgm{\Phi}{i'}}
+ \end{gather*}
   \caption{Semantics}
   \label{fig:semantics}
 \end{figure}

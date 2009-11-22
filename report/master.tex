@@ -21,8 +21,11 @@
 \bibliographystyle{plain}
 
 \begin{document}
+\listoffixmes{}
 \maketitle{}
+\newpage{}
 \tableofcontents{}
+\newpage{}
 \chapter{Introduction}
 
 It is well known in compiler construction, that intermediate languages
@@ -104,10 +107,122 @@ or logical framework. In this report, every description has been
 encoded into the logical framework of Twelf\fixme{CITE} for
 verification.
 
+\section{Report structure}
+
+The report first introduces some preliminaries and then digs into the
+real work made in the following chapters: syntax, semantics and
+meta-theory of our Mini-LLVM language is presented. It is expected
+that the reader is familiar with operational semantics, proof theory
+and machine verifiable proofs; in particular the Twelf logical
+framework. It is also expected that the reader is familiar with
+SSA-form and its implications.
+
 \chapter{Design considerations}
 
-%% Mention that SSA is the key. Build it up from an example and make
-%% it clear that the SSA-trick can be utilized to lift the problem.
+In this section, we limit the scope of the formalization and present
+the main design considerations before attempting to formalize the work.
+
+\begin{figure}
+\begin{verbatim}
+if.else:
+  %sub = sub i32 %n, 1
+  %call = call i32 @tri(i32 %sub)
+  %add = add nsw i32 %call, %n
+  br label %return
+return:
+  %retval.0 = phi i32 [ 0, %if.then ], [ %add, %if.else ]
+  ret i32 %retval.0
+
+\end{verbatim}
+  \caption{An example LLVM fragment}
+  \label{fig:llvm-example-1}
+\end{figure}
+
+Figure \ref{fig:llvm-example-1} contains an example of a typical LLVM
+basic blocks. It begins with a label, identifying the block. Then a
+series of instructions follow and the block ends in an unconditional
+branch to the label '\texttt{\%return}'. Local definitions in LLVM are
+prefixed by a '\%' marker and global (top-level) names by an '@'
+marker. The instructions \texttt{sub, call, } and \texttt{add}
+informally acts like one would expect. The LLVM type system can be
+seen in the type designation \texttt{i32}, a 32-bit integer and
+finally, the '\texttt{nsw}' designation makes the result underdefined,
+should signed overflow occur.
+
+In the basic block for the return, we first do a $\phi$-node
+assignment. These assignment are required to be at the very top of a
+basic block and transfers the value from the appropriate basic block
+depending on the control flow. The '\texttt{ret}' instruction
+returns. Note that this fragment has the SSA property.
+
+Since we would like to represent LLVM in a machine checkable form in
+Twelf, we utilize a result first formulated explicitly by
+Appel\cite{appel:1998:modern, appel:1998:ssa}: every SSA program has
+an equivalent functional program. Thus our first design choice is to
+represent the LLVM subset as a functional first order
+program. Informally, we can transform a fragment
+\begin{verbatim}
+  %sub = sub i32 %n, 1
+  %call = call i32 @tri(i32 %sub)
+  ...
+\end{verbatim}
+of two instructions following each other into the functional fragment:
+\begin{verbatim}
+  let %sub = sub i32 %n, 1
+  in let %call = call i32 @tri(i32 %sub)
+     in ...
+\end{verbatim}
+
+Note how the lexical scoping rules binds the '\texttt{\%sub}' value
+in the correct scope.
+
+We handle the basic blocks as Appel: each basic block becomes a
+function with formal parameters the $\phi$-node variables. A branch to
+a basic-block then tail-calls the function with the variables needing
+transfer as parameters. In the example, we would have a function
+\begin{verbatim}
+return (%retval) =
+   ret %retval
+\end{verbatim}
+for the return-basic-block. And the branch to it would be
+\begin{verbatim}
+if.else (...) =
+  ...
+    br %return (%add)
+\end{verbatim}
+to designate that the value of '\texttt{\%add}' is the one that should
+go to the first $\phi$-node.
+
+\section{Extent of the formalization}
+
+We limit the extent of the formalization to a small subset of
+LLVM. First, we note the complete lack of any formal grammar for
+the language means we have to begin from a clean slate. Thus,
+establishing a small subset is more important as a first step towards
+the goal.
+
+We cut any heap-interaction. Specifically, we cut the ability to
+load and store data to a heap. LLVM allows pointer arithmetic in the
+heap which is hard to handle meta-theoretically. We also cut a large
+number of operations that would be easy to add but does not provide
+any further insight. Conversion operations are not going to be
+considered, as they contain a potentially unsafe '\texttt{bitcast}'
+operation. ``Aggregate'' and ``Vector'' operations are not going to be
+considered (these include structs and arrays). Finally, we won't be
+considering instructions handling exceptions.
+
+While the list seems extensive, it is important to stress that part of
+the task is to understand the subset that is left to a level where it
+can be put into a formal system.
+
+Under the course of development, we will use LLVM version 2.x. We
+mention this because LLVM is only supposed to change in a backwards
+compatible way as long as it remains a version 2.x.
+
+\chapter{Syntax of Mini-LLVM}
+
+In this section, we present the syntax of Mini-LLVM.
+
 
 \bibliography{biblio}
 % State what the goals of this project is.

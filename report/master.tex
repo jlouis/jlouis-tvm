@@ -239,9 +239,9 @@ compatible way as long as it remains a version 2.x.
   \begin{align*}
     \types \ni \tau & ::= \tnat \bor \tbool \\
     \typelist \ni [\tau] & ::= \cdot \bor \tau -> [\tau] \\
-    \bbtype \ni Bb \tau   & ::= [\tau] \quad \quad \quad \quad \quad \text{Notation:} \; \tau -> \dotsc -> \tau' -> \cdot\\
-    \ftype \ni D & ::= \cdot \bor f \mapsto (\tau_1 -> \dotsc ->
-    \tau_n) : D \\
+    \bbtype \ni Bb \tau   & ::= [\tau] & \text{Notation:} \; \tau -> \dotsc -> \tau' -> \cdot\\
+    \ftype \ni D & ::= \cdot \bor (f \mapsto (\tau_1 -> \dotsc ->
+    \tau_n), D) \\
     \tpenv \ni \Gamma & ::= \cdot \bor x \mapsto \tau : \Gamma\\
     \bbenv \ni \Psi   & ::= \cdot \bor bb \mapsto [Bb \tau_1, \dotsc Bb
     \tau_n] : \Psi
@@ -253,6 +253,8 @@ compatible way as long as it remains a version 2.x.
 In this section, we present the syntax of Mini-LLVM in a formal BNF
 grammar. We also describe the type system as well as the basic domains
 from which we draw values.
+
+\section{Types and domains}
 
 \paragraph{Types} The language employs a simple type system as in
 figure \ref{fig:type-system}. There are two primitive base types,
@@ -269,6 +271,7 @@ block definitions.
 
 \newcommand{\numbers}{\mathrm{Numbers}}
 \newcommand{\booleans}{\mathrm{Booleans}}
+\newcommand{\funlabels}{\mathrm{Function\; labels}}
 \newcommand{\nat}{n}
 \newcommand{\bool}{b}
 \newcommand{\BB}{\mathbb{B}}
@@ -292,7 +295,8 @@ this later on.
     \variables \ni V & ::= x_1, x_2, \dotsc \\
     \numbers \ni \NN, \nat & ::= 0 \bor 1 \bor 2 \bor \dotsc\\
     \booleans \ni \BB, \bool & ::= \btrue \bor \bfalse \\
-    \BBlabels \ni bb & ::= bb_1, bb_2, bb_3, \dotsc
+    \BBlabels \ni bb & ::= bb_1, bb_2, bb_3, \dotsc \\
+    \funlabels \ni f,g & ::= f,g,h,\dotsc
   \end{align*}
   \caption{Syntactic domains}
   \label{fig:syntactic-domains}
@@ -303,8 +307,6 @@ value. Internally these are encoded as the natural numbers $0$ and
 $1$, but the type system is intended to restrict the use to these
 values only. Finally, we assume a set of Basic Block names. These are used to refer
 to groups of basic blocks.
-
-\paragraph{Inner function syntax}
 
 \fixme{Describe call}
 \fixme{Add call to syntax}
@@ -324,6 +326,8 @@ risk of having mistaken something in the definition.
 \newcommand{\constants}{\mathrm{Constants}}
 \newcommand{\operations}{\mathrm{Operations}}
 \newcommand{\instructions}{\mathrm{Instructions}}
+\newcommand{\programs}{\mathrm{Programs}}
+\newcommand{\definitions}{\mathrm{Definitions}}
 \newcommand{\iret}[1]{\mathbf{ret} \; #1}
 
 \newcommand{\ibr}[2]{\mathbf{br} \; #1 \; #2}
@@ -347,12 +351,83 @@ risk of having mistaken something in the definition.
                        & \bor \quad \ibrc{c}{bb^n}{(c_1, \dotsc, c_n)}{bb^n}{(c'_1, \dotsc, c'_n)}\\
                        & \bor \quad \ilet{r}{op}{i} \\
                        & \bor \quad \iletrec{bb}{(d_1, d_2, \dotsc, d_n)}{i} \\
-                       & \bor \quad \ido{r}{i_1}{i_2}\\
-                       & \bor \quad \icall{r}{f}{(c_1, \dotsc, c_n)}{i}
+                       & \bor \quad \ido{r}{i_1}{i_2} &
+                       (\text{Internal})\\
+                       & \bor \quad \icall{r}{f}{(c_1, \dotsc,
+                         c_n)}{i}\\
+    \definitions \ni \Phi & ::= \cdot \bor (f(x_1, \dotsc, x_n) = i, \Phi)\\
+    \programs \ni p & ::= \ipgm{\Phi}{i}
   \end{align*}
-  \caption{Inner function syntax}
-  \label{fig:inner-syntax}
+  \caption{Syntax}
+  \label{fig:syntax}
 \end{figure}
+
+\section{Main syntax}
+
+In figure \ref{fig:syntax} we present the complete syntax for the
+Mini-LLVM language. An LLVM register '\%x' is mapped onto a set of
+registers $x_1, \dotsc$. The constants of the language are exactly
+registers, natural numbers and boolean values. The language has three
+primitive operations, namely $c + c$, $c - c$ and $c < c$. Of these,
+the latter returns a boolean value, whereas the first two return
+natural numbers. The '$-$' operation is defined such that if $y \geq x$
+then $x - y = 0$.
+
+The main part of Mini-LLVM are the instructions. The instruction
+$\iret{v}$ represents returning a value from a function. It models the
+LLVM '\texttt{ret}' instruction. The instruction $\ibr{bb^k}{(c_1,
+  \dotsc, c_n)}$ designates an unconditional branch to the $k$th
+projection in the basic block bundle represented by the name $bb$. The
+parameters $c_1$ through $c_n$ are formal $\phi$-node parameters to
+the given basic block. In LLVM, the projections are named explicitly
+by identifier names, but we felt that a projection is easier to handle
+from a formal viewpoint.
+
+The $\ibrc{x}{bb^k}{Ps}{bb^{k'}}{Ps'}$ represents a conditional
+branch. It will, depending on the value of $x$ transfer control to
+either the first or second basic block projection, injecting the
+corresponding set of $\phi$-node parameters. In LLVM both
+branch-instructions are called '\texttt{br}' -- the syntactical
+difference discriminates them.
+
+As noted in the design considerations, we represent a sequential chain
+of operations as a chain of let-style-bindings. Thus the
+$\ilet{x}{op}{i}$ instruction represents sequential execution. An
+operation is executed and its result is placed into the register
+$x$. The register is then available in the $i$ instruction.
+
+Basic blocks are introduced with the $\iletrec{bb}{(d_1, \dotsc,
+  d_n)}{i}$ notation. This simultaneously binds the definitions $d_1$
+through $d_n$ of basic blocks to the name $bb$. Note each definition will
+take formal parameters for its $\phi$-nodes. The name $bb$ will be
+available in the context of the instruction $i$.
+
+The $\ido{x}{i_1}{i_2}$ instruction is not meant to be present in
+initial Mini-LLVM programs. It is used internally to keep the context
+of a function call around. This has to do with the fact that the
+formalization lacks a stack and thus uses the current continuation
+context to keep track of where the computation came from. Function
+calls utilize the instruction while they are executing.\fixme{Ouch,
+  this is disturbing w.r.t inter-function BB applications}.
+
+Finally the $\icall{r}{f}{(c_1, \dotsc, c_n)}{i}$ instruction
+represents an LLVM '\texttt{call}' instruction in a very simplified
+way. In LLVM it is possible to annotate the call-instruction with a
+large number of hints. These hints are used to handle calling
+conventions, tall-call applicability, etc., but we omit them in our
+formalization because we do not attempt to formalize these aspects of
+LLVM. The instruction will call the $f$ function with parameters $c_1$
+through $c_n$ returning the result in the $r$ register. The result
+will be available in the $i$ instruction. Thus a function call acts
+like a special variant of a let-binding.
+
+\paragraph{Programs}
+
+A Mini-LLVM program is a list of definitions $\Phi$ together with an
+initial instruction $i$. The notation is $\ipgm{\Phi}{i}$. Usually, we
+expect the program to begin by calling a main-function in the list of
+definitions, but we have chosen to deviate from LLVM here and allow
+the execution of an arbitrary instruction rather a call to main.
 
 \newcommand{\tpc}{|-_{c}}
 \newcommand{\tpop}{|-_{o}}
@@ -378,6 +453,11 @@ risk of having mistaken something in the definition.
     \text{Basic block Definitions:} \quad \boxed{D;\Psi;\Gamma \tpb d
       : \tau}
   \end{gather*}
+  \caption{Typing 1}
+  \label{fig:type-judgement-1}
+\end{figure}
+
+\begin{figure}
   \begin{gather*}
     \text{Instructions:} \quad \boxed{D ; \Psi ; \Gamma |- i : \tau}\\\\
     \inference[Tp-ret]{D ; \Psi ; \Gamma |- i : \tau}{D ; \Psi ;
@@ -406,8 +486,25 @@ risk of having mistaken something in the definition.
     c_1 : \tau_1 \quad \dotsb \quad c_n : \tau_n}{D;\Psi;\Gamma |- \icall{f}{(c_1, \dotsc,
         c_n)} : \tau}
   \end{gather*}
-  \caption{Type Judgement}
-  \label{fig:type-judgement}
+  \caption{Typing 2}
+  \label{fig:type-judgement-2}
+\end{figure}
+
+\begin{figure}
+  \begin{gather*}
+    \text{Definition Wellformedness:} \quad \boxed{D |- \Phi : D}\\\\
+    \inference[Wf-defs/z]{}{D |- \cdot : \cdot}\\\\
+    \inference[Wf-defs/s]{D |- \Phi' : D' \quad D;\cdot;[x_1 \mapsto
+      \tau_1 \; \dotsb \; x_n \mapsto \tau_n] |- i :
+      \tau \quad f \not \in D'}{D |- (f(x_1, \dotsc, x_n) = i, \Phi') : (f
+      \mapsto \tau_1 -> \dotsc -> \tau_n -> \tau, D')}
+  \end{gather*}
+  \begin{gather*}
+    \text{Program Wellformedness:} \quad \quad \boxed{|- P}\\\\
+    \inference[WF-Pgm]{D |- \Phi : D \quad D;\cdot;\cdot |- i}{|- \ipgm{\Phi}{i}}
+  \end{gather*}
+  \caption{Typing 3}
+  \label{fig:type-judgement-3}
 \end{figure}
 
 \newcommand{\eop}{=>_{o}}

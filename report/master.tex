@@ -28,52 +28,51 @@
 \newpage{}
 \chapter{Introduction}
 
-\fixme{This whole chapter needs some tidying up}
 It is well known in compiler construction, that intermediate languages
-is a useful and beneficial abstraction\cite{appel:1998:modern,
-  mogensen:2008:basics} Rather than targeting the instruction set
+are a useful and beneficial abstraction\cite{appel:1998:modern,
+  mogensen:2008:basics}. Rather than targeting the instruction set
 architecture directly, the compiler constructor first targets an
-intermediate language (IL). Then optimization are carried out on the
-IL and is afterwards compiled to the target machines instruction
-set. Schematically, the phases can be described as:
+intermediate language (IL). Then the IL and is afterwards compiled to
+the target machines instruction set\footnote{Sans
+  optimizations. Optimization is usually carried out on the IL as
+  well}. Schematically, the phases can be described as:
 \begin{equation*}
   L ->^{fe} IL ->^{be} Q
 \end{equation*}
 where $L$ is the source language, the arrow marked by $fe$ the
-front-end compilation into the IL and the arrow marked by $be$ is the
-back-end compilation onto the machine language $Q$. The construction
-is advantageous because it lets the compiler writer share either the
-front-end among several back-ends or the other way round.
+front-end compilation, and the arrow marked by $be$ is the back-end
+compilation onto the machine language $Q$. The construction is
+advantageous because the compiler writer can share either the
+front-end among several back-ends or the back-end among several
+front-ends.
 
 A popular extension of this strategy is to stage the compilation
-into two parts: the front-end delivers IL code which is then typically
+in two parts: the front-end delivers IL code which is then typically
 encoded in a binary format for transport. Arriving at the target
-machine, this \emph{bytecode} is either interpreted, compiled or
-employed in a hybrid approach where parts are interpreted and parts
-are compiled. Usually, the run-time responsible for executing the
-back-ends parts is named a ``Virtual Machine'' (VM) because the IL is
+machine, this \emph{bytecode} is either interpreted, compiled or a
+mixture of both. Usually, the run-time responsible for executing the
+back-ends part is named a ``Virtual Machine'' (VM) because the IL is
 regarded as a machine abstraction.
 
-ILs are usually chosen to make front-end construction easier. The IL
+ILs are usually designed to make front-end construction easier. The IL
 can specifically factor out details of the underlying machine thus
-simplifying compiler implementation greatly. Most VMs, for instance,
-carries out register allocation and the programmer is given an
-abstraction: Either a stack or an infinite set of registers. Some VMs
-are designed with a fairly broad IL intended to capture many different
-kinds of languages while others are more constrained, often tied to a
-single intended language. Examples of the former is the Java JVM
+simplifying compiler implementation. As an example most VMs carries
+out register allocation and the programmer is given an abstraction:
+either a stack or an infinite set of registers. Some VMs are designed
+with a fairly broad IL intended to capture many different language
+types while others are more constrained, often tied to a single
+intended language. Examples of the former are the Java JVM
 runtime\cite{lindholm.frank:1999:jvm} and the .NET
-CLR/CIL\fixme{CITE ECMA-335}, while examples of the latter is the spineless
-tagless G-machine\fixme{CITE} (used for lazy evaluation of Haskell programs) and
-the Erlang Runtime System (a register machine with a built-in novel
-set of concurrency primitives)\fixme{CITE}.
+CLR/CIL\cite{ecma:2006:335}, while an example of the latter is the
+Erlang Runtime System (a register machine with a built-in novel set of
+concurrency primitives).
 
 \section{LLVM}
 
 This report concerns itself with a virtual machine named LLVM, the Low
 Level Virtual Machine. It adopted this name because the LLVM IL is
-close to an idealized assembler language, though with several
-convenient differences of which we list some:
+close to an idealized assembly language with several convenient
+differences of which we list some:
 \begin{itemize}
 \item All LLVM IL programs are statically typed. This rules out many
   common programming errors and fits well into compilations schemes
@@ -86,31 +85,33 @@ convenient differences of which we list some:
   single static assignment. The usual $\phi$-node method is used to
   handle the case where control flow joins in the CFG.
 \item LLVM has a built-in exception primitive.
+\item LLVM is expected to carry out a large number of advanced
+  optimizations on its IL with the intent of simplifying work for
+  compiler writers.
 \end{itemize}
 
-LLVM carries quite a few optimizations, hence it has been of interest
-to compiler writers; good performance can be achieved if targeting the
-LLVM IL.
-
-However, one Achilles heel of the LLVM IL is the lack of
-formality. There is no EBNF of its grammar available for instance and
-thus no attempts have been made to define its semantics operationally.
+However, one Achilles heel of the LLVM IL is the total lack of
+formality. There is no EBNF of its grammar available and thus no
+attempts have been made to define its semantics operationally.
 
 In this report, we aim for a subset of the LLVM IL language and
 provide a syntax description, an operational (small-step) semantics and a type
-system. We prove the system fulfills the usual meta-theoretical
+system. We seek to prove the system fulfills the usual meta-theoretical
 properties of \emph{progress} and \emph{preservation} as well as
 \emph{determinism}.
 
-The state-of-the-art emphasized by the PoPLMark challenge\fixme{CITE},
-is the encoding of syntax, semantics and proofs into a proof assistant
-or logical framework. In this report, every description has been
-encoded into the logical framework of Twelf\fixme{CITE} for
-verification.
+The state-of-the-art emphasized by for example the PoPLMark
+challenge\cite{aydemir:2005:mechanizedmetatheory}, is the encoding of
+syntax, semantics and proofs into a proof assistant or logical
+framework. The goal is that every computer scientific report is
+accompanied by a formal proof written such that the computer can
+verify its correctness. In this report, every description has been
+encoded into the logical framework of
+Twelf\cite{schurmann.pfenning:twelf} for verification.
 
 \section{Report structure}
 
-The report first introduces some preliminaries and then digs into the
+The report first introduces some preliminaries and then presents the
 real work made in the following chapters: syntax, semantics and
 meta-theory of our Mini-LLVM language is presented. It is expected
 that the reader is familiar with operational semantics, proof theory
@@ -502,6 +503,7 @@ handle it later on when type checking functions.
   \label{fig:type-judgement-1}
 \end{figure}
 
+<<<<<<< HEAD:report/master.tex
 In figure \ref{fig:type-judgement-2} we present the typing relations
 for instructions. The general judgment for these is
 $\boxed{D;\Psi;\Gamma |- i : \tau}$. This specifies that the
@@ -516,7 +518,8 @@ registers to their types.
 An instruction of the form $\iret{r}$ has type $\tau$ if the constant
 it returns has. Correct typing of an $\ilet{x}{op}{i}$ instruction
 requires that the operation $op$ returns the same type as is used for
-the register $x$ in the body $i$. 
+the register $x$ in the body $i$.
+
 \begin{figure}
   \begin{gather*}
     \text{Instructions:} \quad \boxed{D ; \Psi ; \Gamma |- i : \tau}\\\\
@@ -567,6 +570,8 @@ the register $x$ in the body $i$.
   \label{fig:type-judgement-3}
 \end{figure}
 
+\chapter{Mini-LLVM Semantics}
+
 \newcommand{\eop}{=>_{o}}
 \begin{figure}
   \begin{gather*}
@@ -609,6 +614,15 @@ the register $x$ in the body $i$.
   \caption{Semantics}
   \label{fig:semantics}
 \end{figure}
+
+\chapter{Twelf encoding}
+
+\fixme{Describe the ``Twelf Encoding''}
+
+\chapter{Meta-theory}
+
+\fixme{Describe the ``Meta-theory''}
+
 
 \bibliography{biblio}
 % State what the goals of this project is.

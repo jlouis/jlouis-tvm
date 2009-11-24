@@ -43,6 +43,12 @@ pbundle-lookup/ctx-hit : pbundle-lookup (f-tl/z PB) FL
 pbundle-lookup/dig     : pbundle-lookup (f-tl/s PB) R
 			  <- pbundle-lookup PB (bb-def-list/cons _ R).
 
+
+branch-lookup : pbundle+ (bb-tp-list/cons BBT _) -> bb-def BBT -> type.
+branch-lookup/ : branch-lookup PB D
+		  <- pbundle-lookup PB (bb-def-list/cons D _).
+
+
 bb-apply : bb-def (bb-tp/ TL T) -> cst-list TL -> insn T -> type.
 
 bb-apply/body : bb-apply (bb-def/body E) cst-list/nil E.
@@ -105,7 +111,7 @@ step/do-s : step D (insn/do T B) (insn/do T' B)
 step/do-v : step D (insn/do (insn/return R) B) (B R).
 
 step/br : step D (insn/br (f-hd PB) RL) E
-	   <- pbundle-lookup PB (bb-def-list/cons BBDef _)
+	   <- branch-lookup PB BBDef
 	   <- bb-apply BBDef RL E.
 
 step/call : step Defs (insn/call Fun-id RL ([r] Body r))

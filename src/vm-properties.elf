@@ -33,6 +33,11 @@ pbundle-lookup-unique : pbundle-lookup FB (bb-def-list/cons FD1 _)
 
 - : pbundle-lookup-unique FB1 FB2 bb-def-eq/refl.
 
+branch-lookup-unique : branch-lookup PB Def1 -> branch-lookup PB Def2 -> bb-def-eq Def1 Def2 -> type.
+%mode branch-lookup-unique +BL1 +BL2 -FDEF.
+
+- : branch-lookup-unique BL1 BL2 bb-def-eq/refl.
+
 insn-eq : insn T -> insn T -> type.
 
 insn-eq/ : insn-eq I I.
@@ -69,6 +74,12 @@ can-pbundle-lookup : {FB : pbundle+ (bb-tp-list/cons FT FTL)}
 
 - : can-pbundle-lookup (f-tl/s FB) (pbundle-lookup/dig Q)
      <- can-pbundle-lookup FB Q.
+
+can-branch-lookup : {PB : pbundle+ (bb-tp-list/cons BBT R)} branch-lookup PB Def -> type.
+%mode can-branch-lookup +PB -Def.
+
+- : can-branch-lookup PB (branch-lookup/ CPL)
+     <- can-pbundle-lookup PB CPL.
 
 
 can-bb-apply : {RL : cst-list TL} bb-apply Parms RL T -> type.
@@ -188,9 +199,9 @@ progress : {E : insn T} wf G E -> wf-defs G D G -> progress-good D E -> type.
 	        progress (Body fb) (WF1 fb wb) WFD (PG fb fbind))
 	<- progress-letrec PG Q.
 
--/br : progress (insn/br (f-hd FB) EL) _ _
-	    (progress-good/step (step/br CFA CFL))
-	<- can-pbundle-lookup FB CFL
+-/br : progress (insn/br (f-hd PB) EL) _ _
+	    (progress-good/step (step/br CFA BL))
+	<- can-branch-lookup PB BL
 	<- can-bb-apply EL CFA.
 
 -/brc-t : progress (insn/brc (cst/b (s _)) _ _ _ _) _ _
@@ -349,7 +360,7 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
      <- insn-eq-do-cong IEQ Q.
 
 - : det WF WFD (step/br FA1 FL1) (step/br FA2 FL2) Q
-     <- pbundle-lookup-unique FL1 FL2 FBEQ
+     <- branch-lookup-unique FL1 FL2 FBEQ
      <- function-apply-unique FBEQ FA1 FA2 Q.
 
 - : det (wf/call WFB GL) WFD (step/call FA1 FL1) (step/call FA2 FL2) Q
@@ -389,7 +400,7 @@ det-pgm : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
                      (can-step-op _ _)
                      (lookup-good _ _ _)
                      (can-function-apply _ _ _)
-                     (can-bb-apply _ _) (can-pbundle-lookup _ _).
+                     (can-bb-apply _ _) (can-pbundle-lookup _ _) (can-branch-lookup _ _).
 
 %worlds () (progress-pgm-factor _ _)
            (progress-pgm _ _ _).
@@ -399,6 +410,7 @@ det-pgm : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
                 (insn-eq-let-cong _ _ _)
                 (det-op _ _ _)
                 (pbundle-lookup-unique _ _ _)
+                (branch-lookup-unique _ _ _)
                 (function-apply-unique _ _ _ _).
 
 %worlds (det-1)
@@ -429,12 +441,15 @@ det-pgm : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
 %total E (pb-bind-map E _).
 %total WF (lookup-good WF _ _).
 %total FA (can-function-apply FA _ _).
-%total (T N) (can-pbundle-lookup N _) (progress T _ _ _).
+%total N (can-pbundle-lookup N _).
+%total B (can-branch-lookup B _).
+%total T (progress T _ _ _).
 %total PG (progress-pgm-factor PG _).
 %total P  (progress-pgm P _ _).
 
 %{ Determinism totality }%
 %total FB (pbundle-lookup-unique FB _ _).
+%total BL (branch-lookup-unique BL _ _).
 %total FB (function-apply-unique _ FB _ _).
 %total T (insn-eq-let-cong T _ _).
 %total IEQ (insn-eq-do-cong IEQ _).
@@ -463,15 +478,22 @@ wf-bb-bind : bb-bind PB FL -> wf-pb G FL -> type.
 
 wf-bb-bind0 : wf-bb-bind bb-bind0 (wf-pb/nil : wf-pb gamma/z _).
 
-preservation-pbundle-lookup : pbundle-lookup PB (bb-def-list/cons BB _) -> wf-defs G D G
-									-> wf-bb G BB -> type.
+preservation-pbundle-lookup : pbundle-lookup PB Bundle -> wf-defs G D G
+						       -> wf-pb G Bundle -> type.
 %mode preservation-pbundle-lookup +PL +WFD -WF.
 
 - : preservation-pbundle-lookup (pbundle-lookup/ctx-hit BB) WFD Q
-     <- wf-bb-bind BB (wf-pb/cons _ Q).
+     <- wf-bb-bind BB Q.
 
 - : preservation-pbundle-lookup (pbundle-lookup/dig PBL) WFD Q
-     <- preservation-pbundle-lookup PBL WFD Q.
+     <- preservation-pbundle-lookup PBL WFD (wf-pb/cons Q _).
+
+preservation-branch-lookup : branch-lookup PB Def -> wf-defs G D G -> wf-bb G Def -> type.
+%mode preservation-branch-lookup +BL +WFD -WF.
+
+- : preservation-branch-lookup (branch-lookup/ PBL) WFD BB
+     <- preservation-pbundle-lookup PBL WFD (wf-pb/cons _ BB).
+
 
 preservation-pbundle-apply : wf-bb G BB -> bb-apply BB RL T -> wf G T -> type.
 %mode preservation-pbundle-apply +WFBB +BB -WF.
@@ -518,7 +540,7 @@ preservation : wf G I -> wf-defs G D G -> step D I I' -> wf G I' -> type.
 		 preservation (WFB pb wb) WFD (ISP pb pbind) (WFB' pb wb)).
 
 - : preservation wf/br WFD (step/br BBA PBL) Q
-     <- preservation-pbundle-lookup PBL WFD BB
+     <- preservation-branch-lookup PBL WFD BB
      <- preservation-pbundle-apply BB BBA Q.
 
 - : preservation (wf/call WFBdy GL) WFD (step/call FA FL) (wf/do WFBdy Q)
@@ -540,6 +562,7 @@ preservation-pgm : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 %worlds (preservation-1) (preservation _ _ _ _)
                          (preservation-pgm _ _ _)
                          (preservation-pbundle-apply _ _ _)
+                         (preservation-branch-lookup _ _ _)
                          (preservation-pbundle-lookup _ _ _)
                          (preservation-lookup _ _ _)
                          (preservation-fun-apply _ _ _)
@@ -548,9 +571,11 @@ preservation-pgm : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 %total B  (wf-bb-bind B _).
 %trustme
 %total E  (preservation-pbundle-lookup E _ _).
+%trustme
+%total B  (preservation-branch-lookup B _ _).
 %total WF (preservation-pbundle-apply WF _ _).
-%total FL  (preservation-lookup FL _ _).
-%total FA  (preservation-fun-apply _ FA _).
+%total FL (preservation-lookup FL _ _).
+%total FA (preservation-fun-apply _ FA _).
 
 %total SP (preservation _ _ SP _).
 %total SP (preservation-pgm _ SP _).

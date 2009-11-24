@@ -43,8 +43,8 @@ in this silly language.
 
 cst : tp -> type. %name cst R r.
 
-cst/cst-n : nat -> cst tp/nat.
-cst/cst-b : nat -> cst tp/bool.
+cst/n : nat -> cst tp/nat.
+cst/b : nat -> cst tp/bool.
 
 %{
 

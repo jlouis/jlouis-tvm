@@ -193,10 +193,10 @@ progress : {E : insn T} wf G E -> wf-defs G D G -> progress-good D E -> type.
 	<- can-pbundle-lookup FB CFL
 	<- can-bb-apply EL CFA.
 
--/brc-t : progress (insn/brc (cst/cst-b (s _)) _ _ _ _) _ _
+-/brc-t : progress (insn/brc (cst/b (s _)) _ _ _ _) _ _
 	   (progress-good/step step/brc-t).
 
--/brc-f : progress (insn/brc (cst/cst-b z) L1 R1 L2 R2) _ _
+-/brc-f : progress (insn/brc (cst/b z) L1 R1 L2 R2) _ _
 	   (progress-good/step step/brc-f).
 
 -/let : progress (insn/let Op _) _ _ (progress-good/step (step/let SOP))

@@ -23,13 +23,13 @@ pgm_1 = pgm/ (defs/s gauss
 				 fun-decl/body
 				 (insn/letrec
 				    ([pb] (bb-def-list/cons
-					     (bb-def/body (insn/let (op/cmp-lt n (cst/cst-n 1))
+					     (bb-def/body (insn/let (op/cmp-lt n (cst/n 1))
 							     ([r : cst tp/bool] (insn/brc r (b1 pb) cst-list/nil (b2 pb) cst-list/nil))))
 					  (bb-def-list/cons
-					     (bb-def/body (insn/br (b3 pb) (cst-list/cons (cst/cst-n 0) cst-list/nil)))
+					     (bb-def/body (insn/br (b3 pb) (cst-list/cons (cst/n 0) cst-list/nil)))
 					  (bb-def-list/cons
 					     (bb-def/body
-						(insn/let (op/mone n (cst/cst-n 1))
+						(insn/let (op/mone n (cst/n 1))
 						   ([sub : cst tp/nat] (insn/call gauss (cst-list/cons sub cst-list/nil)
 									  ([call : cst tp/nat] insn/let (op/plus call n)
 									     ([plus] insn/br (b3 pb) (cst-list/cons plus cst-list/nil)))))))
@@ -39,24 +39,24 @@ pgm_1 = pgm/ (defs/s gauss
 					     bb-def-list/nil)))))
 				    ([pb] insn/br (b0 pb) cst-list/nil))))
 		defs/z)
-	 (insn/call gauss (cst-list/cons (cst/cst-n 3) cst-list/nil)
+	 (insn/call gauss (cst-list/cons (cst/n 3) cst-list/nil)
 	    ([r] insn/return r)).
 
 pgm_2 = pgm/ (defs/s f
 		(fun-decl/parm
 		   ([n] fun-decl/body
-		      (insn/let (op/plus n (cst/cst-n 1))
+		      (insn/let (op/plus n (cst/n 1))
 			 ([plus] insn/return plus))))
 		defs/z)
-	 (insn/call f (cst-list/cons (cst/cst-n 2) cst-list/nil)
+	 (insn/call f (cst-list/cons (cst/n 2) cst-list/nil)
 	    ([r] insn/return r)).
 
 pgm_3 = pgm/ (defs/s f
 		(fun-decl/parm
 		   ([n] fun-decl/body
-		      (insn/return (cst/cst-n 1))))
+		      (insn/return (cst/n 1))))
 		defs/z)
-	 (insn/call f (cst-list/cons (cst/cst-n 2) cst-list/nil)
+	 (insn/call f (cst-list/cons (cst/n 2) cst-list/nil)
 	    ([r] insn/return r)).
 
 

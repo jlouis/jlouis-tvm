@@ -74,12 +74,12 @@ step-op : op T -> cst T -> type.
 
 step-op/cst : step-op (op/cst R) R.
 
-step-op/plus : step-op (op/plus (cst/cst-n N1) (cst/cst-n N2)) (cst/cst-n N3)
+step-op/plus : step-op (op/plus (cst/n N1) (cst/n N2)) (cst/n N3)
 		<- nat-plus N1 N2 N3.
-step-op/mone : step-op (op/mone (cst/cst-n N1) (cst/cst-n N2)) (cst/cst-n N3)
+step-op/mone : step-op (op/mone (cst/n N1) (cst/n N2)) (cst/n N3)
 		<- nat-mone N1 N2 N3.
 
-step-op/cmp-lt : step-op (op/cmp-lt (cst/cst-n N1) (cst/cst-n N2)) (cst/cst-b B)
+step-op/cmp-lt : step-op (op/cmp-lt (cst/n N1) (cst/n N2)) (cst/b B)
 		  <- nat-lt N1 N2 B.
 
 step : defs -> insn T -> insn T -> type.
@@ -95,9 +95,9 @@ step/letrec-s : step D (insn/letrec ([pb] Defs pb) ([pb] Body pb))
 		 <- ({pb} bb-bind pb (Defs pb) ->
 		         step D (Body pb) (Body' pb)).
 
-step/brc-t : step D (insn/brc (cst/cst-b (s _)) L RL _ _) (insn/br L RL).
+step/brc-t : step D (insn/brc (cst/b (s _)) L RL _ _) (insn/br L RL).
 
-step/brc-f : step D (insn/brc (cst/cst-b z) _ _ L RL) (insn/br L RL).
+step/brc-f : step D (insn/brc (cst/b z) _ _ L RL) (insn/br L RL).
 
 step/do-s : step D (insn/do T B) (insn/do T' B)
 	   <- step D T T'.

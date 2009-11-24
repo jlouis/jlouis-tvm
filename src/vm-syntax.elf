@@ -33,11 +33,8 @@ bb-tp-list/cons : bb-tp -> bb-tp-list -> bb-tp-list.
 
 %{
 
-Registers is a family of either constants or variables. But as variables
+Constants is a family of either constants or register. But as variables
 are captured by HOAS, we do not need to specify them.
-
-Expressions are either constants, additions or less-than comparisons
-in this silly language.
 
 }%
 
@@ -48,7 +45,7 @@ cst/b : nat -> cst tp/bool.
 
 %{
 
-We will need lists of registers when one makes function calls and when one
+We will need lists of registers/constants when one makes function calls and when one
 jumps to other basic blocks. Hence, we define them here
 
 }%
@@ -63,7 +60,8 @@ cst-list/cons : cst T -> cst-list TL -> cst-list (tp-list/cons T TL).
    Function names
    Function bundles
 
-   TODO: DOCUMENT FOR GODS SAKE!
+   A fname is used a reference point in an letrec introduction,
+   ie, letrec FN = (d, ...) in B.
 }%
 
 fname : bb-tp -> type. %name fname Fn.
@@ -73,50 +71,44 @@ pbundle+ : bb-tp-list -> type.
 %{ This constant only exists to appease Twelfs splitter in the input coverage }%
 pbundle0 : pbundle bb-tp-list/nil.
 
+
+%{ When referring to a given entry in a letrec, we utilize a construction of the form
+   bb^k in the operational semantics notation. Here we define, e.g., bb^2 as
+   f-hd (f-tl/s (f-tl/s (f-tl/z FN))) for access to the second entry. This construction
+   lets us define a way to intrinsically define branches to other basic blocks }%
 f-hd : pbundle+ (bb-tp-list/cons FT FTL) -> fname FT.
 f-tl/z : pbundle FTL -> pbundle+ FTL.
 f-tl/s : pbundle+ (bb-tp-list/cons FT FTL) -> pbundle+ FTL.
 
 
-
+%{ Operations }%
 op : tp -> type.
 %{ Instructions. Either assigning to a register, a return or a branch.
    These take care of control flow }%
 insn : tp -> type.
 
-op-list : tp-list -> type.
-
-op-list/nil : op-list tp-list/nil.
-op-list/cons : op T -> op-list TL -> op-list (tp-list/cons T TL).
-
-%{ Syntactic term equality }%
+%{ Syntactic operation equality }%
 op-eq : op T -> op T -> type.
-
 op-eq/refl : op-eq T T.
 
-
+%{ Function call identifiers. Carries type information }%
 fun-id : tp -> tp-list -> type.
-
 fun-id/ : nat -> fun-id T TL.
 
-
+%{ Basic block definitions }%
 bb-def : bb-tp -> type.
 
+%{ HOAS encoding of phi-parameters to a basic block }%
 bb-def/body : insn T -> (bb-def (bb-tp/ tp-list/nil T)).
 bb-def/phi : (cst T0 -> bb-def (bb-tp/ TL T)) -> bb-def (bb-tp/ (tp-list/cons T0 TL) T).
 
+%{ Lists of basic block definitions. These are used in letrec-blocks }%
 bb-def-list : bb-tp-list -> type.
 
 bb-def-list/nil : bb-def-list bb-tp-list/nil.
 bb-def-list/cons : bb-def FT -> bb-def-list FTL -> bb-def-list (bb-tp-list/cons FT FTL).
 
-bb-list : bb-tp-list -> type.
-
-bb-list/nil : bb-list bb-tp-list/nil.
-bb-list/cons : bb-def FT -> bb-list FTL -> bb-list (bb-tp-list/cons FT FTL).
-
-
-%{ Operations. These are simple operations returning a value to a cstister }%
+%{ Operations. }%
 %{ Primitive constants }%
 op/cst : cst T -> op T.
 
@@ -125,7 +117,6 @@ op/plus   : cst tp/nat -> cst tp/nat -> op tp/nat.
 op/cmp-lt : cst tp/nat -> cst tp/nat -> op tp/bool.
 op/mone   : cst tp/nat -> cst tp/nat -> op tp/nat.
 
-%{ Binding }%
 insn/return : cst T -> insn T.
 
 insn/br : fname (bb-tp/ TL T) -> cst-list TL -> insn T.
@@ -139,18 +130,18 @@ insn/call : fun-id T TL -> cst-list TL -> (cst T -> insn T) -> insn T.
 
 %{ **** Functions **** }%
 
-%% TODO: Should functions bear static information about their types?
 fun-decl : tp -> tp-list -> type.
 
 fun-decl/parm : (cst T -> fun-decl R TL) -> fun-decl R (tp-list/cons T TL).
 fun-decl/body : insn T -> fun-decl T tp-list/nil.
 
-
+%{ Function definition lists }%
 defs : type.
 
 defs/z : defs.
 defs/s : fun-id T TL -> fun-decl T TL -> defs -> defs.
 
+%{ Programs }%
 pgm : type.
 pgm/ : defs -> insn T -> pgm.
 

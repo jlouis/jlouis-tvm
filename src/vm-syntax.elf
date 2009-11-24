@@ -60,11 +60,13 @@ cst-list/cons : cst T -> cst-list TL -> cst-list (tp-list/cons T TL).
    Function names
    Function bundles
 
-   A fname is used a reference point in an letrec introduction,
-   ie, letrec FN = (d, ...) in B.
+   A pbundle is used a reference point in an letrec introduction,
+   ie, letrec PB = (d, ...) in B.
+
+   pbundle+ and bname is used to implement the bb^k notation.
 }%
 
-fname : bb-tp -> type. %name fname Fn.
+bname : bb-tp -> type. %name bname Fn.
 pbundle : bb-tp-list -> type.
 pbundle+ : bb-tp-list -> type.
 
@@ -76,7 +78,7 @@ pbundle0 : pbundle bb-tp-list/nil.
    bb^k in the operational semantics notation. Here we define, e.g., bb^2 as
    f-hd (f-tl/s (f-tl/s (f-tl/z FN))) for access to the second entry. This construction
    lets us define a way to intrinsically define branches to other basic blocks }%
-f-hd : pbundle+ (bb-tp-list/cons FT FTL) -> fname FT.
+f-hd : pbundle+ (bb-tp-list/cons FT FTL) -> bname FT.
 f-tl/z : pbundle FTL -> pbundle+ FTL.
 f-tl/s : pbundle+ (bb-tp-list/cons FT FTL) -> pbundle+ FTL.
 
@@ -119,9 +121,9 @@ op/mone   : cst tp/nat -> cst tp/nat -> op tp/nat.
 
 insn/return : cst T -> insn T.
 
-insn/br : fname (bb-tp/ TL T) -> cst-list TL -> insn T.
-insn/brc : cst tp/bool -> fname (bb-tp/ TL T) -> cst-list TL
-                     -> fname (bb-tp/ TL1 T) -> cst-list TL1 -> insn T.
+insn/br : bname (bb-tp/ TL T) -> cst-list TL -> insn T.
+insn/brc : cst tp/bool -> bname (bb-tp/ TL T) -> cst-list TL
+                     -> bname (bb-tp/ TL1 T) -> cst-list TL1 -> insn T.
 insn/let : op T1 -> (cst T1 -> insn T) -> insn T.
 insn/letrec : (pbundle FTL -> bb-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.

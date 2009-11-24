@@ -43,11 +43,11 @@ pbundle-lookup/ctx-hit : pbundle-lookup (f-tl/z PB) FL
 pbundle-lookup/dig     : pbundle-lookup (f-tl/s PB) R
 			  <- pbundle-lookup PB (bb-def-list/cons _ R).
 
-bb-apply : bb-def (bb-tp/ TL T) -> reg-list TL -> insn T -> type.
+bb-apply : bb-def (bb-tp/ TL T) -> cst-list TL -> insn T -> type.
 
-bb-apply/body : bb-apply (bb-def/body E) reg-list/nil E.
+bb-apply/body : bb-apply (bb-def/body E) cst-list/nil E.
 
-bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (reg-list/cons E EL) Q
+bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (cst-list/cons E EL) Q
 		 <- bb-apply (R E) EL Q.
 
 
@@ -60,26 +60,26 @@ function-lookup/miss : function-lookup (fun-id/ F) (defs/s (fun-id/ F') _ R) Q
 
 
 
-function-apply : fun-decl R TL -> reg-list TL -> insn R -> type.
+function-apply : fun-decl R TL -> cst-list TL -> insn R -> type.
 
-function-apply/body : function-apply (fun-decl/body BB) reg-list/nil BB.
+function-apply/body : function-apply (fun-decl/body BB) cst-list/nil BB.
 
 function-apply/parm : function-apply (fun-decl/parm [r] FD r)
-		                     (reg-list/cons R RL) Q
+		                     (cst-list/cons R RL) Q
 		       <- function-apply (FD R) RL Q.
 
 
 
-step-op : op T -> reg T -> type.
+step-op : op T -> cst T -> type.
 
-step-op/reg : step-op (op/reg R) R.
+step-op/cst : step-op (op/cst R) R.
 
-step-op/plus : step-op (op/plus (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)
+step-op/plus : step-op (op/plus (cst/cst-n N1) (cst/cst-n N2)) (cst/cst-n N3)
 		<- nat-plus N1 N2 N3.
-step-op/mone : step-op (op/mone (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-n N3)
+step-op/mone : step-op (op/mone (cst/cst-n N1) (cst/cst-n N2)) (cst/cst-n N3)
 		<- nat-mone N1 N2 N3.
 
-step-op/cmp-lt : step-op (op/cmp-lt (reg/cst-n N1) (reg/cst-n N2)) (reg/cst-b B)
+step-op/cmp-lt : step-op (op/cmp-lt (cst/cst-n N1) (cst/cst-n N2)) (cst/cst-b B)
 		  <- nat-lt N1 N2 B.
 
 step : defs -> insn T -> insn T -> type.
@@ -95,9 +95,9 @@ step/letrec-s : step D (insn/letrec ([pb] Defs pb) ([pb] Body pb))
 		 <- ({pb} bb-bind pb (Defs pb) ->
 		         step D (Body pb) (Body' pb)).
 
-step/brc-t : step D (insn/brc (reg/cst-b (s _)) L RL _ _) (insn/br L RL).
+step/brc-t : step D (insn/brc (cst/cst-b (s _)) L RL _ _) (insn/br L RL).
 
-step/brc-f : step D (insn/brc (reg/cst-b z) _ _ L RL) (insn/br L RL).
+step/brc-f : step D (insn/brc (cst/cst-b z) _ _ L RL) (insn/br L RL).
 
 step/do-s : step D (insn/do T B) (insn/do T' B)
 	   <- step D T T'.

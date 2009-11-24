@@ -50,7 +50,7 @@ wf : gamma -> insn T -> type.
 wf-bb : gamma -> bb-def T -> type.
 
 wf-bb/phi  : wf-bb G (bb-def/phi PHI)
-	      <- ({r : reg T} wf-bb G (PHI r)).
+	      <- ({r : cst T} wf-bb G (PHI r)).
 wf-bb/body : wf-bb G (bb-def/body Insn)
 	      <- wf G Insn.
 
@@ -67,13 +67,13 @@ wf/return : wf G (insn/return R).
 wf/br     : wf G (insn/br _ _).
 wf/brc    : wf G (insn/brc _ _ _ _ _).
 wf/let    : wf G (insn/let Op Bdy)
-	     <- ({r : reg T} wf G (Bdy r)).
+	     <- ({r : cst T} wf G (Bdy r)).
 wf/letrec : wf G (insn/letrec Defs Bdy)
 	     <- ({pb : pbundle FTL} wf-pb G (Defs pb)
 		   -> wf G (Bdy pb)).
 wf/do     : wf G (insn/do I Bdy)
 	     <- wf G I
-	     <- ({r : reg T} wf G (Bdy r)).
+	     <- ({r : cst T} wf G (Bdy r)).
 
 wf/call   : wf G (insn/call F RL Bdy)
 	     <- gamma-lookup G F
@@ -81,8 +81,8 @@ wf/call   : wf G (insn/call F RL Bdy)
 
 wf-decl : gamma -> fun-decl R TL -> type.
 
-wf-decl/parm : wf-decl G (fun-decl/parm [r : reg T] FD r)
-		<- ({r : reg T} wf-decl G (FD r)).
+wf-decl/parm : wf-decl G (fun-decl/parm [r : cst T] FD r)
+		<- ({r : cst T} wf-decl G (FD r)).
 
 wf-decl/body : wf-decl G (fun-decl/body (I : insn Tp))
 		<- wf G I.

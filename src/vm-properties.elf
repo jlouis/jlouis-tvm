@@ -71,16 +71,16 @@ can-pbundle-lookup : {FB : pbundle+ (bb-tp-list/cons FT FTL)}
      <- can-pbundle-lookup FB Q.
 
 
-can-bb-apply : {RL : reg-list TL} bb-apply Parms RL T -> type.
+can-bb-apply : {RL : cst-list TL} bb-apply Parms RL T -> type.
 %mode +{T : tp} +{TL : tp-list} +{Parms}
       -{E : insn T}
-      +{RL : reg-list TL}
+      +{RL : cst-list TL}
       -{FA : bb-apply Parms RL E}
       can-bb-apply RL FA.
 
-- : can-bb-apply reg-list/nil bb-apply/body.
+- : can-bb-apply cst-list/nil bb-apply/body.
 
-- : can-bb-apply (reg-list/cons E EL) (bb-apply/phi Q)
+- : can-bb-apply (cst-list/cons E EL) (bb-apply/phi Q)
      <- can-bb-apply EL Q.
 
 %{ Effectiveness, step-op }%
@@ -88,7 +88,7 @@ can-bb-apply : {RL : reg-list TL} bb-apply Parms RL T -> type.
 can-step-op : {O : op T} step-op O V -> type.
 %mode can-step-op +O -SOP.
 
-- : can-step-op (op/reg R) step-op/reg.
+- : can-step-op (op/cst R) step-op/cst.
 
 - : can-step-op (op/plus _ _) (step-op/plus CNP)
      <- can-nat-plus _ _ CNP.
@@ -121,7 +121,7 @@ progress-letrec : ({F : pbundle FTL} {FB : bb-bind F (Defs F)}
 
 progress-do : progress-good D I1 -> progress-good D (insn/do I1 B) -> type.
 %mode +{T} +{T'} +{D : defs}
-      +{I1 : insn T'} +{B : (reg T' -> insn T)} +{PG : progress-good D I1}
+      +{I1 : insn T'} +{B : (cst T' -> insn T)} +{PG : progress-good D I1}
       -{PGG : progress-good D (insn/do I1 B)}
       progress-do PG PGG.
 
@@ -157,13 +157,13 @@ lookup-good : wf-defs G D G' -> gamma-lookup G' F
 
 
 %% Effectiveness, we can always function apply
-can-function-apply : {FD : fun-decl T TL} {RL : reg-list TL} function-apply FD RL I -> type.
-%mode +{TL:tp-list} +{T:tp} -{I:insn T} +{FD:fun-decl T TL} +{RL:reg-list TL}
+can-function-apply : {FD : fun-decl T TL} {RL : cst-list TL} function-apply FD RL I -> type.
+%mode +{TL:tp-list} +{T:tp} -{I:insn T} +{FD:fun-decl T TL} +{RL:cst-list TL}
    -{FA:function-apply FD RL I} (can-function-apply FD RL FA).
 
-- : can-function-apply (fun-decl/body B) reg-list/nil function-apply/body.
+- : can-function-apply (fun-decl/body B) cst-list/nil function-apply/body.
 
-- : can-function-apply (fun-decl/parm B) (reg-list/cons R RL) (function-apply/parm Q)
+- : can-function-apply (fun-decl/parm B) (cst-list/cons R RL) (function-apply/parm Q)
      <- can-function-apply (B R) RL Q.
 
 
@@ -193,10 +193,10 @@ progress : {E : insn T} wf G E -> wf-defs G D G -> progress-good D E -> type.
 	<- can-pbundle-lookup FB CFL
 	<- can-bb-apply EL CFA.
 
--/brc-t : progress (insn/brc (reg/cst-b (s _)) _ _ _ _) _ _
+-/brc-t : progress (insn/brc (cst/cst-b (s _)) _ _ _ _) _ _
 	   (progress-good/step step/brc-t).
 
--/brc-f : progress (insn/brc (reg/cst-b z) L1 R1 L2 R2) _ _
+-/brc-f : progress (insn/brc (cst/cst-b z) L1 R1 L2 R2) _ _
 	   (progress-good/step step/brc-f).
 
 -/let : progress (insn/let Op _) _ _ (progress-good/step (step/let SOP))
@@ -242,21 +242,21 @@ insn-eq-letrec-cong : ({fb} {fbind: bb-bind fb (Defs fb)} insn-eq (B1 fb) (B2 fb
 
 op-eq : op A -> op A -> type.
 op-eq/ : op-eq O O.
-reg-eq : reg T -> reg T -> type.
-reg-eq/ : reg-eq R R.
+cst-eq : cst T -> cst T -> type.
+cst-eq/ : cst-eq R R.
 
-insn-eq-let-cong : {Bd : reg T -> insn T'} reg-eq R1 R2 -> insn-eq (Bd R1) (Bd R2) -> type.
-%mode +{T : tp} +{T' : tp} +{R1 : reg T} +{R2 : reg T}
-      +{Bd : reg T -> insn T'}
-      +{EQ : reg-eq R1 R2}
+insn-eq-let-cong : {Bd : cst T -> insn T'} cst-eq R1 R2 -> insn-eq (Bd R1) (Bd R2) -> type.
+%mode +{T : tp} +{T' : tp} +{R1 : cst T} +{R2 : cst T}
+      +{Bd : cst T -> insn T'}
+      +{EQ : cst-eq R1 R2}
       -{IEQ : insn-eq (Bd R1) (Bd R2)}
       insn-eq-let-cong Bd EQ IEQ.
 
-- : insn-eq-let-cong Bd reg-eq/ insn-eq/.
+- : insn-eq-let-cong Bd cst-eq/ insn-eq/.
 
 
 insn-eq-do-cong : insn-eq T1 T2 -> insn-eq (insn/do T1 B) (insn/do T2 B) -> type.
-%mode +{A : tp} +{B : tp} +{T1 : insn A} +{T2 : insn A} +{Bd : reg A -> insn B}
+%mode +{A : tp} +{B : tp} +{T1 : insn A} +{T2 : insn A} +{Bd : cst A -> insn B}
       +{EQ1 : insn-eq T1 T2}
       -{DEQ : insn-eq (insn/do T1 Bd) (insn/do T2 Bd)}
       insn-eq-do-cong EQ1 DEQ.
@@ -264,13 +264,13 @@ insn-eq-do-cong : insn-eq T1 T2 -> insn-eq (insn/do T1 B) (insn/do T2 B) -> type
 - : insn-eq-do-cong insn-eq/ insn-eq/.
 
 
-det-op : step-op O R1 -> step-op O R2 -> reg-eq R1 R2 -> type.
+det-op : step-op O R1 -> step-op O R2 -> cst-eq R1 R2 -> type.
 %mode det-op +SOP1 +SOP -REQ.
 
-- : det-op step-op/reg step-op/reg reg-eq/.
-- : det-op (step-op/plus P1) (step-op/plus P2) reg-eq/.
-- : det-op (step-op/mone M1) (step-op/mone M2) reg-eq/.
-- : det-op (step-op/cmp-lt L1) (step-op/cmp-lt L2) reg-eq/.
+- : det-op step-op/cst step-op/cst cst-eq/.
+- : det-op (step-op/plus P1) (step-op/plus P2) cst-eq/.
+- : det-op (step-op/mone M1) (step-op/mone M2) cst-eq/.
+- : det-op (step-op/cmp-lt L1) (step-op/cmp-lt L2) cst-eq/.
 
 
 eq-fun-decl : fun-decl T1 T2 -> fun-decl T1 T2 -> type.
@@ -477,7 +477,7 @@ preservation-pbundle-apply : wf-bb G BB -> bb-apply BB RL T -> wf G T -> type.
 %mode preservation-pbundle-apply +WFBB +BB -WF.
 
 - : preservation-pbundle-apply (wf-bb/phi WFP)
-        ((bb-apply/phi BBP) : bb-apply (bb-def/phi _) (reg-list/cons E _) _) Q
+        ((bb-apply/phi BBP) : bb-apply (bb-def/phi _) (cst-list/cons E _) _) Q
      <- preservation-pbundle-apply (WFP E) BBP Q.
 
 - : preservation-pbundle-apply (wf-bb/body WF) bb-apply/body WF.
@@ -496,7 +496,7 @@ preservation-fun-apply : wf-decl G Df -> function-apply Df RL I -> wf G I -> typ
 - : preservation-fun-apply (wf-decl/body WF) function-apply/body WF.
 
 - : preservation-fun-apply (wf-decl/parm WD)
-         ((function-apply/parm FA') : function-apply _ (reg-list/cons E _) _) Q
+         ((function-apply/parm FA') : function-apply _ (cst-list/cons E _) _) Q
      <- preservation-fun-apply (WD E) FA' Q.
 
 preservation : wf G I -> wf-defs G D G -> step D I I' -> wf G I' -> type.

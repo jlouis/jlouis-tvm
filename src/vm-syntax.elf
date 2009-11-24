@@ -41,10 +41,10 @@ in this silly language.
 
 }%
 
-reg : tp -> type. %name reg R r.
+cst : tp -> type. %name cst R r.
 
-reg/cst-n : nat -> reg tp/nat.
-reg/cst-b : nat -> reg tp/bool.
+cst/cst-n : nat -> cst tp/nat.
+cst/cst-b : nat -> cst tp/bool.
 
 %{
 
@@ -53,10 +53,10 @@ jumps to other basic blocks. Hence, we define them here
 
 }%
 
-reg-list : tp-list -> type. %name reg-list RL.
+cst-list : tp-list -> type. %name cst-list RL.
 
-reg-list/nil : reg-list tp-list/nil.
-reg-list/cons : reg T -> reg-list TL -> reg-list (tp-list/cons T TL).
+cst-list/nil : cst-list tp-list/nil.
+cst-list/cons : cst T -> cst-list TL -> cst-list (tp-list/cons T TL).
 
 %{ Introduction of function bundles.
 
@@ -103,7 +103,7 @@ fun-id/ : nat -> fun-id T TL.
 bb-def : bb-tp -> type.
 
 bb-def/body : insn T -> (bb-def (bb-tp/ tp-list/nil T)).
-bb-def/phi : (reg T0 -> bb-def (bb-tp/ TL T)) -> bb-def (bb-tp/ (tp-list/cons T0 TL) T).
+bb-def/phi : (cst T0 -> bb-def (bb-tp/ TL T)) -> bb-def (bb-tp/ (tp-list/cons T0 TL) T).
 
 bb-def-list : bb-tp-list -> type.
 
@@ -116,33 +116,33 @@ bb-list/nil : bb-list bb-tp-list/nil.
 bb-list/cons : bb-def FT -> bb-list FTL -> bb-list (bb-tp-list/cons FT FTL).
 
 
-%{ Operations. These are simple operations returning a value to a register }%
+%{ Operations. These are simple operations returning a value to a cstister }%
 %{ Primitive constants }%
-op/reg : reg T -> op T.
+op/cst : cst T -> op T.
 
 %{ Operations on registers }%
-op/plus   : reg tp/nat -> reg tp/nat -> op tp/nat.
-op/cmp-lt : reg tp/nat -> reg tp/nat -> op tp/bool.
-op/mone   : reg tp/nat -> reg tp/nat -> op tp/nat.
+op/plus   : cst tp/nat -> cst tp/nat -> op tp/nat.
+op/cmp-lt : cst tp/nat -> cst tp/nat -> op tp/bool.
+op/mone   : cst tp/nat -> cst tp/nat -> op tp/nat.
 
 %{ Binding }%
-insn/return : reg T -> insn T.
+insn/return : cst T -> insn T.
 
-insn/br : fname (bb-tp/ TL T) -> reg-list TL -> insn T.
-insn/brc : reg tp/bool -> fname (bb-tp/ TL T) -> reg-list TL
-                     -> fname (bb-tp/ TL1 T) -> reg-list TL1 -> insn T.
-insn/let : op T1 -> (reg T1 -> insn T) -> insn T.
+insn/br : fname (bb-tp/ TL T) -> cst-list TL -> insn T.
+insn/brc : cst tp/bool -> fname (bb-tp/ TL T) -> cst-list TL
+                     -> fname (bb-tp/ TL1 T) -> cst-list TL1 -> insn T.
+insn/let : op T1 -> (cst T1 -> insn T) -> insn T.
 insn/letrec : (pbundle FTL -> bb-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.
-insn/do : insn T' -> (reg T' -> insn T) -> insn T. %% Only internally used
-insn/call : fun-id T TL -> reg-list TL -> (reg T -> insn T) -> insn T.
+insn/do : insn T' -> (cst T' -> insn T) -> insn T. %% Only internally used
+insn/call : fun-id T TL -> cst-list TL -> (cst T -> insn T) -> insn T.
 
 %{ **** Functions **** }%
 
 %% TODO: Should functions bear static information about their types?
 fun-decl : tp -> tp-list -> type.
 
-fun-decl/parm : (reg T -> fun-decl R TL) -> fun-decl R (tp-list/cons T TL).
+fun-decl/parm : (cst T -> fun-decl R TL) -> fun-decl R (tp-list/cons T TL).
 fun-decl/body : insn T -> fun-decl T tp-list/nil.
 
 

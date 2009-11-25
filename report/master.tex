@@ -242,9 +242,9 @@ compatible way as long as it remains a version 2.x.
     \bbtype \ni Bb \tau   & ::= [\tau] & \text{Notation:} \; \tau -> \dotsc -> \tau' -> \cdot\\
     \ftype \ni D & ::= \cdot \bor (f \mapsto (\tau_1 -> \dotsc ->
     \tau_n), D) \\
-    \tpenv \ni \Gamma & ::= \cdot \bor x \mapsto \tau : \Gamma\\
-    \bbenv \ni \Psi   & ::= \cdot \bor bb \mapsto [Bb \tau_1, \dotsc Bb
-    \tau_n] : \Psi
+    \tpenv \ni \Gamma & ::= \cdot \bor (x \mapsto \tau),\Gamma\\
+    \bbenv \ni \Psi   & ::= \cdot \bor (bb \mapsto [Bb \tau_1, \dotsc Bb
+    \tau_n]),\Psi
   \end{align*}
   \caption{Type system}
   \label{fig:type-system}
@@ -328,6 +328,7 @@ risk of having mistaken something in the definition.
 \newcommand{\instructions}{\mathrm{Instructions}}
 \newcommand{\programs}{\mathrm{Programs}}
 \newcommand{\definitions}{\mathrm{Definitions}}
+\newcommand{\basicblocks}{\mathrm{Basic Blocks}}
 \newcommand{\iret}[1]{\mathbf{ret} \; #1}
 
 \newcommand{\ibr}[2]{\mathbf{br} \; #1 \; #2}
@@ -346,6 +347,7 @@ risk of having mistaken something in the definition.
                        & \bor \quad c + c \\
                        & \bor \quad c - c \\
                        & \bor \quad c < c \\
+   \basicblocks \ni d  & ::= \lambda (x_1, x_2, \cdots, x_n) . i\\
    \instructions \ni i & ::= \iret{c} \\
                        & \bor \quad \ibr{bb^n}{(c_1, \dotsc, c_n)} \\
                        & \bor \quad \ibrc{c}{bb^n}{(c_1, \dotsc, c_n)}{bb^n}{(c'_1, \dotsc, c'_n)}\\
@@ -429,13 +431,51 @@ expect the program to begin by calling a main-function in the list of
 definitions, but we have chosen to deviate from LLVM here and allow
 the execution of an arbitrary instruction rather a call to main.
 
+\chapter{Mini-LLVM type sytem}
+
+In this chapter we describe a type system for our Mini-LLVM
+language. There are several examples of syntactical problems in the
+syntax alone. It is for example possible to use a natural number as a
+constant $c$ in $\ibrc{c}{...}{}{}{}$, which is obviously incorrect as
+per our semantics, we define later. Another problem might be that
+$\ilet{r}{op}{i}$ has a type $\tau$ for the register $r$ but its use
+in $i$ is of type $\tau'$ different from $\tau$.
+
+\newcommand{\tpr}{|-_{r}}
 \newcommand{\tpc}{|-_{c}}
 \newcommand{\tpop}{|-_{o}}
 \newcommand{\tpb}{|-_{b}}
+
+To take care of these problems, we need a type system ruling out these
+possibilities in the syntax. In figure \ref{fig:type-judgement-1}, we
+present typing relations for registers, constants and
+operations. Register typing is simply handled by a judgment form
+$\boxed{\Gamma \tpr x}$ with a single rule, TpR, for lookup into the
+environment. The judgement form $\boxed{\Gamma \tpc c : \tau}$ states
+that in the environment of $\Gamma$ the constant $c$ has type
+$\tau$. There are 3 different cases, one for register lookup, and two
+for each of the constant types. It is implicitly the case that the $n$
+and $b$ are a natural number and boolean value respectively.
+
+The judgment form for operations is $\boxed{\Gamma \tpop op :
+  \tau}$. Under the environment of $\Gamma$ the operation $op$ has
+type $\tau$. These rules are somewhat straightforward for most
+part. The only special case is that the less-than comparison operator
+has boolean type.
+
+Basic blocks are typed by checking that each of the formal parameters
+have the stated type as a parameter and in the instruction body. Note
+that we do not consider the return type of the instruction as we
+handle it later on when type checking functions.
+
 \begin{figure}
   \begin{gather*}
+    \text{Registers:} \quad \boxed{\Gamma \tpr x : \tau}\\
+    \inference[TpR]{\Gamma(x) = \tau}{\Gamma \tpr x : \tau}
+  \end{gather*}
+  \begin{gather*}
     \text{Constants:} \quad \boxed{\Gamma \tpc c : \tau}\\
-    \inference[TpC-Var]{\Gamma(x) = \tau}{\Gamma \tpc x : \tau}\\
+    \inference[TpC-Var]{\Gamma \tpr x}{\Gamma \tpc x : \tau}\\
     \inference[TpC-Nat]{}{\Gamma \tpc n : \tnat} \quad
     \inference[TpC-Bool]{}{\Gamma \tpc b : \tbool}
   \end{gather*}
@@ -451,17 +491,37 @@ the execution of an arbitrary instruction rather a call to main.
   \end{gather*}
   \begin{gather*}
     \text{Basic block Definitions:} \quad \boxed{D;\Psi;\Gamma \tpb d
-      : \tau}
+      : \tau}\\
+    \inference[BB-Def]{\Gamma |- x_1 : \tau_1 \quad \dotsb \quad
+      \Gamma |- x_n : \tau_n\\
+    D;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n \mapsto \tau_n] |- i :
+  \tau}{D;\Psi;\Gamma \tpb \lambda(x_1, x_2, \dotsc,
+      x_n).i : \tau_1 -> \tau_2 -> \dotsc -> \tau_n -> \cdot}
   \end{gather*}
   \caption{Typing 1}
   \label{fig:type-judgement-1}
 \end{figure}
 
+In figure \ref{fig:type-judgement-2} we present the typing relations
+for instructions. The general judgment for these is
+$\boxed{D;\Psi;\Gamma |- i : \tau}$. This specifies that the
+instruction $i$ has a type of $\tau$ in the environment of
+$D;\Psi;\Gamma$. The domain $D$ here is the domain of function
+contexts (see figure \ref{fig:type-system}) mapping a function name
+$f$ to its function type. The domain $\Psi$ maps basic blocks: for
+each basic block there is a mapping from the basic block name to a
+tuple of basic block types. Finally, the domain $\Gamma$ maps
+registers to their types.
+
+An instruction of the form $\iret{r}$ has type $\tau$ if the constant
+it returns has. Correct typing of an $\ilet{x}{op}{i}$ instruction
+requires that the operation $op$ returns the same type as is used for
+the register $x$ in the body $i$. 
 \begin{figure}
   \begin{gather*}
     \text{Instructions:} \quad \boxed{D ; \Psi ; \Gamma |- i : \tau}\\\\
-    \inference[Tp-ret]{D ; \Psi ; \Gamma |- i : \tau}{D ; \Psi ;
-      \Gamma |- \iret{i} : \tau} \quad
+    \inference[Tp-ret]{\Gamma \tpc c : \tau}{D ; \Psi ;
+      \Gamma |- \iret{c} : \tau} \quad
     \inference[Tp-let]{\Gamma \tpop op : \tau_1 \quad D ; \Psi ;
       \Gamma[x \mapsto \tau_1] |- i : \tau}{D ; \Psi ; \Gamma |-
       \ilet{x}{op}{i} : \tau}\\\\

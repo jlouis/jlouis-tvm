@@ -18,6 +18,9 @@
   {\large\scshape Jesper Louis Andersen\\jesper.louis.andersen@gmail.com}\par
   \endgroup}
 
+\newcommand{\clang}{\textsc{Clang}}
+\newcommand{\twelf}{\textsc{Twelf}}
+
 \bibliographystyle{plain}
 
 \begin{document}
@@ -39,8 +42,8 @@ the target machines instruction set\footnote{Sans
 \begin{equation*}
   L ->^{fe} IL ->^{be} Q
 \end{equation*}
-where $L$ is the source language, the arrow marked by $fe$ the
-front-end compilation, and the arrow marked by $be$ is the back-end
+where $L$ is the source language; the arrow marked by $fe$ the
+front-end compilation; and the arrow marked by $be$ is the back-end
 compilation onto the machine language $Q$. The construction is
 advantageous because the compiler writer can share either the
 front-end among several back-ends or the back-end among several
@@ -51,7 +54,7 @@ in two parts: the front-end delivers IL code which is then typically
 encoded in a binary format for transport. Arriving at the target
 machine, this \emph{bytecode} is either interpreted, compiled or a
 mixture of both. Usually, the run-time responsible for executing the
-back-ends part is named a ``Virtual Machine'' (VM) because the IL is
+back-ends part is named a \emph{Virtual Machine} (VM) because the IL is
 regarded as a machine abstraction.
 
 ILs are usually designed to make front-end construction easier. The IL
@@ -75,7 +78,7 @@ close to an idealized assembly language with several convenient
 differences of which we list some:
 \begin{itemize}
 \item All LLVM IL programs are statically typed. This rules out many
-  common programming errors and fits well into compilations schemes
+  common programming errors and fits well into compilation schemes
   where intermediate stage transforms are type-checked.
 \item There is an infinite amount of registers and register allocation
   is carried out by the LLVM system.
@@ -107,7 +110,7 @@ framework. The goal is that every computer scientific report is
 accompanied by a formal proof written such that the computer can
 verify its correctness. In this report, every description has been
 encoded into the logical framework of
-Twelf\cite{schurmann.pfenning:twelf} for verification.
+\twelf{}\cite{schurmann.pfenning:twelf} for verification.
 
 \section{Report structure}
 
@@ -115,7 +118,7 @@ The report first introduces some preliminaries and then presents the
 real work made in the following chapters: syntax, semantics and
 meta-theory of our Mini-LLVM language is presented. It is expected
 that the reader is familiar with operational semantics, proof theory
-and machine verifiable proofs; in particular the Twelf logical
+and machine verifiable proofs; in particular the \twelf{} logical
 framework. It is also expected that the reader is familiar with
 SSA-form and its implications.
 
@@ -159,7 +162,7 @@ depending on the control flow. The '\texttt{ret}' instruction
 returns. Note that this fragment has the SSA property.
 
 Since we would like to represent LLVM in a machine checkable form in
-Twelf, we utilize a result first formulated explicitly by
+\twelf{}, we utilize a result first formulated explicitly by
 Appel\cite{appel:1998:modern, appel:1998:ssa}: every SSA program has
 an equivalent functional program. Thus our first design choice is to
 represent the LLVM subset as a functional first order
@@ -244,8 +247,8 @@ compatible way as long as it remains a version 2.x.
     \ftype \ni D & ::= \cdot \bor (f \mapsto (\tau_1 -> \dotsc ->
     \tau_n), D) \\
     \tpenv \ni \Gamma & ::= \cdot \bor (x \mapsto \tau),\Gamma\\
-    \bbenv \ni \Psi   & ::= \cdot \bor (bb \mapsto [Bb \tau_1, \dotsc Bb
-    \tau_n]),\Psi
+    \bbenv \ni \Psi   & ::= \cdot \bor (bb \mapsto (Bb \tau_1, \dotsc Bb
+    \tau_n)),\Psi
   \end{align*}
   \caption{Type system}
   \label{fig:type-system}
@@ -285,7 +288,7 @@ Our language will be using several syntactic domains, the existence of
 which we assume (figure \ref{fig:syntactic-domains}). We have
 variables, $x_1, x_2, \dotsc$ used for naming and discriminating
 registers from each others. For simplicity we restrict the language to
-natural numbers only. This restriction is due to Twelf: we need to
+natural numbers only. This restriction is due to \twelf{}: we need to
 encode the system of numbers and Peano-style natural numbers are
 fairly simple to work with and handle. Verification in other systems
 might have chosen another domain. We only utilize basic properties of
@@ -309,9 +312,6 @@ $1$, but the type system is intended to restrict the use to these
 values only. Finally, we assume a set of Basic Block names. These are used to refer
 to groups of basic blocks.
 
-\fixme{Describe call}
-\fixme{Add call to syntax}
-\fixme{Describe $\Phi$ as an environment}
 The LLVM IL severely limits extent where one is allowed to use a
 specific syntactic class. This is probably due to the ILs heritage; it
 is essentially an imperative, typed assembly language. In the course
@@ -410,8 +410,7 @@ initial Mini-LLVM programs. It is used internally to keep the context
 of a function call around. This has to do with the fact that the
 formalization lacks a stack and thus uses the current continuation
 context to keep track of where the computation came from. Function
-calls utilize the instruction while they are executing.\fixme{Ouch,
-  this is disturbing w.r.t inter-function BB applications}.
+calls utilize the instruction while they are executing.
 
 Finally the $\icall{r}{f}{(c_1, \dotsc, c_n)}{i}$ instruction
 represents an LLVM '\texttt{call}' instruction in a very simplified
@@ -503,6 +502,7 @@ handle it later on when type checking functions.
   \label{fig:type-judgement-1}
 \end{figure}
 
+\fixme{Let a tau be shared among a set of basic blocks perhaps?}
 In figure \ref{fig:type-judgement-2} we present the typing relations
 for instructions. The general judgment for these is
 $\boxed{D;\Psi;\Gamma |- i : \tau}$. This specifies that the
@@ -514,10 +514,35 @@ each basic block there is a mapping from the basic block name to a
 tuple of basic block types. Finally, the domain $\Gamma$ maps
 registers to their types.
 
-An instruction of the form $\iret{r}$ has type $\tau$ if the constant
+An instruction of the form $\iret{c}$ has type $\tau$ if the constant
 it returns has. Correct typing of an $\ilet{x}{op}{i}$ instruction
 requires that the operation $op$ returns the same type as is used for
 the register $x$ in the body $i$.
+
+The rule Tp-do defines a typing of a $\ido{x}{i_1}{i_2}$
+instruction. The type of $i_1$ must the the same type as used in
+$i_2$. Note the similarity between this instruction and the
+let-binding above.\fixme{Decide if we should kill $\Psi$ here}.
+
+Unconditional branches are handled by the Tp-br rule. It states that a
+well-typed branch can look up the basic block in the environment of
+basic blocks and then take the $k$th projection of this to obtain the
+type $\tau_1 -> \dotsc -> \cdot$. The instruction is then well-typed
+if all the formal parameters obeys the type scheme of the
+$\phi$-nodes.
+
+Conditional branches are well-typed if each path regarded as
+unconditional branches are. Furthermore we require the branch variable
+to be a boolean value.
+
+The Tp-letrec rule introduces basic blocks. It first checks that each
+basic block definition is well-typed. Then it type checks the body $i$
+under an augmented environment where a mapping to the basic block
+identifier has been made.
+
+Finally, function calls are well-typed if we can look up the function
+identifier in the function environment $D$; and can show the
+passed arguments obeys the type scheme.
 
 \begin{figure}
   \begin{gather*}
@@ -551,6 +576,25 @@ the register $x$ in the body $i$.
   \caption{Typing 2}
   \label{fig:type-judgement-2}
 \end{figure}
+
+\section{Programs}
+
+A program is well-formed (figure \ref{fig:type-judgement-3}) if it
+obeys a wellformedness criterion $\boxed{D |- \Phi : D}$ on its
+definitions $\Phi$ and that the body is wellformed in empty Basic
+block and variable environments. We write $\boxed{|- P}$ for
+well-formed programs.
+
+The criterion for definition blocks examines wellformedness of the
+list of definitions. If the definition list is empty, then the
+function environment has to be as well. Each function must be
+wellformed with respect to its formal parameters and the full
+environment $D$. We furthermore require that the function identifier
+does not occur twice with the rule $f \not \in D'$.
+
+Note that the rule $D |- \Phi : D$ ties the knot on function
+definitions. The function environment $D$ is being examined while it
+is being built at the same time.
 
 \begin{figure}
   \begin{gather*}
@@ -617,11 +661,93 @@ the register $x$ in the body $i$.
 \chapter{Twelf encoding}
 
 \fixme{Describe the ``Twelf Encoding''}
+\fixme{Describe all the failed formalization attempts}
+
+\section{Transformation of LLVM Programs to Mini-LLVM}
+
+One rather important milestone in our work is to make sure a correct
+LLVM IL program using a supported subset can be transformed into an
+equivalent Mini-LLVM program. Our running first example will be the
+calculation of triads:
+\begin{equation}
+  \label{eq:1}
+  n? = 1 + 2 + \dotsb + n = \sum_{0 < i \leq n} i
+\end{equation}
+
+The notation $n?$ is due to Knuth\cite[section
+1.2.5]{knuth:1997:taocp1}. We choose this example over the factorial
+function since it is readily computable without the need for a
+multiplication operator. Straightforward recursive implementation of
+this in C yields:
+\begin{verbatim}
+int
+tri (int n) {
+    if (n == 0) { return 0; }
+    else return (tri(n-1) + n);
+}
+\end{verbatim}
+We can then use the \clang{} compiler from C to LLVM IL to
+generate LLVM code for this C fragment. The \clang{} compiler
+circumvents the need to produce SSA code by making all operations
+stack movements. Thus the raw output from the compiler cannot be
+used.
+
+LLVM contains an optimization pass however, \texttt{mem2reg}, which
+can transform stack references into register access. This effectively
+eliminates the explicit allocation on the stack.
+
+If we skip for us irrelevant parts about the LLVM data layout, we have
+the following function body:
+\begin{verbatim}
+define i32 @tri(i32 %n) nounwind {
+entry:
+  %cmp = icmp eq i32 %n, 0
+  br i1 %cmp, label %if.then, label %if.else
+
+if.then:
+  br label %return
+
+if.else:
+  %sub = sub i32 %n, 1
+  %call = call i32 @tri(i32 %sub)
+  %add = add nsw i32 %call, %n
+  br label %return
+
+return:
+  %retval.0 = phi i32 [ 0, %if.then ], [ %add, %if.else ]
+  ret i32 %retval.0
+}
+\end{verbatim}
+By hand-translation of this into Twelf, we obtain the following
+twelf-function for the same fragment:
+\fixme{Insert fragment}
+\fixme{Note something about inverted phi-nodes}
+\paragraph{Automatic translation}
+
+A full treatment of translation ought to be automatic rather than
+hand-written. It certainly looks possible automate the above
+translations. If one parses LLVM IL into an abstract syntax tree,
+output should be pretty straightforward --- save for the inversion of
+$\phi$-nodes.
+
+The inversion can be handled by a two-pass algorithm. In the first
+pass we gather $\phi$-nodes for each basic block as well as what value
+each branch into the basic block passed. In the second pass, we
+replace all branch invocations with tail-calls such that the right
+values are passed.
+
+To establish the plausibility of a full isomorphism, an inverse parser
+must also be created. This inverse parser should take a
+\twelf{}-signature with a test definition and transform it into
+equivalent full LLVM code. It has to invert the passing of
+$\phi$-nodes as well. This can be done by a similar two-pass scan.
 
 \chapter{Meta-theory}
 
 \fixme{Describe the ``Meta-theory''}
-
+\fixme{Progress}
+\fixme{Preservation}
+\fixme{Determinism}
 \chapter{Conclusion}
 
 \fixme{Write the conclusion}

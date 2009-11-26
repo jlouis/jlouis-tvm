@@ -32,6 +32,8 @@
 \newpage{}
 \chapter{Introduction}
 
+\fixme{Mention something about $\alpha$-conversion and
+  contexts. Particularly that it comes for free in \twelf{}}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -167,7 +169,10 @@ Since we would like to represent LLVM in a machine checkable form in
 Appel\cite{appel:1998:modern, appel:1998:ssa}: every SSA program has
 an equivalent functional program. Thus our first design choice is to
 represent the LLVM subset as a functional first order program to ease
-its encoding in \twelf{}. Informally, we can transform a fragment
+its encoding in \twelf{}. As we shall see, the SSA-property of LLVM
+programs greatly simplifies a number of otherwise complex interactions
+in the semantics. Informally, we can transform a fragment
+\label{llvm-consideration-let}
 \begin{verbatim}
   %sub = sub i32 %n, 1
   %call = call i32 @tri(i32 %sub)
@@ -244,7 +249,7 @@ compatible way as long as it remains a version 2.x.
   \begin{align*}
     \types \ni \tau & ::= \tnat \bor \tbool \\
     \typelist \ni [\tau] & ::= \cdot \bor \tau -> [\tau] \\
-    \bbtype \ni Bb \tau   & ::= [\tau] & \text{Notation:} \; \tau -> \dotsc -> \tau' -> \cdot\\
+    \bbtype \ni Bb \tau   & ::= \tau_1 -> \dotsc -> \tau_n -> \tau\\
     \ftype \ni D & ::= \cdot \bor (f \mapsto (\tau_1 -> \dotsc ->
     \tau_n), D) \\
     \tpenv \ni \Gamma & ::= \cdot \bor (x \mapsto \tau),\Gamma\\
@@ -430,7 +435,9 @@ A Mini-LLVM program is a list of definitions $\Phi$ together with an
 initial instruction $i$. The notation is $\ipgm{\Phi}{i}$. Usually, we
 expect the program to begin by calling a main-function in the list of
 definitions, but we have chosen to deviate from LLVM here and allow
-the execution of an arbitrary instruction rather a call to main.
+the execution of an arbitrary instruction rather a call to main. We
+can simply limit valid programs to begin by a forced instruction
+call to a function ``\texttt{main}'', should we so desire.
 
 \chapter{Mini-LLVM type sytem}
 
@@ -495,7 +502,7 @@ handle it later on when type checking functions.
       : \tau}\\
     \inference[BB-Def]{D;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n \mapsto \tau_n] |- i :
   \tau}{D;\Psi;\Gamma \tpb \lambda(x_1, x_2, \dotsc,
-      x_n).i : \tau_1 -> \tau_2 -> \dotsc -> \tau_n -> \cdot}
+      x_n).i : \tau_1 -> \tau_2 -> \dotsc -> \tau_n -> \tau}
   \end{gather*}
   \caption{Typing 1}
   \label{fig:type-judgement-1}
@@ -526,9 +533,7 @@ let-binding above.\fixme{Decide if we should kill $\Psi$ here}.
 Unconditional branches are handled by the Tp-br rule. It states that a
 well-typed branch can look up the basic block in the environment of
 basic blocks and then take the $k$th projection of this to obtain the
-type $\tau_1 -> \dotsc -> \cdot$. The instruction is then well-typed
-if all the formal parameters obeys the type scheme of the
-$\phi$-nodes.
+type $\tau_1 -> \dotsc -> \tau$.
 
 Conditional branches are well-typed if each path regarded as
 unconditional branches are. Furthermore we require the branch variable
@@ -554,8 +559,8 @@ passed arguments obeys the type scheme.
     \inference[Tp-do]{D;\Psi;\Gamma |- i_1 : \tau_1 \quad
       D;\Psi;\Gamma[x \mapsto \tau_1] |- i_2 : \tau} {D;\Psi;\Gamma |-
       \ido{x}{i_1}{i_2} : \tau}\\\\
-    \inference[Tp-br]{\Psi(bb^n) = \tau_1 -> \tau_2 -> \dotsc ->
-      \tau_n -> \cdot\\
+    \inference[Tp-br]{\Psi(bb) = BB\tau{}s \quad BB\tau{}s(k) : \tau_1 -> \tau_2 -> \dotsc ->
+      \tau_n -> \tau\\
       c_1 : \tau_1 \quad c_2 : \tau_2 \quad \dotsb \quad c_n : \tau_n}
     {D;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
     \inference[Tp-brc]{\Gamma \tpc x : \tbool \\ D;\Psi;\Gamma |-
@@ -614,7 +619,41 @@ is being built at the same time.
 
 \chapter{Mini-LLVM Semantics}
 
+In this chapter we present the Mini-LLVM semantics (see figure
+\ref{fig:semantics}). Since \twelf{} is partial to operational
+semantics, we need to decide between a big-step operational semantics
+and a small-step operational semantics.
+
+The semantics in Pierce's seminal work \cite{pierce:2002:types} on
+type systems are mostly given in small step semantics. Focusing our
+effort on a small-step semantics thus gives us a framework in which
+the meta-theory will follow the work of Pierce. A big-step semantics
+is also possible, but then we need to work with a separate notion of
+when terms terminate.
+
+The small-step semantics -- however -- is \emph{inefficient}: we need
+considerably more inference rule applications in order to reduce a
+term to canonical form. On the other hand it is \emph{precise}:
+certain details (like short-circuiting operators) are more easily
+handled by a small step semantics.
+
+We choose a small-step semantics for this work. Mostly to follow the
+structural ideas from Pierce's book ``Types and Programming
+Languages''.
+
+\paragraph{Step relation for operations}
+
 \newcommand{\eop}{=>_{o}}
+For operations, $\boxed{|- op \eop n}$ is the judgement form. The form
+states the operation $op$ evaluate to a value of $n$. This
+might look like a big-step semantics, but note that all operations are
+\emph{primitive} in Mini-LLVM: An operation is limited by the syntax
+such that it cannot be a tree.
+
+For each possible operator, there is a corresponding inference
+rule. All of these simply unwraps underlying integers and then applies
+the proper mathematical arithmetic operation.
+
 \begin{figure}
   \begin{gather*}
     \text{Operations:} \quad \boxed{|- op \eop n}\\
@@ -631,7 +670,7 @@ is being built at the same time.
     \inference[S-let]{|- o \eop v}{\Phi;BB |- \ilet{x}{o}{i} ->
       i[x/v]}\\\\
     \inference[S-letrec-v]{}{\Phi;BB |- \iletrec{bb}{(d_1, \dotsc,
-        d_n)}{\iret{v}} -> v}\\\\
+        d_n)}{\iret{v}} -> \iret{v}}\\\\
     \inference[S-letrec-s]{\Phi;BB[bb \mapsto Dt] |- i -> i'}
     {\Phi;BB |- \iletrec{bb}{Dt}{i} -> \iletrec{bb}{Dt}{i'}}\\\\
     \inference[S-brc-t]{}{\Phi;BB |-
@@ -643,11 +682,11 @@ is being built at the same time.
       \ido{x}{i_1}{i_2} -> \ido{x}{i'_1}{i_2}}\\\\
     \inference[S-do-v]{}{\Phi;BB |- \ido{x}{\iret v}{i_2} ->
       i_2[x/v]}\\\\
-    \inference[S-call]{\Phi(f) = f(x_1, x_2, \dotsc, x_n)}{\Phi;BB |-
-      \icall{r}{f}{(c_1, c_2, \dotsc, c_n)}{i} -> \ido{r}{f(c_1, c_2,
-        \dotsc, c_n)}{i}}\\\\
-    \inference[S-br]{BB(bb) = Ks \quad Ks(k) = i(x_1, \dotsc, x_n)}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
-      i(c_1, \dotsc, c_n)}
+    \inference[S-call]{\Phi(f) = (\;f(x_1, x_2, \dotsc, x_n) = i'\;)}{\Phi;BB |-
+      \icall{r}{f}{(c_1, c_2, \dotsc, c_n)}{i} -> \ido{r}{i'[x_1/c_1, x_2/c_2,
+        \dotsc, x_n/c_n]}{i}}\\\\
+    \inference[S-br]{BB(bb) = Ks \quad Ks(k) = \lambda(x_1, \dotsc, x_n).i}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
+      i[x_1/c_1, \dotsc, x_n/c_n]}
  \end{gather*}
  \begin{gather*}
    \text{Programs:} \quad \boxed{|- P --> P'}\\
@@ -656,6 +695,65 @@ is being built at the same time.
   \caption{Semantics}
   \label{fig:semantics}
 \end{figure}
+
+\paragraph{Step relation for instructions}
+
+Instructions is by far the most complex in this system. They have the
+judgment form $\boxed{\Phi;BB |- i -> i'}$. The context $\Phi$
+contains function definitions we can call. The context $BB$ contains
+the basic blocks we have introduced and can branch to.
+
+In the semantics, we use the notation $i[x/v]$. This means that you
+substitute all occurrences of $x$ with $v$ in the syntax tree of
+$i$. In other words, if $(\lambda x . i\; x)$ the higher order
+abstraction of $i$ then $i[x/v] \equiv (\lambda x . i\; x) v$. We
+use this fact extensively when encoding the semantics in \twelf{}.
+
+The basic sequential operation in LLVM is handled by the
+$\ilet{x}{op}{i}$ instruction in Mini-LLVM. As already noted in
+\ref{llvm-consideration-let}, we translate sequences of instructions
+into nested applications of $\mathbf{let}$s. To execute an operation,
+$op$, is to know the contents of the register $x$. Since we have the
+SSA-property and the SSA/FP correspondence, we can then just propagate
+the value of $x$ to all its uses directly. This is done by
+substituting the result for $x$ in the body of the let, $i$.
+
+Evaluation of an instruction $\iletrec{bb}{Defs}{i}$ progresses
+depending on the structure of $i$. If $i$ is of the form $\iret{c}$,
+then there is no reference to the basic blocks, and we can get rid of
+them. This is done with the S-letrec-v rule. Otherwise, the S-letrec-s
+rule introduces all the basic blocks into the context at once;
+followed by a step underneath.  In effect, the body of a
+$\mathbf{letrec}$ can act as the scratch-pad for the execution of
+basic blocks and be replaced with a new basic block from the context.
+
+Conditional branches examine the boolean value and then step into an
+unconditional branch of the right kind. Unconditional branches, the
+S-br rule first look up the appropriate basic block in the
+environment; then it applies the $k$th projection to get at the
+correct basic block. Finally, it resolves the contents of the
+$\phi$-nodes by substitution --- again exploiting the SSA/FP
+correspondence.
+
+The $\ido{x}{i_1}{i_2}$ instruction is equivalent to a normal
+let-construction in an (extended) lambda-calculus. It reduces $i_1$ via the
+rule S-do-s until it becomes a canonical value (i.e., a $\iret{c}$);
+then applies the rule S-do-v to push down the value of $x$ into the
+body $i_2$.
+
+Finally, function calls are handled by the S-call inference rule. We
+look up the definition of the function call in the function
+context. Then we step into a $\mathbf{do}$ instruction. Thus, we will
+use the $\mathbf{do}$ as a scratchpad for the function evaluation. It
+is not particularly efficient, but it avoids the introduction of a
+separate stack onto Mini-LLVM. Exploitation of the SSA-property leads
+to a simple substitution of function parameters.
+
+\paragraph{Step relation for programs}
+
+A Program steps by the form $\boxed{|- P --> P'}$. It simply
+introduces the definitions in the context so they are callable from
+the body.
 
 \chapter{Twelf encoding}
 
@@ -811,6 +909,49 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 
 \fixme{Describe the ``Meta-theory''}
 \fixme{Progress}
+\section{Lemmas}
+
+To prove the usual meta-theoretic theorems we need some auxiliary
+lemmas. For instructions, we need the presence of weakening lemmas for
+instructions with respect to variable- and basic-block-contexts.
+
+\begin{lem}
+  \label{lem:weaken-gamma}
+  Instruction typing admits weakening in the variable context: Suppose
+  we have $D;\Psi;\Gamma |- i : \tau$ for contexts $D, \Psi$ and
+  $\Gamma$. Further suppose $\Gamma \subseteq \Gamma'$ -- then
+  $D;\Psi;\Gamma' |- i : \tau$.
+\end{lem}
+\begin{rem}
+  The notation $\Gamma \subseteq \Gamma'$ warrants some
+  explanation. We say that the environment $\Gamma'$ is an
+  \emph{extension} or \emph{augmentation} of $\Gamma$: If $\Gamma(x) =
+  \tau$ then also $\Gamma'(s) = \tau$ for all $x \in \Gamma$. In
+  addition, $\Gamma'$ might have variables which are not in the
+  original $\Gamma$, and these are required to not shadow any existing
+  variables. We note this is an accordance with the SSA property of
+  Mini-LLVM/LLVM.
+\end{rem}
+\begin{proof}(Sketch)
+  Since we have $D;\Psi;\Gamma |- i : \tau$ we know that $i$ can't use
+  any variable but those in $\Gamma$ and those introduced in the
+  typing derivation. If we systematically use $\alpha$-conversion, we
+  can avoid capture of a new variable $y \not \in \Gamma$. Thus we can
+  use $y$ in $\Gamma'$ extending it with one new name.
+
+  Continuing this process, we can extend to the full $\Gamma'$.
+\end{proof}
+\begin{lem}
+  \label{lem:weaken-psi}
+  Instruction typing admits Basic Block weakening: if $D;\Psi;\Gamma
+  |- i : \tau$ and $\Psi \subseteq \Psi'$ then $D;\Psi';\Gamma |- i :
+  \tau$.
+\end{lem}
+\begin{proof}
+  I have no idea on how to do this yet.\fixme{Get an idea on the weakening!}
+\end{proof}
+\section{Progress}
+\fixme{Progress}
 \section{Preservation}
 
 We would like to prove the following theorem:
@@ -821,7 +962,7 @@ We would like to prove the following theorem:
 To do that, we need a lemma:
 \begin{lem}
   \label{thm:preservation-i}
-  Suppose $D |- \Phi : D$, $D;\Psi;\Gamma |- i : \tau$ and $D;\Psi;\Gamma |- i ->
+  Suppose $D |- \Phi : D \; \land \; D;\Psi;\Gamma |- i : \tau$ and $D;\Psi;\Gamma |- i ->
   i'$. Then we have $D;\Psi;\Gamma |- i' : \tau$
 \end{lem}
 \begin{proof}
@@ -829,21 +970,30 @@ To do that, we need a lemma:
   \begin{itemize}
   \item (Branch) If the step is of the form
     \begin{equation*}
-     \inference{BB(bb) = Ks \quad Ks(k) = i(x_1, \dotsc, x_n)}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
+    \inference{BB(bb) = Ks \quad Ks(k) = \lambda(x_1, \dotsc, x_n).i}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
       i(c_1, \dotsc, c_n)}
     \end{equation*}
     then we must have the following type derivation
     \begin{equation*}
-    \inference{\Psi(bb^n) = \tau_1 -> \tau_2 -> \dotsc ->
-      \tau_n -> \cdot\\
+    \inference{\Psi(bb) = BB\tau{}s \quad BB\tau{}s(k) : \tau_1 -> \tau_2 -> \dotsc ->
+      \tau_n -> \tau\\
       c_1 : \tau_1 \quad c_2 : \tau_2 \quad \dotsb \quad c_n : \tau_n}
     {D;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}
     \end{equation*}
-
+    The type of the basic block $bb$ is then $BB\tau{}s$. The $k$th
+    projection must have type $\tau_1 -> \dotsc -> \tau_n ->
+    \tau$. Since the basic block $bb$ must have been introduced at a
+    $\mathbf{letrec}$, we have that $D;\Psi';\Gamma' \tpb \lambda(x_1, \dotsc,
+    x_n).i : \tau_1 -> \dotsc -> \tau_n -> \tau$. Note that the
+    contexts of variables and basic block definitions are different
+    than those we want. But as $\Gamma' \subseteq \Gamma$ and $\Psi'
+    \subseteq \Psi$ we can utilize lemma \eqref{lem:weaken-gamma}
+    and \eqref{lem:weaken-psi} to obtain a proof of $D;\Psi;\Gamma
+    |- t : \tau$ as wanted.
   \end{itemize}
 \end{proof}
 \fixme{Rename ``Gamma'' in the Twelf code to something sensible}
-\fixme{Preservation}
+\section{Determinism}
 \fixme{Determinism}
 \chapter{Conclusion}
 

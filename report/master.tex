@@ -20,7 +20,8 @@
 
 \newcommand{\clang}{\textsc{Clang}}
 \newcommand{\twelf}{\textsc{Twelf}}
-
+\newcommand{\coq}{\textsc{Coq}}
+\newcommand{\bottom}{\perp}
 \bibliographystyle{plain}
 
 \begin{document}
@@ -162,11 +163,11 @@ depending on the control flow. The '\texttt{ret}' instruction
 returns. Note that this fragment has the SSA property.
 
 Since we would like to represent LLVM in a machine checkable form in
-\twelf{}, we utilize a result first formulated explicitly by
+\twelf{}, we utilize a result formulated explicitly by
 Appel\cite{appel:1998:modern, appel:1998:ssa}: every SSA program has
 an equivalent functional program. Thus our first design choice is to
-represent the LLVM subset as a functional first order
-program. Informally, we can transform a fragment
+represent the LLVM subset as a functional first order program to ease
+its encoding in \twelf{}. Informally, we can transform a fragment
 \begin{verbatim}
   %sub = sub i32 %n, 1
   %call = call i32 @tri(i32 %sub)
@@ -492,9 +493,7 @@ handle it later on when type checking functions.
   \begin{gather*}
     \text{Basic block Definitions:} \quad \boxed{D;\Psi;\Gamma \tpb d
       : \tau}\\
-    \inference[BB-Def]{\Gamma |- x_1 : \tau_1 \quad \dotsb \quad
-      \Gamma |- x_n : \tau_n\\
-    D;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n \mapsto \tau_n] |- i :
+    \inference[BB-Def]{D;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n \mapsto \tau_n] |- i :
   \tau}{D;\Psi;\Gamma \tpb \lambda(x_1, x_2, \dotsc,
       x_n).i : \tau_1 -> \tau_2 -> \dotsc -> \tau_n -> \cdot}
   \end{gather*}
@@ -660,8 +659,74 @@ is being built at the same time.
 
 \chapter{Twelf encoding}
 
+When encoding a system into \twelf{}, we must make certain choices
+along the way. Almost any operational semantics will --- in the name of
+notational simplicity --- omit specific parts. The encoding needs to
+take care of this explicitly, however.
+
+\section{The Prelude}
+
+We begin by encoding a prelude of helper-relations for use in the real
+formalization. In other proof systems (e.g., \coq{}\cite{team:coq*1}),
+these are already present in a standard library.
+
+We encode the boolean values and Peano style natural numbers along with
+operations on these. For boolean values, we build syntactical equality
+and boolean negation.
+
+For natural numbers, we build a set of operations. We define the
+arithmetic plus and mone operations on naturals. The mone operation,
+notated as $n - n'$ is equal to $0$ if $n' >= n$. We further define an
+ordering relation $(\cdot < \cdot) \colon \NN \times \NN \to \BB$ the
+usual way. Finally, we define syntactical equality between natural
+numbers, notated as $n = n'$. We also define non-equality as $n \neq
+n'$.
+
+\paragraph{properties}
+
+We will need some helper lemmas on our prelude in order to prove real
+theorems. Twelf has a built-in checker for determinism, which directly
+proves that the natural number operations of $+, -$ and $<$ all are
+deterministic.
+
+We then prove several lemmas
+\begin{lem}
+  Suppose we have two natural numbers $n_1, n_2 \in \NN$. Then there
+  exists an $n_3 \in \NN$ such that $n_1 + n_2 = n_3$.
+\end{lem}
+\begin{proof}
+  Induction on $n_1$: If $n_1$ is $0$ then take $n_3 =
+  n_2$. Otherwise then by induction $(n_1 - 1) + n_2 = (n_3 - 1)$. To this
+  we can add one to both sides to obtain the result.
+\end{proof}
+
+Lemmas of this form is very common in \twelf{} signatures. They are
+called \emph{effectiveness} lemmas and are usually named with a
+\texttt{can-} prefix as in \texttt{can-nat-plus} and
+\texttt{can-step-op}.
+
+We also have similar effectiveness lemmas for the operations $-$ and
+$<$.
+
+Another very common \twelf{} proof is reasoning from false. We have a
+special type family defined, \texttt{void}, with no constructors
+whatsoever. This can be used to prove absurd statements. Our first
+such statement is
+\begin{lem}
+  Let $n_1$ and $n_2$ be natural numbers. Then $n_1 = n_2 \land n_1
+  \neq n_2 \implies \bottom$.
+\end{lem}
+\begin{proof}
+  The proof relies on the fact that the premise is always false. In
+  our formal encoding we can analyze the structure on $n_1
+  \neq n_2$ to show this.
+\end{proof}
+
+\section{Syntax encoding}
+
 \fixme{Describe the ``Twelf Encoding''}
 \fixme{Describe all the failed formalization attempts}
+\fixme{Describe the toy language for function calls}
 
 \section{Transformation of LLVM Programs to Mini-LLVM}
 
@@ -746,6 +811,38 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 
 \fixme{Describe the ``Meta-theory''}
 \fixme{Progress}
+\section{Preservation}
+
+We would like to prove the following theorem:
+\begin{thm}
+  \label{thm:preservation}
+  If $|- P$ and $|- P --> P'$ then $|- P'$.
+\end{thm}
+To do that, we need a lemma:
+\begin{lem}
+  \label{thm:preservation-i}
+  Suppose $D |- \Phi : D$, $D;\Psi;\Gamma |- i : \tau$ and $D;\Psi;\Gamma |- i ->
+  i'$. Then we have $D;\Psi;\Gamma |- i' : \tau$
+\end{lem}
+\begin{proof}
+  Induction on: $D;\Psi;\Gamma |- i -> i'$:
+  \begin{itemize}
+  \item (Branch) If the step is of the form
+    \begin{equation*}
+     \inference{BB(bb) = Ks \quad Ks(k) = i(x_1, \dotsc, x_n)}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
+      i(c_1, \dotsc, c_n)}
+    \end{equation*}
+    then we must have the following type derivation
+    \begin{equation*}
+    \inference{\Psi(bb^n) = \tau_1 -> \tau_2 -> \dotsc ->
+      \tau_n -> \cdot\\
+      c_1 : \tau_1 \quad c_2 : \tau_2 \quad \dotsb \quad c_n : \tau_n}
+    {D;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}
+    \end{equation*}
+
+  \end{itemize}
+\end{proof}
+\fixme{Rename ``Gamma'' in the Twelf code to something sensible}
 \fixme{Preservation}
 \fixme{Determinism}
 \chapter{Conclusion}

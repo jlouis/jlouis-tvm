@@ -48,16 +48,6 @@ identity by reflection.
 
 }%
 
-bool-id : bool -> bool -> type.
-%mode bool-id +B1 -B2.
-
-bool-id/refl : bool-id B B.
-
-%worlds () (bool-id _ _).
-%total B (bool-id B _).
-
-
-
 bool-eq : bool -> bool -> bool -> type.
 %mode bool-eq +B1 +B2 -B3.
 

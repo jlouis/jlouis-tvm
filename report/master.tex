@@ -757,13 +757,19 @@ the body.
 
 \chapter{Twelf encoding}
 
-When encoding a system into \twelf{}, we must make certain choices
-along the way. Almost any operational semantics will --- in the name of
-notational simplicity --- omit specific parts. The encoding needs to
-take care of this explicitly, however.
+We now seek to encode the syntax and semantics in Twelf. When
+encoding, we must make certain choices along the way. Almost any
+operational semantics will --- in the name of notational simplicity
+--- omit specific parts. The encoding needs to take care of this
+explicitly, however.
+
+\paragraph{Extrinsic vs. Intrinsic encoding}
+
+\fixme{Write about the difference}
 
 \section{The Prelude}
 
+\fixme{The prelude here is badly written currently}
 We begin by encoding a prelude of helper-relations for use in the real
 formalization. In other proof systems (e.g., \coq{}\cite{team:coq*1}),
 these are already present in a standard library.
@@ -904,6 +910,7 @@ must also be created. This inverse parser should take a
 \twelf{}-signature with a test definition and transform it into
 equivalent full LLVM code. It has to invert the passing of
 $\phi$-nodes as well. This can be done by a similar two-pass scan.
+\fixme{Provide at least one more encoding example}
 
 \chapter{Meta-theory}
 

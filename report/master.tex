@@ -870,7 +870,6 @@ We would like to use an intrinsic encoding for as much of the syntax
 as possible.
 \fixme{Describe the ``Twelf Encoding''}
 \fixme{Describe all the failed formalization attempts}
-\fixme{Describe the toy language for function calls}
 
 \section{Transformation of LLVM Programs to Mini-LLVM}
 
@@ -955,7 +954,6 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 \chapter{Meta-theory}
 
 \fixme{Describe the ``Meta-theory''}
-\fixme{Progress}
 \section{Lemmas}
 
 To prove the usual meta-theoretic theorems we need some auxiliary
@@ -999,6 +997,7 @@ instructions with respect to variable- and basic-block-contexts.
 \end{proof}
 \section{Progress}
 \fixme{Progress}
+
 \section{Preservation}
 
 We would like to prove the following theorem:
@@ -1069,26 +1068,76 @@ Mini-LLVM before we arrived at the current formalization. In certain
 ways even this formalization is incomplete; lacking any kind of memory
 instructions and exceptions.
 
-The formalization was built up from two simpler systems. The first
-system was a first-order functionally inspired language with the
-$\mathbf{letrec}$ as its most prominent feature. This system helped us
-understand a way to formalize mutually recursive functions in
-\twelf{}. We note that this already
-exists\cite{twelfwiki:2007:mutually-recursive}, but we wanted to
-discover if it was possible to define a variant based in intrinsic
-typing and \twelf{}-contexts. It was then proven the system had the
-properties of \emph{progress} and \emph{determinism}. The
-preservation-property was obtained automatically by the intrinsic
-encoding: the step-relation in \twelf{} was
+The formalization is built up from two simpler systems, both
+formalized in \twelf{}. The first system is a first-order
+functionally inspired language with the $\mathbf{letrec}$ as its most
+prominent feature. The system helped us understand a way to formalize
+mutually recursive functions in \twelf{}. We note that this already
+exists\cite{twelfwiki:2007}, but we wanted to discover if it was
+possible to define a variant based in intrinsic typing and
+\twelf{}-contexts. It is then proven the system had the properties of
+\emph{progress} and \emph{determinism}. The preservation-property was
+obtained automatically by the intrinsic encoding: the step-relation in
+\twelf{} is
 \begin{verbatim}
 step : tm T -> tm T -> type.
 \end{verbatim}
-stating that the step relation preserved the type directly.
+stating that the step relation preserves the type directly. Thus
+preservation is a built-in feature of the small-step relation.
 
 The second system is presented in figure \ref{fig:func-call-lang}. It
-is a small toy language for the function call semantics. It was
+is a small toy language for the function call semantics. It is
 separately proven that this language has progress, preservation and
-determinism as well.
+determinism and this result has been formalized in \twelf{}.
+
+\newcommand{\fskip}{\mathbf{skip}}
+\newcommand{\fsemi}[2]{#1 \; ; \; #2}
+\newcommand{\fcall}[1]{\mathbf{call} \; #1}
+\newcommand{\fpgm}[2]{\mathbf{def} \; #1 \; \mathbf{in} \; #2}
+\begin{figure}
+  \begin{center}
+    Syntax:
+  \end{center}
+  \begin{align*}
+    \text{Terms} \quad \ni t & ::= \fskip{} \bor \fsemi{t_1}{t_2} \bor
+    \fcall{f}\\
+    \text{Defs} \quad \ni \Phi & ::= \cdot \bor f = t, \Phi\\
+    \text{Programs} \quad \ni P & ::= \fpgm{\Phi}{t}
+  \end{align*}
+  \begin{center}
+    Semantics:
+  \end{center}
+  \begin{gather*}
+    \boxed{\Phi |- t -> t'}\\
+    \inference[S-Skip]{}{\Phi |- \fsemi{\fskip{}}{t} -> t}\\
+    \inference[S-Semi]{\Phi |- t_1 -> t'_1}{\Phi |- \fsemi{t_1}{t_2}
+      -> \fsemi{t'_1}{t_2}} \quad \quad
+    \inference[S-Call]{\Phi(f) = t}{\Phi |- \fcall{f} -> t}\\
+    \boxed{|- P --> P'}\\
+    \inference[Pgm/]{\Phi |- t -> t'}{\fpgm{\Phi}{t} --> \fpgm{\Phi}{t'}}
+  \end{gather*}
+  \begin{center}
+    Typing
+  \end{center}
+  \begin{gather*}
+    \text{Fun types} \ni \Gamma ::= \cdot | f,\Gamma\\
+    \text{Wellformed terms:} \; \boxed{\Gamma |- t}\\
+    \inference[Wf-Skip]{}{\Gamma |- \fskip{}} \quad \quad
+    \inference[Wf-Call]{f \in \Gamma}{\Gamma |- \fcall{f}}\\
+    \inference[Wf-Semi]{\Gamma |- t_1 \quad \Gamma |- t_2}{\Gamma |-
+      \fsemi{t_1}{t_2}}\\
+    \text{Wellformed definitions:} \; \boxed{\Gamma |- \Phi :
+      \Gamma'}\\
+    \inference[WfD/z]{}{\Gamma |- \cdot : \cdot}\\
+    \inference[WfD/s]{\Gamma |- t \quad f \not \in \Gamma' \quad
+      \Gamma |- \Phi' : \Gamma'}{\Gamma |- f = t, \Phi' \; : \;
+      f,\Gamma'}\\
+    \text{Program typing:} \; \boxed{|- P}\\
+    \inference{\Gamma |- \Phi : \Gamma \quad \Gamma |- t}{|- \fpgm{\Phi}{t}}
+  \end{gather*}
+  \caption{Toy language for function calls}
+  \label{fig:func-call-lang}
+\end{figure}
 
 The Mini-LLVM formalization was then built by stratifying the first
 language from (functional) terms into registers, constants, operations

@@ -668,7 +668,7 @@ the proper mathematical arithmetic operation.
   \begin{gather*}
     \text{Instructions:} \quad \boxed{\Phi;BB |- i -> i'}\\
     \inference[S-let]{|- o \eop v}{\Phi;BB |- \ilet{x}{o}{i} ->
-      i[x/v]}\\\\
+      i[v/x]}\\\\
     \inference[S-letrec-v]{}{\Phi;BB |- \iletrec{bb}{(d_1, \dotsc,
         d_n)}{\iret{v}} -> \iret{v}}\\\\
     \inference[S-letrec-s]{\Phi;BB[bb \mapsto Dt] |- i -> i'}
@@ -681,12 +681,12 @@ the proper mathematical arithmetic operation.
     \inference[S-do-s]{\Phi;BB |- i_1 -> i'_1}{\Phi;BB |-
       \ido{x}{i_1}{i_2} -> \ido{x}{i'_1}{i_2}}\\\\
     \inference[S-do-v]{}{\Phi;BB |- \ido{x}{\iret v}{i_2} ->
-      i_2[x/v]}\\\\
+      i_2[v/x]}\\\\
     \inference[S-call]{\Phi(f) = (\;f(x_1, x_2, \dotsc, x_n) = i'\;)}{\Phi;BB |-
-      \icall{r}{f}{(c_1, c_2, \dotsc, c_n)}{i} -> \ido{r}{i'[x_1/c_1, x_2/c_2,
-        \dotsc, x_n/c_n]}{i}}\\\\
+      \icall{r}{f}{(c_1, c_2, \dotsc, c_n)}{i} -> \ido{r}{i'[c_1/x_1, c_2/x_2,
+        \dotsc, c_n/x_n]}{i}}\\\\
     \inference[S-br]{BB(bb) = Ks \quad Ks(k) = \lambda(x_1, \dotsc, x_n).i}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
-      i[x_1/c_1, \dotsc, x_n/c_n]}
+      i[c_1/x_1, \dotsc, c_n/x_n]}
  \end{gather*}
  \begin{gather*}
    \text{Programs:} \quad \boxed{|- P --> P'}\\
@@ -703,10 +703,10 @@ judgment form $\boxed{\Phi;BB |- i -> i'}$. The context $\Phi$
 contains function definitions we can call. The context $BB$ contains
 the basic blocks we have introduced and can branch to.
 
-In the semantics, we use the notation $i[x/v]$. This means that you
+In the semantics, we use the notation $i[v/x]$. This means that you
 substitute all occurrences of $x$ with $v$ in the syntax tree of
 $i$. In other words, if $(\lambda x . i\; x)$ the higher order
-abstraction of $i$ then $i[x/v] \equiv (\lambda x . i\; x) v$. We
+abstraction of $i$ then $i[v/x] \equiv (\lambda x . i\; x) v$. We
 use this fact extensively when encoding the semantics in \twelf{}.
 
 The basic sequential operation in LLVM is handled by the

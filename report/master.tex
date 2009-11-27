@@ -37,6 +37,7 @@
 
 \fixme{Mention something about $\alpha$-conversion and
   contexts. Particularly that it comes for free in \twelf{}}
+\fixme{We need to find a place to describe the development process}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -777,7 +778,7 @@ programs are allowed. When the typing relation stands next to the
 syntax description, we say that the encoding is \emph{extrinsic}.
 
 In contrast, if the programming language has access to Generalized
-algebraic datatypes (GADTs) or dependent types, we might define the
+algebraic data-types (GADTs) or dependent types, we might define the
 syntax in way that rejects ill-typed programs directly. This encoding
 form, called \emph{intrinsic} encoding, is possible in \twelf{},
 \coq{}, \agda{}, and to a certain extent \haskell{}.
@@ -796,30 +797,20 @@ definitions and programs.
 \section{The Prelude}
 
 \fixme{The prelude here is badly written currently}
-We begin by encoding a prelude of helper-relations for use in the real
+The prelude contains various helper-relations for use in the real
 formalization. In other proof systems (e.g., \coq{}\cite{team:coq*1}),
-these are already present in a standard library.
+these are already present in a standard library, but for \twelf{} we
+are forced to code them by hand.
 
 We encode the boolean values and Peano style natural numbers along with
-operations on these. For boolean values, we build syntactical equality
-and boolean negation.
-
-For natural numbers, we build a set of operations. We define the
-arithmetic plus and mone operations on naturals. The mone operation,
-notated as $n - n'$ is equal to $0$ if $n' >= n$. We further define an
-ordering relation $(\cdot < \cdot) \colon \NN \times \NN \to \BB$ the
-usual way. Finally, we define syntactical equality between natural
-numbers, notated as $n = n'$. We also define non-equality as $n \neq
-n'$.
+operations on these. As examples, we encode arithmetic operations and
+predicates for equality and non-equality.
 
 \paragraph{properties}
 
-We will need some helper lemmas on our prelude in order to prove real
-theorems. Twelf has a built-in checker for determinism, which directly
-proves that the natural number operations of $+, -$ and $<$ all are
-deterministic.
-
-We then prove several lemmas
+Since we want to use properties of the prelude in meta-theory, we must
+prove that the properties are true. In the following, we present some
+example properties from the prelude:
 \begin{lem}
   Suppose we have two natural numbers $n_1, n_2 \in \NN$. Then there
   exists an $n_3 \in \NN$ such that $n_1 + n_2 = n_3$.
@@ -833,10 +824,8 @@ We then prove several lemmas
 Lemmas of this form is very common in \twelf{} signatures. They are
 called \emph{effectiveness} lemmas and are usually named with a
 \texttt{can-} prefix as in \texttt{can-nat-plus} and
-\texttt{can-step-op}.
-
-We also have similar effectiveness lemmas for the operations $-$ and
-$<$.
+\texttt{can-step-op}. They build a bridge between a pure syntactical
+object and an accompanying relation on the object.
 
 Another very common \twelf{} proof is reasoning from false. We have a
 special type family defined, \texttt{void}, with no constructors
@@ -852,8 +841,15 @@ such statement is
   \neq n_2$ to show this.
 \end{proof}
 
+We can reason anything from \texttt{void} because void has no valid
+constructors. Thus the sentence $\forall v \in \texttt{void} \; . \; \exists
+E$ for any $E$ is vacuously true since there is no way the $v$ can be
+inhabited.
+
 \section{Syntax encoding}
 
+We would like to use an intrinsic encoding for as much of the syntax
+as possible.
 \fixme{Describe the ``Twelf Encoding''}
 \fixme{Describe all the failed formalization attempts}
 \fixme{Describe the toy language for function calls}
@@ -1028,9 +1024,55 @@ To do that, we need a lemma:
 \fixme{Rename ``Gamma'' in the Twelf code to something sensible}
 \section{Determinism}
 \fixme{Determinism}
+\chapter{Development Process}
+
+In this chapter, we describe the development process in the
+project. Constructing formal semantics for an existing system by
+discovering how it works contains several tripwires, booby traps and
+some barbed wire. The crux of the problem is that syntax, types,
+semantics and meta-theory fit together in an intricate network:
+altering one of them may render the other parts invalid. Further
+complication is added by LLVM: We cannot deviate too much from the
+LLVM IL.
+
+In practice, we needed to carry out several attempts in formalizing
+Mini-LLVM before we arrived at the current formalization. In certain
+ways even this formalization is incomplete; lacking any kind of memory
+instructions and exceptions.
+
+The formalization was built up from two simpler systems. The first
+system was a first-order functionally inspired language with the
+$\mathbf{letrec}$ as its most prominent feature. This system helped us
+understand a way to formalize mutually recursive functions in
+\twelf{}. We note that this already
+exists\cite{twelfwiki:2007:mutually-recursive}, but we wanted to
+discover if it was possible to define a variant based in intrinsic
+typing and \twelf{}-contexts. It was then proven the system had the
+properties of \emph{progress} and \emph{determinism}. The
+preservation-property was obtained automatically by the intrinsic
+encoding: the step-relation in \twelf{} was
+\begin{verbatim}
+step : tm T -> tm T -> type.
+\end{verbatim}
+stating that the step relation preserved the type directly.
+
+The second system is presented in figure \ref{fig:func-call-lang}. It
+is a small toy language for the function call semantics. It was
+separately proven that this language has progress, preservation and
+determinism as well.
+
+The Mini-LLVM formalization was then built by stratifying the first
+language from (functional) terms into registers, constants, operations
+and instructions syntactically; and then adding the second language on
+top of it. The result is the Mini-LLVM formalization presented in this
+report.
+
 \chapter{Conclusion}
 
+\paragraph{Summary}
+\paragraph{Further work}
 \fixme{Write the conclusion}
+
 
 \bibliography{biblio}
 % State what the goals of this project is.

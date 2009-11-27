@@ -21,6 +21,9 @@
 \newcommand{\clang}{\textsc{Clang}}
 \newcommand{\twelf}{\textsc{Twelf}}
 \newcommand{\coq}{\textsc{Coq}}
+\newcommand{\agda}{\textsc{Agda}}
+\newcommand{\haskell}{\textsc{Haskell}}
+
 \newcommand{\bottom}{\perp}
 \bibliographystyle{plain}
 
@@ -759,13 +762,36 @@ the body.
 
 We now seek to encode the syntax and semantics in Twelf. When
 encoding, we must make certain choices along the way. Almost any
-operational semantics will --- in the name of notational simplicity
---- omit specific parts. The encoding needs to take care of this
+operational semantics will omit specific parts --- in the name of
+notational simplicity. The encoding needs to take care of this
 explicitly, however.
 
 \paragraph{Extrinsic vs. Intrinsic encoding}
 
-\fixme{Write about the difference}
+When we specify a syntax as an abstract syntax tree in a language like
+ML, we usually do so by virtue of a recursive sum type. This syntax
+description allows us to write down some \emph{illegal} programs:
+certain syntax trees will get stuck under evaluation. A typing
+relation then constrain the syntax trees such that only well-typed
+programs are allowed. When the typing relation stands next to the
+syntax description, we say that the encoding is \emph{extrinsic}.
+
+In contrast, if the programming language has access to Generalized
+algebraic datatypes (GADTs) or dependent types, we might define the
+syntax in way that rejects ill-typed programs directly. This encoding
+form, called \emph{intrinsic} encoding, is possible in \twelf{},
+\coq{}, \agda{}, and to a certain extent \haskell{}.
+
+Intrinsic encodings have their limitations however. The typing
+relation must be static in the sense that it must be driven by the
+syntactical rules alone. An extrinsic encoding on the contrary can use
+any (Turing Machine-)computable function. This might make the
+intrinsic encoding impossible for some typing relations.
+
+In our work, we sought to achieve an intrinsic encoding of as much of
+the semantics as possible. This we aimed for an intrinsic encoding of
+instructions, but adopted an extrinsic encoding for function
+definitions and programs.
 
 \section{The Prelude}
 

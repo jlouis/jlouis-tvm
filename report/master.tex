@@ -110,13 +110,13 @@ system. We seek to prove the system fulfills the usual meta-theoretical
 properties of \emph{progress} and \emph{preservation} as well as
 \emph{determinism}.
 
-The state-of-the-art emphasized by for example the PoPLMark
-challenge\cite{aydemir:2005:mechanizedmetatheory}, is the encoding of
+The state-of-the-art emphasized by the poplmark
+challenge\cite{aydemir:2005:mechanizedmetatheory} is the encoding of
 syntax, semantics and proofs into a proof assistant or logical
 framework. The goal is that every computer scientific report is
 accompanied by a formal proof written such that the computer can
-verify its correctness. In this report, every description has been
-encoded into the logical framework of
+verify its correctness. In this report we aim for this goal: every
+formal description has been encoded into the logical framework of
 \twelf{}\cite{schurmann.pfenning:twelf} for verification.
 
 \section{Report structure}
@@ -131,7 +131,7 @@ SSA-form and its implications.
 
 \chapter{Design considerations}
 
-\fixme{This whole chapter needs more work as well}
+\fixme{Read from ``Design considerations'' and onwards}
 In this section, we limit the scope of the formalization and present
 the main design considerations before attempting to formalize the work.
 
@@ -665,12 +665,13 @@ Languages''.
 
 \paragraph{Step relation for operations}
 
-\newcommand{\eop}{=>_{o}}
-For operations, $\boxed{|- op \eop n}$ is the judgement form. The form
-states the operation $op$ evaluate to a value of $n$. This
-might look like a big-step semantics, but note that all operations are
-\emph{primitive} in Mini-LLVM: An operation is limited by the syntax
-such that it cannot be a tree.
+\newcommand{\eop}{=>_{o}} For operations, $\boxed{|- op \eop n}$ is
+the judgement form. The form states the operation $op$ evaluate to a
+value of $n$. This might look like a big-step semantics, but note that
+all operations are \emph{primitive} in Mini-LLVM: An operation is
+limited by the syntax such that it cannot be an arbitrary tree
+tree. This is also the reason we chose the operation as a name rather
+than the more common \emph{expressions}.
 
 For each possible operator, there is a corresponding inference
 rule. All of these simply unwraps underlying integers and then applies
@@ -814,7 +815,6 @@ definitions and programs.
 
 \section{The Prelude}
 
-\fixme{The prelude here is badly written currently}
 The prelude contains various helper-relations for use in the real
 formalization. In other proof systems (e.g., \coq{}\cite{team:coq*1}),
 these are already present in a standard library, but for \twelf{} we
@@ -867,9 +867,35 @@ inhabited.
 \section{Syntax encoding}
 
 We would like to use an intrinsic encoding for as much of the syntax
-as possible.
-\fixme{Describe the ``Twelf Encoding''}
+as possible. We would also like to use a for \twelf{} classic method
+w.r.t. encoding variables, named \emph{higher order abstract syntax}
+(HOAS). With HOAS, we use an LF-binding to represent a variable in the
+object language we are encoding. We can use this method to represent
+the registers of the language in the constants. Since our system is
+also intrinsic, we let a be a family of types:
+\begin{verbatim}
+cst : tp -> type.
+\end{verbatim}
+In the same vein, we can define operations and instructions to be
+bearing their types. For an instruction, its type is the type of a
+return value.
+
+This methodology is used to merge part of the typing relation into the
+language syntax, directly handling the type in the syntax.
+
+\paragraph{Handling basic blocks}
+\fixme{Describe how we handle basic blocks}
 \fixme{Describe all the failed formalization attempts}
+
+\paragraph{Handling function calls}
+\fixme{Describe how we handle function calls}
+
+\section{Semantics encoding}
+\fixme{Describe the semantics encoding}
+
+\section{Typing encoding}
+\fixme{Describe how the typing is encoding}
+\fixme{Describe the ``Twelf Encoding''}
 
 \section{Transformation of LLVM Programs to Mini-LLVM}
 
@@ -1054,42 +1080,6 @@ To do that, we need a lemma:
 \fixme{Determinism}
 \chapter{Development Process}
 
-In this chapter, we describe the development process in the
-project. Constructing formal semantics for an existing system by
-discovering how it works contains several tripwires, booby traps and
-some barbed wire. The crux of the problem is that syntax, types,
-semantics and meta-theory fit together in an intricate network:
-altering one of them may render the other parts invalid. Further
-complication is added by LLVM: We cannot deviate too much from the
-LLVM IL.
-
-In practice, we needed to carry out several attempts in formalizing
-Mini-LLVM before we arrived at the current formalization. In certain
-ways even this formalization is incomplete; lacking any kind of memory
-instructions and exceptions.
-
-The formalization is built up from two simpler systems, both
-formalized in \twelf{}. The first system is a first-order
-functionally inspired language with the $\mathbf{letrec}$ as its most
-prominent feature. The system helped us understand a way to formalize
-mutually recursive functions in \twelf{}. We note that this already
-exists\cite{twelfwiki:2007}, but we wanted to discover if it was
-possible to define a variant based in intrinsic typing and
-\twelf{}-contexts. It is then proven the system had the properties of
-\emph{progress} and \emph{determinism}. The preservation-property was
-obtained automatically by the intrinsic encoding: the step-relation in
-\twelf{} is
-\begin{verbatim}
-step : tm T -> tm T -> type.
-\end{verbatim}
-stating that the step relation preserves the type directly. Thus
-preservation is a built-in feature of the small-step relation.
-
-The second system is presented in figure \ref{fig:func-call-lang}. It
-is a small toy language for the function call semantics. It is
-separately proven that this language has progress, preservation and
-determinism and this result has been formalized in \twelf{}.
-
 \newcommand{\fskip}{\mathbf{skip}}
 \newcommand{\fsemi}[2]{#1 \; ; \; #2}
 \newcommand{\fcall}[1]{\mathbf{call} \; #1}
@@ -1139,6 +1129,42 @@ determinism and this result has been formalized in \twelf{}.
   \label{fig:func-call-lang}
 \end{figure}
 
+In this chapter, we describe the development process in the
+project. Constructing formal semantics for an existing system by
+discovering how it works contains several tripwires, booby traps and
+some barbed wire. The crux of the problem is that syntax, types,
+semantics and meta-theory fit together in an intricate network:
+altering one of them may render the other parts invalid. Further
+complication is added by LLVM: We cannot deviate too much from the
+LLVM IL.
+
+In practice, we needed to carry out several attempts in formalizing
+Mini-LLVM before we arrived at the current formalization. In certain
+ways even this formalization is incomplete; lacking any kind of memory
+instructions and exceptions.
+
+The formalization is built up from two simpler systems, both
+formalized in \twelf{}. The first system is a first-order
+functionally inspired language with the $\mathbf{letrec}$ as its most
+prominent feature. The system helped us understand a way to formalize
+mutually recursive functions in \twelf{}. We note that this already
+exists\cite{twelfwiki:2007}, but we wanted to discover if it was
+possible to define a variant based in intrinsic typing and
+\twelf{}-contexts. It is then proven the system had the properties of
+\emph{progress} and \emph{determinism}. The preservation-property was
+obtained automatically by the intrinsic encoding: the step-relation in
+\twelf{} is
+\begin{verbatim}
+step : tm T -> tm T -> type.
+\end{verbatim}
+stating that the step relation preserves the type directly. Thus
+preservation is a built-in feature of the small-step relation.
+
+The second system is presented in figure \ref{fig:func-call-lang}. It
+is a small toy language for the function call semantics. It is
+separately proven that this language has progress, preservation and
+determinism and this result has been formalized in \twelf{}.
+
 The Mini-LLVM formalization was then built by stratifying the first
 language from (functional) terms into registers, constants, operations
 and instructions syntactically; and then adding the second language on
@@ -1148,8 +1174,36 @@ report.
 \chapter{Conclusion}
 
 \paragraph{Summary}
+\begin{itemize}
+\item We present a formal semantics for Mini-LLVM, a subset of the
+  LLVM IL language. We provide syntax, semantics and a type system for
+  Mini-LLVM. We believe it can be used as a starting point for a
+  formalization of the full LLVM syntax and semantics.
+\item We encode the semantics in the logical framework \twelf{},
+  utilizing HOAS and \emph{regular worlds} in the formalization where
+  possible. We show that the encoding can correctly evaluate a small
+  number of test programs.
+\item We provide an alternative method by which to implement mutually
+  recursive functions in \twelf{} for first-order languages in an
+  intrinsically typed syntax.
+\item We formulate and prove the meta-theoretic properties of
+  \emph{progress} and \emph{determinism} in \twelf{}.
+  \fixme{Preservation?}
+\end{itemize}
 \paragraph{Further work}
-\fixme{Write the conclusion}
+
+Several extensions of the work are possible. We could extend the
+formalization, incorporating more of LLVM. The memory heap would be
+interesting to add; the most challenging part being the handling of
+pointer arithmetic. A possible path would be to see if Separation
+Logic\cite{reynolds:2002:separationlogic} can be used to understand
+the heap.
+
+Non-trivial control flow in the form of exceptions would also have to
+be conquered. It would be interesting to analyze if a monadic solution
+is feasible and reduces the complexity of the semantics.
+
+\fixme{Finish the conclusion}
 
 
 \bibliography{biblio}

@@ -37,7 +37,6 @@
 
 \fixme{Mention something about $\alpha$-conversion and
   contexts. Particularly that it comes for free in \twelf{}}
-\fixme{We need to find a place to describe the development process}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -884,10 +883,76 @@ This methodology is used to merge part of the typing relation into the
 language syntax, directly handling the type in the syntax.
 
 \paragraph{Handling basic blocks}
-\fixme{Describe how we handle basic blocks}
-\fixme{Describe all the failed formalization attempts}
+
+A complication with an intrinsic typing is how to type basic blocks. A
+basic block is essentially a list of definitions $d_1, d_2, \dotsc,
+d_n$, with each definition of the form $\lambda (x_1, \dotsc,
+x_n).i$. The latter can be represented by a standard \twelf{}-HOAS-trick:
+If $i$ is the syntax tree of the function body, we represent the
+$\phi$-variable by wrapping the syntax tree in an LF-lambda: $\lambda
+(x : \texttt{reg t}) . i$, where $x$ might be bound in $i$. Thus,
+substitution is LF-application. By successively wrapping once for each
+$x_i$ variable, we obtain a definition $d$. Since the typing is
+intrinsic, we let each wrapping book-keep the typing.
+
+The definition list also intrinsically encodes the typing. It is a
+typical functional style list with a \texttt{nil} and a \texttt{cons}
+element, but with a type-designation on each element.
+
+This construction encodes types for a list of definitions $d_1, d_2,
+\dotsc, d_n$ -- but we wish to handle such definitions by \twelf{}
+regular worlds. Hence, we have an type family
+\begin{verbatim}
+bname : bb-tp -> type.
+\end{verbatim}
+where \texttt{bb-tp} is the type of definition lists. We use that to
+introduce a new $bname$ into the context when stepping under a
+$\mathbf{letrec}$ instruction:
+\begin{verbatim}
+step/letrec-s : step D (insn/letrec ([pb] Defs pb) ([pb] Body pb))
+                     (insn/letrec ([pb] Defs pb) ([pb] Body' pb))
+                 <- ({pb} bb-bind pb (Defs pb) ->
+                         step D (Body pb) (Body' pb)).
+\end{verbatim}
+Here, the \texttt{pb} variable is a hypothetical new variable which we
+bind to the definitions with the \texttt{bb-bind} relation. Since
+definitions are allowed to call each other, we pass in the \texttt{pb}
+variable to the definitions. Note that the type of \texttt{pb} will be
+the same as the type of \texttt{(Defs pb)}.
+
+The above construction let us define a basic block bundle, but it does
+not tell the whole story: how to project and call. In a branch
+instruction $\ibr{bb^k}{(c_1, \dotsc, c_n)}$, we need to encode the
+call $bb^k$. We define this by the means of the constants
+\texttt{f-hd, f-tl/s} and \texttt{f-tl/z}. If $bb$ is a
+\texttt{bname}, we define $bb^k$ as:
+\newcommand{\fhd}{\mathtt{f\!\!-\!\!hd}}
+\newcommand{\ftls}{\mathtt{f\!\!-\!\!tl/s}\; }
+\newcommand{\ftlz}[1]{(\mathtt{f\!\!-\!\!tl/z} \; #1)}
+\begin{equation*}
+  \fhd \underbrace{(\ftls(\ftls ( \; \dotsb \; }_{k \; \text{terms}}\ftlz{bb})))
+\end{equation*}
+The encoding allows us to maintain the intrinsic typing when transferring
+control to another basic block. Each occurrence of an $\ftls$ will
+have us taking the tail of the definition pointed to by $bb$ -- giving
+us the $k$th projection at the front of the list when finished. See
+the \texttt{branch-lookup} relation in the \twelf{} source.
+
+We tried several different ways of encoding basic blocks
+intrinsically. Initially, we encoded a hypothetical name for
+each basic block definition $d_i$. It turns out, however, that this
+doesn't account for multiple definitions of the same basic block
+name which would lead to loss of determinism among other
+things. In general each basic block should occur once with a unique
+name -- and the hypothetical name must obey the typing of the
+definition. We used some time analyzing if it was possible to
+intrinsically code the first-order $\mathbf{letrec}$-variant of
+Mini-LLVM and the above encoding answers the question in the
+affirmative.
 
 \paragraph{Handling function calls}
+
+For function calls, we took a more traditional approach.
 \fixme{Describe how we handle function calls}
 
 \section{Semantics encoding}
@@ -1136,7 +1201,9 @@ some barbed wire. The crux of the problem is that syntax, types,
 semantics and meta-theory fit together in an intricate network:
 altering one of them may render the other parts invalid. Further
 complication is added by LLVM: We cannot deviate too much from the
-LLVM IL.
+LLVM IL. Finally, we enforced ourselves to encode everything formally
+in \twelf{}, which further complicates the task but also lifts it
+above most formal work.
 
 In practice, we needed to carry out several attempts in formalizing
 Mini-LLVM before we arrived at the current formalization. In certain
@@ -1211,6 +1278,28 @@ is feasible and reduces the complexity of the semantics.
 % State we focus on the operational semantics.
 % State we will use Twelf where applicable if time allows.
 
+\appendix
+\chapter{Source code}
+All source code are available either upon request from the author, or
+by git revision control on github:
+\url{http://github.com/jlouis/jlouis-tvm/tree/master/src/}. We note
+that the final commit for the source is:\fixme{Update this commit it}
+\begin{center}
+  \texttt{cda8e7bb44a0168def492a313ff2d860db2d2889}.
+\end{center}
+Since this commit is an SHA-1 checksum, it is impossible for the
+author to change the source after the deadline\footnote{If I on the
+  contrary \emph{can} alter the source code, I have a paper to write
+  in cryptography}.
+
+\fixme{Include source code}
+\section{Prelude}
+\section{Prelude properties}
+\section{Syntax}
+\section{Semantics}
+\section{Typing}
+\section{Test code}
+\section{Properties}
 \end{document}
 
 %%% Local Variables: 

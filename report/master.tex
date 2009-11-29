@@ -443,6 +443,7 @@ can simply limit valid programs to begin by a forced instruction
 call to a function ``\texttt{main}'', should we so desire.
 
 \chapter{Mini-LLVM type sytem}
+\label{chap:type-system}
 
 In this chapter we describe a type system for our Mini-LLVM
 language. There are several examples of syntactical problems in the
@@ -870,8 +871,11 @@ as possible. We would also like to use a for \twelf{} classic method
 w.r.t. encoding variables, named \emph{higher order abstract syntax}
 (HOAS). With HOAS, we use an LF-binding to represent a variable in the
 object language we are encoding. We can use this method to represent
-the registers of the language in the constants. Since our system is
-also intrinsic, we let a be a family of types:
+the registers of the language in the constants. In effect, execution
+of the semantics will mean that when a register is \emph{defined} we
+immediately ``push'' its value to all of its \emph{uses} by
+substitution. Since our system is also intrinsic, we let a be a family
+of types:
 \begin{verbatim}
 cst : tp -> type.
 \end{verbatim}
@@ -952,16 +956,51 @@ affirmative.
 
 \paragraph{Handling function calls}
 
-For function calls, we took a more traditional approach.
-\fixme{Describe how we handle function calls}
+For function calls, we deviate from the intrinsic encoding and encode
+it extrinsically as is more traditional. A function identifier is
+simply a natural number. But to build the bridge between the intrinsic
+and extrinsic parts it was beneficial to augment the function
+identifier with the presumed type from the intrinsic encoding:
+\begin{verbatim}
+fun-id : tp -> tp-list -> type.
+fun-id/ : nat -> fun-id T TL.
+\end{verbatim}
+Consequently, the intrinsic type system will not be able to type check
+the correctness of function calls.
 
 \section{Semantics encoding}
-\fixme{Describe the semantics encoding}
+
+The semantics are encoded rather straightforwardly from figure
+\ref{fig:semantics}. The only deviance is the use of the \twelf{}
+context to handle the semantic environments.
+
+The somewhat informal invocation of basic blocks and function calls
+need mention though. In the semantics, we write $i[c_1/x_1, \dotsc,
+c_n/x_n]$ for substituting $c_i$ for $x_i$ ($1 \leq i \leq n$). In the
+\twelf{} formalization this is realized by the following construction:
+We have a list $[c_1 : \tau_1, \dotsc, c_n : \tau_n]$ of constant
+parameters and a basic-block / function-body which HOAS-represents the
+$\phi$-nodes: $\lambda x_1 : \tau_1 \;.\; (\lambda x_2 : \tau_2 \;.\;
+\dotsc, (\lambda x_n : \tau_n \;.\; i)\dotsb{})$. We can then
+successively apply a constant $c_i : \tau_i$ to the $i$th lambda-term
+and then $\beta$-reduction solves the rest of the substitution. The
+very fact that $\beta$-reduction acts as our substitution principle is
+central to \twelf{}-representations.
 
 \section{Typing encoding}
-\fixme{Describe how the typing is encoding}
-\fixme{Describe the ``Twelf Encoding''}
 
+The intrinsic parts of the type system is already encoded into the
+syntax. The extrinsic parts are encoded in a set of relations which are
+directly transcribed from the operational semantics given in chapter
+\ref{chap:type-system}.
+
+The notation $f \not \in D$ is implemented by a simple scan over the
+list of definitions:
+\begin{gather*}
+  \text{Function Absence:} \quad \boxed{f \not \in D}\\
+  \inference[f-notin/z]{}{f \not \in \cdot}\\\\
+  \inference[f-notin/s]{f \neq f' \quad f \not \in D'}{f \not \in (f' = t, D')}
+\end{gather*}
 \section{Transformation of LLVM Programs to Mini-LLVM}
 
 One rather important milestone in our work is to make sure a correct
@@ -985,11 +1024,13 @@ tri (int n) {
     else return (tri(n-1) + n);
 }
 \end{verbatim}
-We can then use the \clang{} compiler from C to LLVM IL to
-generate LLVM code for this C fragment. The \clang{} compiler
-circumvents the need to produce SSA code by making all operations
-stack movements. Thus the raw output from the compiler cannot be
-used.
+We can then use the \clang{} compiler from C to LLVM IL to generate
+LLVM code for this C fragment. The \clang{} compiler circumvents the
+need to produce SSA IL code by using the stack as a scratch-pad for
+all operations. Any operation will be a load from the memory location
+of the stack and then a store back of the result. Thus the raw output
+from the compiler cannot be used as our Mini-LLVM language has no
+concept of a stack.
 
 LLVM contains an optimization pass however, \texttt{mem2reg}, which
 can transform stack references into register access. This effectively
@@ -1103,8 +1144,7 @@ To do that, we need a lemma:
   |- BB : \Psi$. In other words that definitions are wellformed, the
   instruction $i$ is well-typed and that the typing of basic blocks
   relates to the typing of the instructions. If then $\Phi;BB |- i ->
-  i'$ it implies we have $D;\Psi;\Gamma |- i' : \tau$.\fixme{We do not
-    use $\Psi |- BB : \Psi$ yet}
+  i'$ it implies we have $D;\Psi;\Gamma |- i' : \tau$.
 \end{lem}
 \begin{proof}
   Induction on: $D;\Psi;\Gamma |- i -> i'$:\fixme{Many cases are

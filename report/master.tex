@@ -571,9 +571,10 @@ passed arguments obeys the type scheme.
       \ibr{bb^k}{(c_1, \dotsc c_n)} : \tau \\
     D;\Psi;\Gamma |- \ibr{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}{D;\Psi;\Gamma |- \ibrc{x}{bb^k}{(c_1, \dotsc,
         c_n)}{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau} \\\\
-    \inference[Tp-letrec]{D;\Psi;\Gamma \tpb d_1 : Bb \tau_1 \quad
-      \dotsb \quad D;\Psi;\Gamma \tpb d_n : Bb
-      \tau_n \\
+    \inference[Tp-letrec]{D;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
+      \tau_n)];\Gamma \tpb d_1 : Bb \tau_1\\
+      \dotsb \\D;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
+      \tau_n)];\Gamma \tpb d_n : Bb\tau_n \\
       D;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
       \tau_n)];\Gamma |- i : \tau}{D;\Psi;\Gamma |- \iletrec{bb}{(d1,
         \dotsc, d_n)}{i} : \tau}\\\\
@@ -604,14 +605,31 @@ Note that the rule $D |- \Phi : D$ ties the knot on function
 definitions. The function environment $D$ is being examined while it
 is being built at the same time.
 
+The judgement $\boxed{D;\Psi;\Gamma |- BB : \Psi'}$ is used to state
+that a basic block relates to its context. We will use this in the
+proof of \emph{preservation}, to maintain the relationship. The idea
+is that if a basic-block environment is well-formed, all the
+definitions must be.
+
 \begin{figure}
   \begin{gather*}
-    \text{Definition Wellformedness:} \quad \boxed{D |- \Phi : D}\\\\
+    \text{Definition Wellformedness:} \quad \boxed{D |- \Phi : D'}\\\\
     \inference[Wf-defs/z]{}{D |- \cdot : \cdot}\\\\
     \inference[Wf-defs/s]{D |- \Phi' : D' \quad D;\cdot;[x_1 \mapsto
       \tau_1 \; \dotsb \; x_n \mapsto \tau_n] |- i :
       \tau \quad f \not \in D'}{D |- (f(x_1, \dotsc, x_n) = i, \Phi') : (f
       \mapsto \tau_1 -> \dotsc -> \tau_n -> \tau, D')}
+  \end{gather*}
+  \begin{gather*}
+    \text{Basic Block Wellformedness:} \quad \boxed{D;\Psi;\Gamma |-
+    BB : \Psi'}\\\\
+  \inference[Wf-bb/z]{}{D;\Psi;\Gamma |- \cdot : \cdot}\\\\
+  \inference[Wf-bb/s]{D;\Psi;\Gamma \tpb d_1 : BB\tau_1\\
+                      \dotsb\\
+                      D;\Psi;\Gamma \tpb d_n : BB\tau_n\\
+                      D;\Psi;\Gamma |- BB' : \Psi'}
+                    {D;\Psi;\Gamma |- (bb = (d_1, \dotsc, d_n), BB') : (bb \mapsto
+                      (Bb\tau_1,\dotsc,Bb\tau_n), \Psi')}
   \end{gather*}
   \begin{gather*}
     \text{Program Wellformedness:} \quad \quad \boxed{|- P}\\\\
@@ -991,11 +1009,16 @@ We would like to prove the following theorem:
 To do that, we need a lemma:
 \begin{lem}
   \label{thm:preservation-i}
-  Suppose $D |- \Phi : D \; \land \; D;\Psi;\Gamma |- i : \tau$ and $D;\Psi;\Gamma |- i ->
-  i'$. Then we have $D;\Psi;\Gamma |- i' : \tau$
+  Suppose $D |- \Phi : D \;$, $\; D;\Psi;\Gamma |- i : \tau$ and $D;\Psi;\Gamma
+  |- BB : \Psi$. In other words that definitions are wellformed, the
+  instruction $i$ is well-typed and that the typing of basic blocks
+  relates to the typing of the instructions. If then $\Phi;BB |- i ->
+  i'$ it implies we have $D;\Psi;\Gamma |- i' : \tau$.\fixme{We do not
+    use $\Psi |- BB : \Psi$ yet}
 \end{lem}
 \begin{proof}
-  Induction on: $D;\Psi;\Gamma |- i -> i'$:
+  Induction on: $D;\Psi;\Gamma |- i -> i'$:\fixme{Many cases are
+    currently missing}
   \begin{itemize}
   \item (Branch) If the step is of the form
     \begin{equation*}
@@ -1011,14 +1034,20 @@ To do that, we need a lemma:
     \end{equation*}
     The type of the basic block $bb$ is then $BB\tau{}s$. The $k$th
     projection must have type $\tau_1 -> \dotsc -> \tau_n ->
-    \tau$. Since the basic block $bb$ must have been introduced at a
-    $\mathbf{letrec}$, we have that $D;\Psi';\Gamma' \tpb \lambda(x_1, \dotsc,
-    x_n).i : \tau_1 -> \dotsc -> \tau_n -> \tau$. Note that the
-    contexts of variables and basic block definitions are different
-    than those we want. But as $\Gamma' \subseteq \Gamma$ and $\Psi'
-    \subseteq \Psi$ we can utilize lemma \eqref{lem:weaken-gamma}
-    and \eqref{lem:weaken-psi} to obtain a proof of $D;\Psi;\Gamma
-    |- t : \tau$ as wanted.
+    \tau$. Now, by the helper-relation $D;\Psi;\Gamma |- BB : \Psi$,
+    we have that $D;\Psi';\Gamma' \tpb \lambda(x_1, \dotsc, x_n).i :
+    \tau_1 -> \dotsc -> \tau_n -> \tau$. Note that the contexts of
+    variables and basic block definitions are different than those we
+    want. But as $\Gamma' \subseteq \Gamma$ and $\Psi' \subseteq \Psi$
+    we can utilize lemma \eqref{lem:weaken-gamma} and
+    \eqref{lem:weaken-psi} to obtain a proof of $D;\Psi;\Gamma |- t :
+    \tau$ as wanted.
+    \item (Letrec step)
+      \begin{rem}
+        We use induction on the premise and note that we can extend
+        $D;\Psi;\Gamma |- BB : \Psi$ properly so the IH can be
+        applied.\fixme{Preservation needs much more work here}
+      \end{rem}
   \end{itemize}
 \end{proof}
 \fixme{Rename ``Gamma'' in the Twelf code to something sensible}

@@ -30,8 +30,27 @@
 \begin{document}
 \listoffixmes{}
 \maketitle{}
+\begin{abstract}
+  We present the language Mini-LLVM, an idealized subset of the IL
+  language for the \emph{Low Level Virtual machine}(LLVM). From an
+  informal LLVM-description, we give a formal account of the syntax,
+  semantics types and meta-theoretic properties of Mini-LLVM. We thus
+  establish the -- to our knowledge -- first partial formalization of
+  LLVM. Our formalization exploits the SSA-form requirement of the
+  LLVM IL in a novel way to transform the IL into a functional
+  representation. The representation and its meta-theoretic properties
+  are encoded into the \twelf{} logical framework and we provide proof
+  of \emph{progress}, \emph{preservation} and \emph{determinism} for
+  well-typed programs\fixme{Preservation?}. Finally, we show how small
+  LLVM IL programs can be translated to our Mini-LLVM language and
+  show that they agree on certain inputs --- making it plausible our
+  Mini-LLVM is adequate.
+\end{abstract}
 \newpage{}
 \tableofcontents{}
+\newpage{}
+\section{Foreword}
+\fixme{Write a foreword}
 \newpage{}
 \chapter{Introduction}
 
@@ -1301,6 +1320,17 @@ report.
   \emph{progress} and \emph{determinism} in \twelf{}.
   \fixme{Preservation?}
 \end{itemize}
+
+The work should be of interest to anyone who work with the LLVM
+system. It provides a key understanding on the basics of the language
+and acts as a start for a EBNF grammar for LLVM (which is currently
+lacking). In addition we have shown the strong similarity between a
+first-order functional language and the LLVM IL. Hence, the work gives
+another way to implement the syntax tree for LLVM in a compiler
+front-end, before emitting IL instructions. We believe that the latter
+part may be of practical use to compiler implementers seeking to use
+LLVM in their work.
+
 \paragraph{Further work}
 
 Several extensions of the work are possible. We could extend the
@@ -1313,9 +1343,6 @@ the heap.
 Non-trivial control flow in the form of exceptions would also have to
 be conquered. It would be interesting to analyze if a monadic solution
 is feasible and reduces the complexity of the semantics.
-
-\fixme{Finish the conclusion}
-
 
 \bibliography{biblio}
 % State what the goals of this project is.

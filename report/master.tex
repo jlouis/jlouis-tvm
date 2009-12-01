@@ -392,23 +392,31 @@ targeting LLVM; in particular, the \clang{}-project was used.
 \section{Main syntax}
 
 In figure \ref{fig:syntax} we present the complete syntax for the
-Mini-LLVM language. An LLVM register '\%x' is mapped onto a set of
-registers $x_1, \dotsc$. The constants of the language are exactly
+Mini-LLVM language. The atomic expressions of the language are exactly
 registers, natural numbers and boolean values. The language has three
 primitive operations, namely $c + c$, $c - c$ and $c < c$. Of these,
 the latter returns a boolean value, whereas the first two return
-natural numbers. The '$-$' operation is defined such that if $y \geq x$
-then $x - y = 0$.
+natural numbers. The '$-$' operation is defined such that if $y \geq
+x$ then $x - y = 0$.
 
-The main part of Mini-LLVM are the instructions. The instruction
-$\iret{v}$ represents returning a value from a function. It models the
-LLVM '\texttt{ret}' instruction. The instruction $\ibr{bb^k}{(c_1,
-  \dotsc, c_n)}$ designates an unconditional branch to the $k$th
-projection in the basic block bundle represented by the name $bb$. The
-parameters $c_1$ through $c_n$ are formal $\phi$-node parameters to
-the given basic block. In LLVM, the projections are named explicitly
-by identifier names, but we felt that a projection is easier to handle
-from a formal viewpoint.
+Instructions form the main part of Mini-LLVM. The instruction
+$\iret{c}$ represents returning a value from a function. It models the
+LLVM '\texttt{ret}' instruction.
+
+Basic blocks are introduced with the $\iletrec{bb}{(d_1, \dotsc,
+  d_n)}{i}$ notation. This simultaneously binds the definitions $d_1$
+through $d_n$ of basic blocks to the name $bb$. Note each definition will
+take formal parameters for its $\phi$-nodes. The name $bb$ will be
+available in the context of the instruction $i$. We will often in the
+following call a basic block mapping $bb \mapsto (d_1, \dotsc, d_n)$
+for a Basic block \emph{bundle}.
+
+The instruction $\ibr{bb^k}{(c_1, \dotsc, c_n)}$ designates an
+unconditional branch to the $k$th projection in the basic block bundle
+represented by the name $bb$. The parameters $c_1$ through $c_n$ are
+formal $\phi$-node parameters to the given basic block. In LLVM, the
+projections are named explicitly by identifier names, but we felt that
+a projection is easier to handle from a formal viewpoint.
 
 The $\ibrc{x}{bb^k}{Ps}{bb^{k'}}{Ps'}$ represents a conditional
 branch. It will, depending on the value of $x$ transfer control to
@@ -422,12 +430,6 @@ of operations as a chain of let-style-bindings. Thus the
 $\ilet{x}{op}{i}$ instruction represents sequential execution. An
 operation is executed and its result is placed into the register
 $x$. The register is then available in the $i$ instruction.
-
-Basic blocks are introduced with the $\iletrec{bb}{(d_1, \dotsc,
-  d_n)}{i}$ notation. This simultaneously binds the definitions $d_1$
-through $d_n$ of basic blocks to the name $bb$. Note each definition will
-take formal parameters for its $\phi$-nodes. The name $bb$ will be
-available in the context of the instruction $i$.
 
 The $\ido{x}{i_1}{i_2}$ instruction is not meant to be present in
 initial Mini-LLVM programs. It is used internally to keep the context

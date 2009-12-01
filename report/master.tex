@@ -275,40 +275,22 @@ compatible way as long as it remains a version 2.x.
 \newcommand{\tpenv}{\mathrm{Var Contexts}}
 \newcommand{\bbenv}{\mathrm{BB Contexts}}
 \newcommand{\bor}{\; \vert \;}
+\newcommand{\ntypes}{\tau_1 \times \tau_2 \dotsb \times \tau_n}
+\newcommand{\bbtypes}{(\sigma_1, \dotsc, \sigma_n)}
 
-\begin{figure}
-  \begin{align*}
-    \types \ni \tau & ::= \tnat \bor \tbool \\
-    \typelist \ni [\tau] & ::= \cdot \bor \tau -> [\tau] \\
-    \bbtype \ni Bb \tau   & ::= \tau_1 -> \dotsc -> \tau_n -> \tau\\
-    \ftype \ni D & ::= \cdot \bor (f \mapsto (\tau_1 -> \dotsc ->
-    \tau_n), D) \\
-    \tpenv \ni \Gamma & ::= \cdot \bor (x \mapsto \tau),\Gamma\\
-    \bbenv \ni \Psi   & ::= \cdot \bor (bb \mapsto (Bb \tau_1, \dotsc Bb
-    \tau_n)),\Psi
-  \end{align*}
-  \caption{Type system}
-  \label{fig:type-system}
-\end{figure}
+In this and the following sections, we present the language
+Mini-LLVM. Mini-LLVM is a subset of the LLVM IL in functionality ---
+it takes a different approach with respect to SSA-form: Mini-LLVM is a
+first order functional language whereas the LLVM IL is an imperative
+SSA-form. A functional form is expected to be easier to work with,
+formally -- especially in the logical framework \twelf{}.
 
-In this section, we present the syntax of Mini-LLVM in a formal BNF
+In the present section, we present the syntax of Mini-LLVM in a formal BNF
 grammar. We also describe the type system as well as the basic domains
 from which we draw values.
 
-\section{Types and domains}
+\section{Domains}
 
-\paragraph{Types} The language employs a simple type system as in
-figure \ref{fig:type-system}. There are two primitive base types,
-natural numbers and boolean values. For handling passing of parameters
-between basic blocks via $\phi$-nodes, there is a $\bbtype$
-designation stating a (possibly empty) list of formal parameters. We
-notate such lists as $\tau -> \dotsc \tau' -> \cdot$ where the last
-``$\cdot$'' states that it is a function but without return type.
-
-The choice of two primitive types is deliberate. It is the simplest
-non-trivial choice of types possible. Had there only been one base
-type, all typing degenerates into questions on type arity in basic
-block definitions.
 
 \newcommand{\numbers}{\mathrm{Numbers}}
 \newcommand{\booleans}{\mathrm{Booleans}}
@@ -319,11 +301,9 @@ block definitions.
 \newcommand{\btrue}{\mathbf{True}}
 \newcommand{\bfalse}{\mathbf{False}}
 
-\paragraph{Domains}
-
-Our language will be using several syntactic domains, the existence of
-which we assume (figure \ref{fig:syntactic-domains}). We have
-variables, $x_1, x_2, \dotsc$ used for naming and discriminating
+Our language will be using several syntactic terminal domains, the
+existence of which we assume (figure \ref{fig:syntactic-domains}). We
+have variables, $x_1, x_2, \dotsc$ used for naming and discriminating
 registers from each others. For simplicity we restrict the language to
 natural numbers only. This restriction is due to \twelf{}: we need to
 encode the system of numbers and Peano-style natural numbers are
@@ -333,11 +313,10 @@ arithmetic in our verification, hence it might be possible to change
 this later on.
 \begin{figure}
   \begin{align*}
-    \variables \ni V & ::= x_1, x_2, \dotsc \\
     \numbers \ni \NN, \nat & ::= 0 \bor 1 \bor 2 \bor \dotsc\\
     \booleans \ni \BB, \bool & ::= \btrue \bor \bfalse \\
     \BBlabels \ni bb & ::= bb_1, bb_2, bb_3, \dotsc \\
-    \funlabels \ni f,g & ::= f,g,h,\dotsc
+    \funlabels \ni f & ::= f_1,f_2,f_3,\dotsc
   \end{align*}
   \caption{Syntactic domains}
   \label{fig:syntactic-domains}
@@ -346,19 +325,27 @@ this later on.
 Boolean values are either the true value or the false
 value. Internally these are encoded as the natural numbers $0$ and
 $1$, but the type system is intended to restrict the use to these
-values only. Finally, we assume a set of Basic Block names. These are used to refer
-to groups of basic blocks.
+values only. In the LLVM IL, an integer variable is typed as its
+bit-size, so \texttt{i32} is a 32-bit integer. The special case
+\texttt{i1} designate a boolean variable with values 0 or 1. Our
+Mini-LLVM language model this by the above construction. Finally, we
+assume a set of Basic Block label names and a set of function
+names. These are used to refer to groups of basic blocks and
+functions, respectively.
 
-The LLVM IL severely limits extent where one is allowed to use a
-specific syntactic class. This is probably due to the ILs heritage; it
-is essentially an imperative, typed assembly language. In the course
-of development, we started with a language more closely resembling a
-functional language and then gradually stratified the syntactic
-classes until it matched that of LLVM as much as possible.
+In the course of development, we started with a language more closely
+resembling a functional language and then gradually stratified the
+syntactic classes until it matched that of LLVM as much as
+possible. Being an imperative language, LLVM resembles the usual
+imperative construction with statements and expressions as stratified
+syntactical classes.
 
 Of course, since LLVM has no formal description and the informal
 description lacks precision\cite{lattner.ea:2009:llvm-ref}, we run the
-risk of having mistaken something in the definition.
+risk of having mistaken something in the definition. To mitigate this
+risk somewhat, we also used the current LLVM system as a source by
+studying and analyzing compiler output from various compilers
+targeting LLVM; in particular, the \clang{}-project was used.
 
 \newcommand{\registers}{\mathrm{Registers}}
 \newcommand{\constants}{\mathrm{Constants}}
@@ -385,18 +372,18 @@ risk of having mistaken something in the definition.
                        & \bor \quad c + c \\
                        & \bor \quad c - c \\
                        & \bor \quad c < c \\
-   \basicblocks \ni d  & ::= \lambda (x_1, x_2, \cdots, x_n) . i\\
-   \instructions \ni i & ::= \iret{c} \\
+   \basicblocks \ni d  & ::= \lambda (x_1, x_2, \cdots, x_n) . s\\
+   \instructions \ni s & ::= \iret{c} \\
                        & \bor \quad \ibr{bb^n}{(c_1, \dotsc, c_n)} \\
                        & \bor \quad \ibrc{c}{bb^n}{(c_1, \dotsc, c_n)}{bb^n}{(c'_1, \dotsc, c'_n)}\\
-                       & \bor \quad \ilet{r}{op}{i} \\
-                       & \bor \quad \iletrec{bb}{(d_1, d_2, \dotsc, d_n)}{i} \\
-                       & \bor \quad \ido{r}{i_1}{i_2} &
+                       & \bor \quad \ilet{r}{op}{s} \\
+                       & \bor \quad \iletrec{bb}{(d_1, d_2, \dotsc, d_n)}{s} \\
+                       & \bor \quad \ido{r}{s_1}{s_2} &
                        (\text{Internal})\\
                        & \bor \quad \icall{r}{f}{(c_1, \dotsc,
-                         c_n)}{i}\\
-    \definitions \ni \Phi & ::= \cdot \bor (f(x_1, \dotsc, x_n) = i, \Phi)\\
-    \programs \ni p & ::= \ipgm{\Phi}{i}
+                         c_n)}{s}\\
+    \definitions \ni D & ::= \cdot \bor (f(x_1, \dotsc, x_n) = s, D)\\
+    \programs \ni p & ::= \ipgm{D}{s}
   \end{align*}
   \caption{Syntax}
   \label{fig:syntax}
@@ -480,6 +467,31 @@ constant $c$ in $\ibrc{c}{...}{}{}{}$, which is obviously incorrect as
 per our semantics, we define later. Another problem might be that
 $\ilet{r}{op}{i}$ has a type $\tau$ for the register $r$ but its use
 in $i$ is of type $\tau'$ different from $\tau$.
+
+\paragraph{Type Domains} The language employs a simple type system as in
+figure \ref{fig:type-system}. There are two primitive base types,
+natural numbers and boolean values. For handling passing of parameters
+between basic blocks via $\phi$-nodes, there is a $\bbtype$
+designation stating a (possibly empty) list of formal parameters. We
+notate such lists as $\ntypes -> \bullet$ where the last
+``$\bullet$'' states that it is a function but without return type.
+\fixme{Bullet here and in the figure below}
+The choice of two primitive types is deliberate. It is the simplest
+non-trivial choice of types possible. Had there only been one base
+type, all typing degenerates into questions on type arity in basic
+block definitions.
+
+\begin{figure}
+  \begin{align*}
+    \types \ni \tau & ::= \tnat \bor \tbool \\
+    \bbtype \ni \sigma   & ::= \ntypes -> \bullet\\
+    \ftype \ni \Phi & ::= \cdot \bor (f \mapsto (\ntypes -> \tau), \Phi) \\
+    \tpenv \ni \Gamma & ::= \cdot \bor (x \mapsto \tau),\Gamma\\
+    \bbenv \ni \Psi   & ::= \cdot \bor (bb \mapsto \bbtypes),\Psi
+  \end{align*}
+  \caption{Type system}
+  \label{fig:type-system}
+\end{figure}
 
 \newcommand{\tpr}{|-_{r}}
 \newcommand{\tpc}{|-_{c}}

@@ -276,7 +276,9 @@ compatible way as long as it remains a version 2.x.
 \newcommand{\tpenv}{\mathrm{Var Contexts}}
 \newcommand{\bbenv}{\mathrm{BB Contexts}}
 \newcommand{\bor}{\; \vert \;}
-\newcommand{\ntypes}{\tau_1 \times \tau_2 \dotsb \times \tau_n}
+\newcommand{\ntypes}{\tau_1 \times \tau_2 \times \dotsb \times \tau_n}
+\newcommand{\ntypesp}{\tau'_1 \times \tau'_2 \times \dotsb \times \tau'_n}
+
 \newcommand{\bbtypes}{(\sigma_1, \dotsc, \sigma_n)}
 
 In this and the following sections, we present the language
@@ -405,7 +407,7 @@ $\iret{c}$ represents returning a value from a function. It models the
 LLVM '\texttt{ret}' instruction.
 
 Basic blocks are introduced with the $\iletrec{bb}{(d_1, \dotsc,
-  d_n)}{i}$ notation. This simultaneously binds the definitions $d_1$
+  d_n)}{s}$ notation. This simultaneously binds the definitions $d_1$
 through $d_n$ of basic blocks to the name $bb$. Note each definition will
 take formal parameters for its $\phi$-nodes. The name $bb$ will be
 available in the context of the instruction $i$. We will often in the
@@ -428,18 +430,18 @@ difference discriminates them.
 
 As noted in the design considerations, we represent a sequential chain
 of operations as a chain of let-style-bindings. Thus the
-$\ilet{x}{op}{i}$ instruction represents sequential execution. An
+$\ilet{x}{op}{s}$ instruction represents sequential execution. An
 operation is executed and its result is placed into the register
-$x$. The register is then available in the $i$ instruction.
+$x$. The register is then available in the $s$ instructions.
 
-The $\ido{x}{i_1}{i_2}$ instruction is not meant to be present in
+The $\ido{x}{s_1}{s_2}$ instruction is not meant to be present in
 initial Mini-LLVM programs. It is used internally to keep the context
 of a function call around. This has to do with the fact that the
 formalization lacks a stack and thus uses the current continuation
 context to keep track of where the computation came from. Function
 calls utilize the instruction while they are executing.
 
-Finally the $\icall{r}{f}{(c_1, \dotsc, c_n)}{i}$ instruction
+Finally the $\icall{r}{f}{(c_1, \dotsc, c_n)}{s}$ instruction
 represents an LLVM '\texttt{call}' instruction in a very simplified
 way. In LLVM it is possible to annotate the call-instruction with a
 large number of hints. These hints are used to handle calling
@@ -447,7 +449,7 @@ conventions, tall-call applicability, etc., but we omit them in our
 formalization because we do not attempt to formalize these aspects of
 LLVM. The instruction will call the $f$ function with parameters $c_1$
 through $c_n$ returning the result in the $r$ register. The result
-will be available in the $i$ instruction. Thus a function call acts
+will be available in the $s$ instructions. Thus a function call acts
 like a special variant of a let-binding.
 
 \paragraph{Programs}
@@ -498,6 +500,31 @@ block definitions.
 \newcommand{\tpop}{|-_{\mathrm{o}}}
 \newcommand{\tpb}{|-_{\mathrm{b}}}
 
+\begin{figure}
+  \begin{gather*}
+    \text{Registers:} \quad \boxed{\Gamma \tpr x : \tau}\\
+    \inference[TpR]{\Gamma(x) = \tau}{\Gamma \tpr x : \tau}
+  \end{gather*}
+  \begin{gather*}
+    \text{Constants:} \quad \boxed{\Gamma \tpc c : \tau}\\
+    \inference[TpC-Reg]{\Gamma \tpr x}{\Gamma \tpc x : \tau}\\
+    \inference[TpC-Nat]{}{\Gamma \tpc n : \tnat} \quad
+    \inference[TpC-Bool]{}{\Gamma \tpc b : \tbool}
+  \end{gather*}
+  \begin{gather*}
+    \text{Operations:} \quad \boxed{\Gamma \tpop op : \tau} \\
+    \inference[TpOp-Cst]{\Gamma \tpc c : \tau}{\Gamma |- c : \tau}\\\\
+    \inference[TpOp-Plus]{\Gamma \tpop o_1 : \tnat \quad \Gamma
+      \tpop o_2 : \tnat}{\Gamma \tpop o_1 + o_2 : \tnat} \quad
+    \inference[TpOp-Mone]{\Gamma \tpop o_1 : \tnat \quad \Gamma
+      \tpop o_2 : \tnat}{\Gamma \tpop o_1 - o_2 : \tnat}\\\\
+    \inference[TpOp-Lt]{\Gamma \tpop o_1 : \tnat \quad \Gamma
+      \tpop o_2 : \tnat}{\Gamma \tpop o_1 < o_2 : \tbool}
+  \end{gather*}
+  \caption{Typing 1}
+  \label{fig:type-judgement-1}
+\end{figure}
+
 To take care of these problems, we need a type system ruling out these
 possibilities in the syntax. In figure \ref{fig:type-judgement-1}, we
 present typing relations for registers, constants and
@@ -514,169 +541,144 @@ type $\tau$. These rules are somewhat straightforward for most
 part. The only special case is that the less-than comparison operator
 has boolean type.
 
-Basic blocks are typed by checking that each of the formal parameters
-have the stated type as a parameter and in the instruction body. Note
-that we do not consider the return type of the instruction as we
-handle it later on when type checking functions.
-
+\fixme{Define typing for basic blocks in the text}
 \begin{figure}
   \begin{gather*}
-    \text{Registers:} \quad \boxed{\Gamma \tpr x : \tau}\\
-    \inference[TpR]{\Gamma(x) = \tau}{\Gamma \tpr x : \tau}
-  \end{gather*}
-  \begin{gather*}
-    \text{Constants:} \quad \boxed{\Gamma \tpc c : \tau}\\
-    \inference[TpC-Var]{\Gamma \tpr x}{\Gamma \tpc x : \tau}\\
-    \inference[TpC-Nat]{}{\Gamma \tpc n : \tnat} \quad
-    \inference[TpC-Bool]{}{\Gamma \tpc b : \tbool}
-  \end{gather*}
-  \begin{gather*}
-    \text{Operations:} \quad \boxed{\Gamma \tpop op : \tau} \\
-    \inference[TpOp-Cst]{\Gamma \tpc c : \tau}{\Gamma |- c : \tau}\\\\
-    \inference[TpOp-Plus]{\Gamma \tpop o_1 : \tnat \quad \Gamma
-      \tpop o_2 : \tnat}{\Gamma \tpop o_1 + o_2 : \tnat} \quad
-    \inference[TpOp-Mone]{\Gamma \tpop o_1 : \tnat \quad \Gamma
-      \tpop o_2 : \tnat}{\Gamma \tpop o_1 - o_2 : \tnat}\\\\
-    \inference[TpOp-Let]{\Gamma \tpop o_1 : \tnat \quad \Gamma
-      \tpop o_2 : \tnat}{\Gamma \tpop o_1 < o_2 : \tbool}
-  \end{gather*}
-  \begin{gather*}
-    \text{Basic block Definitions:} \quad \boxed{D;\Psi;\Gamma \tpb d
+    \text{Basic block Definitions:} \quad \boxed{\Phi;\Psi;\Gamma \tpb d
       : \tau}\\
-    \inference[BB-Def]{D;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n \mapsto \tau_n] |- i :
-  \tau}{D;\Psi;\Gamma \tpb \lambda(x_1, x_2, \dotsc,
-      x_n).i : \tau_1 -> \tau_2 -> \dotsc -> \tau_n -> \tau}
+    \inference[BB-Def]{\Phi;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n
+      \mapsto \tau_n] |- s :
+  \tau}{\Phi;\Psi;\Gamma \tpb \lambda(x_1, x_2, \dotsc,
+      x_n).s : \ntypes -> \tau}
   \end{gather*}
-  \caption{Typing 1}
-  \label{fig:type-judgement-1}
+  \begin{gather*}
+    \text{Instructions:} \quad \boxed{\Phi ; \Psi ; \Gamma |- s : \tau}\\\\
+    \inference[Tp-ret]{\Gamma \tpc c : \tau}{\Phi ; \Psi ;
+      \Gamma |- \iret{c} : \tau} \quad
+    \inference[Tp-let]{\Gamma \tpop op : \tau_1 \quad \Phi ; \Psi ;
+      \Gamma[x \mapsto \tau_1] |- s : \tau}{\Phi ; \Psi ; \Gamma |-
+      \ilet{x}{op}{s} : \tau}\\\\
+    \inference[Tp-do]{\Phi;\cdot;\Gamma |- s_1 : \tau_1 \quad
+      \Phi;\Psi;\Gamma[x \mapsto \tau_1] |- s_2 : \tau} {\Phi;\Psi;\Gamma |-
+      \ido{x}{s_1}{s_2} : \tau}\\\\
+    \inference[Tp-br]{\Psi(bb) = \bbtypes{} \quad \bbtypes{}(k) :
+      \ntypes -> \bullet\\
+      \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
+      \quad \Gamma |- c_n : \tau_n}
+    {\Phi;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
+    \inference[Tp-brc]{\Gamma \tpc x : \tbool\\
+      \Psi(bb) = \bbtypes{}\\
+      \bbtypes{}(k) : \ntypes -> \bullet\\
+      \Gamma |- c_1 : \tau_1 \quad \dotsb \quad \Gamma |- c_n :
+      \tau_n\\
+      \bbtypes{}(k') : \ntypesp -> \bullet\\
+      \Gamma |- c'_1 : \tau'_1 \quad \dotsb \quad \Gamma |- c'_n :
+      \tau'_n}
+    {\Phi;\Psi;\Gamma |- \ibrc{x}{bb^k}{(c_1, \dotsc,
+        c_n)}{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}\\\\
+    \inference[Tp-letrec]{\Phi;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
+      \tau_n)];\Gamma \tpb d_1 : Bb \tau_1\\
+      \dotsb \\\Phi;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
+      \tau_n)];\Gamma \tpb d_n : Bb\tau_n \\
+      \Phi;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
+      \tau_n)];\Gamma |- s : \tau}{\Phi;\Psi;\Gamma |- \iletrec{bb}{(d1,
+        \dotsc, d_n)}{s} : \tau}\\\\
+    \inference[Tp-call]{\Phi(f) = \tau_1 -> \dotsc -> \tau_n -> \tau\\
+    c_1 : \tau_1 \quad \dotsb \quad c_n : \tau_n}
+  {\Phi;\Psi;\Gamma |- \icall{r}{f}{(c_1, \dotsc, c_n)}{s} : \tau}
+  \end{gather*}
+  \caption{Typing 2}
+  \label{fig:type-judgement-2}
 \end{figure}
 
-\fixme{Let a tau be shared among a set of basic blocks perhaps?}
 In figure \ref{fig:type-judgement-2} we present the typing relations
 for instructions. The general judgment for these is
-$\boxed{D;\Psi;\Gamma |- i : \tau}$. This specifies that the
-instruction $i$ has a type of $\tau$ in the environment of
-$D;\Psi;\Gamma$. The domain $D$ here is the domain of function
-contexts (see figure \ref{fig:type-system}) mapping a function name
-$f$ to its function type. The domain $\Psi$ maps basic blocks: for
-each basic block there is a mapping from the basic block name to a
-tuple of basic block types. Finally, the domain $\Gamma$ maps
-registers to their types.
+$\boxed{\Phi;\Psi;\Gamma |- s : \tau}$. This specifies that the
+instruction $s$ has a type of $\tau$ in the environment of
+$\Phi;\Psi;\Gamma$. % Do not explain it. It should be clear!
 
 An instruction of the form $\iret{c}$ has type $\tau$ if the constant
-it returns has. Correct typing of an $\ilet{x}{op}{i}$ instruction
+it returns has. Correct typing of an $\ilet{x}{op}{s}$ instruction
 requires that the operation $op$ returns the same type as is used for
-the register $x$ in the body $i$.
+the register $x$ in the body $s$.
 
-The rule Tp-do defines a typing of a $\ido{x}{i_1}{i_2}$
-instruction. The type of $i_1$ must the the same type as used in
-$i_2$. Note the similarity between this instruction and the
-let-binding above.\fixme{Decide if we should kill $\Psi$ here}.
+The rule Tp-do defines a typing of a $\ido{x}{s_1}{s_2}$
+instruction. The type of $s_1$ must the the same type as used in
+$s_2$. Note the similarity between this instruction and the
+let-binding above.
 
 Unconditional branches are handled by the Tp-br rule. It states that a
 well-typed branch can look up the basic block in the environment of
 basic blocks and then take the $k$th projection of this to obtain the
-type $\tau_1 -> \dotsc -> \tau$.
+type $\ntypes -> \tau$.
 
 Conditional branches are well-typed if each path regarded as
 unconditional branches are. Furthermore we require the branch variable
 to be a boolean value.
 
 The Tp-letrec rule introduces basic blocks. It first checks that each
-basic block definition is well-typed. Then it type checks the body $i$
+basic block definition is well-typed. Then it type checks the body $s$
 under an augmented environment where a mapping to the basic block
 identifier has been made.
 
 Finally, function calls are well-typed if we can look up the function
-identifier in the function environment $D$; and can show the
+identifier in the function environment $\Phi$; and can show the
 passed arguments obeys the type scheme.
 
-\begin{figure}
-  \begin{gather*}
-    \text{Instructions:} \quad \boxed{D ; \Psi ; \Gamma |- i : \tau}\\\\
-    \inference[Tp-ret]{\Gamma \tpc c : \tau}{D ; \Psi ;
-      \Gamma |- \iret{c} : \tau} \quad
-    \inference[Tp-let]{\Gamma \tpop op : \tau_1 \quad D ; \Psi ;
-      \Gamma[x \mapsto \tau_1] |- i : \tau}{D ; \Psi ; \Gamma |-
-      \ilet{x}{op}{i} : \tau}\\\\
-    \inference[Tp-do]{D;\Psi;\Gamma |- i_1 : \tau_1 \quad
-      D;\Psi;\Gamma[x \mapsto \tau_1] |- i_2 : \tau} {D;\Psi;\Gamma |-
-      \ido{x}{i_1}{i_2} : \tau}\\\\
-    \inference[Tp-br]{\Psi(bb) = BB\tau{}s \quad BB\tau{}s(k) : \tau_1 -> \tau_2 -> \dotsc ->
-      \tau_n -> \tau\\
-      c_1 : \tau_1 \quad c_2 : \tau_2 \quad \dotsb \quad c_n : \tau_n}
-    {D;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
-    \inference[Tp-brc]{\Gamma \tpc x : \tbool \\ D;\Psi;\Gamma |-
-      \ibr{bb^k}{(c_1, \dotsc c_n)} : \tau \\
-    D;\Psi;\Gamma |- \ibr{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}{D;\Psi;\Gamma |- \ibrc{x}{bb^k}{(c_1, \dotsc,
-        c_n)}{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau} \\\\
-    \inference[Tp-letrec]{D;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
-      \tau_n)];\Gamma \tpb d_1 : Bb \tau_1\\
-      \dotsb \\D;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
-      \tau_n)];\Gamma \tpb d_n : Bb\tau_n \\
-      D;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
-      \tau_n)];\Gamma |- i : \tau}{D;\Psi;\Gamma |- \iletrec{bb}{(d1,
-        \dotsc, d_n)}{i} : \tau}\\\\
-    \inference[Tp-call]{D(f) = \tau_1 -> \dotsc -> \tau_n -> \tau\\
-    c_1 : \tau_1 \quad \dotsb \quad c_n : \tau_n}{D;\Psi;\Gamma |- \icall{f}{(c_1, \dotsc,
-        c_n)} : \tau}
-  \end{gather*}
-  \caption{Typing 2}
-  \label{fig:type-judgement-2}
-\end{figure}
-
 \section{Programs}
-
-A program is well-formed (figure \ref{fig:type-judgement-3}) if it
-obeys a wellformedness criterion $\boxed{D |- \Phi : D}$ on its
-definitions $\Phi$ and that the body is wellformed in empty Basic
-block and variable environments. We write $\boxed{|- P}$ for
-well-formed programs.
-
-The criterion for definition blocks examines wellformedness of the
-list of definitions. If the definition list is empty, then the
-function environment has to be as well. Each function must be
-wellformed with respect to its formal parameters and the full
-environment $D$. We furthermore require that the function identifier
-does not occur twice with the rule $f \not \in D'$.
-
-Note that the rule $D |- \Phi : D$ ties the knot on function
-definitions. The function environment $D$ is being examined while it
-is being built at the same time.
-
-The judgement $\boxed{D;\Psi;\Gamma |- BB : \Psi'}$ is used to state
-that a basic block relates to its context. We will use this in the
-proof of \emph{preservation}, to maintain the relationship. The idea
-is that if a basic-block environment is well-formed, all the
-definitions must be.
-
+\newcommand{\dom}[1]{\mathrm{dom}(#1)}
 \begin{figure}
   \begin{gather*}
-    \text{Definition Wellformedness:} \quad \boxed{D |- \Phi : D'}\\\\
-    \inference[Wf-defs/z]{}{D |- \cdot : \cdot}\\\\
-    \inference[Wf-defs/s]{D |- \Phi' : D' \quad D;\cdot;[x_1 \mapsto
-      \tau_1 \; \dotsb \; x_n \mapsto \tau_n] |- i :
-      \tau \quad f \not \in D'}{D |- (f(x_1, \dotsc, x_n) = i, \Phi') : (f
-      \mapsto \tau_1 -> \dotsc -> \tau_n -> \tau, D')}
+    \text{Definition Wellformedness:} \quad \boxed{\Phi |- D : \Phi'}\\\\
+    \inference[Wf-defs/z]{}{\Phi |- \cdot : \cdot}\\\\
+    \inference[Wf-defs/s]{\Phi |- D' : \Phi' \quad \Phi;\cdot;[x_1 \mapsto
+      \tau_1 \; \dotsb \; x_n \mapsto \tau_n] |- s :
+      \tau \quad f \not \in \dom{\Phi'}}{\Phi |- (f(x_1, \dotsc, x_n) = s, D') : (f \mapsto \ntypes -> \tau, \Phi')}
   \end{gather*}
-  \begin{gather*}
-    \text{Basic Block Wellformedness:} \quad \boxed{D;\Psi;\Gamma |-
-    BB : \Psi'}\\\\
-  \inference[Wf-bb/z]{}{D;\Psi;\Gamma |- \cdot : \cdot}\\\\
-  \inference[Wf-bb/s]{D;\Psi;\Gamma \tpb d_1 : BB\tau_1\\
-                      \dotsb\\
-                      D;\Psi;\Gamma \tpb d_n : BB\tau_n\\
-                      D;\Psi;\Gamma |- BB' : \Psi'}
-                    {D;\Psi;\Gamma |- (bb = (d_1, \dotsc, d_n), BB') : (bb \mapsto
-                      (Bb\tau_1,\dotsc,Bb\tau_n), \Psi')}
-  \end{gather*}
+
+  % \begin{gather*}
+  %   \text{Basic Block Wellformedness:} \quad \boxed{\Phi;\Psi;\Gamma |-
+  %   BB : \Psi'}\\\\
+  % \inference[Wf-bb/z]{}{\Phi;\Psi;\Gamma |- \cdot : \cdot}\\\\
+  % \inference[Wf-bb/s]{\Phi;\Psi;\Gamma \tpb d_1 : BB\tau_1\\
+  %                     \dotsb\\
+  %                     \Phi;\Psi;\Gamma \tpb d_n : BB\tau_n\\
+  %                     \Phi;\Psi;\Gamma |- BB' : \Psi'}
+  %                   {\Phi;\Psi;\Gamma |- (bb = (d_1, \dotsc, d_n), BB') : (bb \mapsto
+  %                     (Bb\tau_1,\dotsc,Bb\tau_n), \Psi')}
+  % \end{gather*}
   \begin{gather*}
     \text{Program Wellformedness:} \quad \quad \boxed{|- P}\\\\
-    \inference[WF-Pgm]{D |- \Phi : D \quad D;\cdot;\cdot |- i}{|- \ipgm{\Phi}{i}}
+    \inference[WF-Pgm]{\Phi |- D : \Phi \quad \Phi;\cdot;\cdot |- s}{|- \ipgm{D}{s}}
   \end{gather*}
   \caption{Typing 3}
   \label{fig:type-judgement-3}
 \end{figure}
+
+A program is well-formed (figure \ref{fig:type-judgement-3}) if it
+obeys a wellformedness criterion $\boxed{\Phi |- D : \Phi}$ on its
+definitions $\Phi$ and that the body is wellformed in empty Basic
+block and variable environments. We write $\boxed{|- P}$ for
+well-formed programs.
+
+\fixme{Convert $D <-> \Phi$ from here on out}
+The criterion for definition blocks examines wellformedness of the
+list of definitions. If the definition list is empty, then the
+function environment has to be as well. Each function must be
+wellformed with respect to its formal parameters and the full
+environment $\Phi$. We furthermore require that the function identifier
+does not occur twice with the premise $f \not \in \dom{\Phi'}$.
+
+Note that the premise $\Phi |- D : \Phi$ ties the knot on function
+definitions. The function environment $\Phi$ is being examined while it
+is being built at the same time.
+
+% The judgement $\boxed{\Phi;\Psi;\Gamma |- BB : \Psi'}$ is used to state
+% that a basic block relates to its context. We will use this in the
+% proof of \emph{preservation}, to maintain the relationship. The idea
+% is that if a basic-block environment is well-formed, all the
+% definitions must be.
+
 
 \chapter{Mini-LLVM Semantics}
 
@@ -767,9 +769,7 @@ the basic blocks we have introduced and can branch to.
 
 In the semantics, we use the notation $i[v/x]$. This means that you
 substitute all occurrences of $x$ with $v$ in the syntax tree of
-$i$. In other words, if $(\lambda x . i\; x)$ the higher order
-abstraction of $i$ then $i[v/x] \equiv (\lambda x . i\; x) v$. We
-use this fact extensively when encoding the semantics in \twelf{}.
+$i$.
 
 The basic sequential operation in LLVM is handled by the
 $\ilet{x}{op}{i}$ instruction in Mini-LLVM. As already noted in

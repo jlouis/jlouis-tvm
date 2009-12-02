@@ -38,7 +38,7 @@ are captured by HOAS, we do not need to specify them.
 
 }%
 
-cst : tp -> type. %name cst R r.
+cst : tp -> type. %name cst C c.
 
 cst/n : nat -> cst tp/nat.
 cst/b : nat -> cst tp/bool.
@@ -50,7 +50,7 @@ jumps to other basic blocks. Hence, we define them here
 
 }%
 
-cst-list : tp-list -> type. %name cst-list RL.
+cst-list : tp-list -> type. %name cst-list CL.
 
 cst-list/nil : cst-list tp-list/nil.
 cst-list/cons : cst T -> cst-list TL -> cst-list (tp-list/cons T TL).
@@ -66,7 +66,7 @@ cst-list/cons : cst T -> cst-list TL -> cst-list (tp-list/cons T TL).
    pbundle+ and bname is used to implement the bb^k notation.
 }%
 
-bname : bb-tp -> type. %name bname Fn.
+bname : bb-tp -> type. %name bname Bname.
 pbundle : bb-tp-list -> type.
 pbundle+ : bb-tp-list -> type.
 

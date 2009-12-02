@@ -5,9 +5,9 @@
 }%
 
 
-%block det-1 : some {FTL} {Defs : pbundle FTL -> bb-def-list FTL} {G}
+%block det-1 : some {FTL} {Defs : pbundle FTL -> bb-def-list FTL} {P}
 	       block {pb : pbundle FTL} {bbind : bb-bind pb (Defs pb)}
-		     {wb : wf-pb G (Defs pb)}.
+		     {wb : wf-pb P (Defs pb)}.
 
 %worlds (det-1) (pbundle-lookup _ _) (bb-apply _ _ _) (bb-bind _ _).
 
@@ -143,27 +143,27 @@ progress-do : progress-good D I1 -> progress-good D (insn/do I1 B) -> type.
 %{
 %% Helper: If f is not in the list, then for any g in the list, we have f /= g
 %%   under the assumptions of wellformedness
-notin-neq : f-notin (fun-id/ N1) D -> wf-defs G D G'
-		-> gamma-lookup G' (fun-id/ N2) -> nat-neq N1 N2 -> type.
+notin-neq : f-notin (fun-id/ N1) D -> wf-defs P D G'
+		-> phi-lookup G' (fun-id/ N2) -> nat-neq N1 N2 -> type.
 %mode notin-neq +FIN +WFD +GL -NEQ.
 
-- : notin-neq (f-notin/s _ NEQ) (wf-defs/s _ _ _) gamma-lookup/hit NEQ.
+- : notin-neq (f-notin/s _ NEQ) (wf-defs/s _ _ _) phi-lookup/hit NEQ.
 
-- : notin-neq (f-notin/s R _) (wf-defs/s WFD _  _) (gamma-lookup/miss GL) NEQ
+- : notin-neq (f-notin/s R _) (wf-defs/s WFD _  _) (phi-lookup/miss GL) NEQ
      <- notin-neq R WFD GL NEQ.
 }%
 
-%% Relate a Gamma lookup to a function lookup if good
-lookup-good : wf-defs G D G' -> gamma-lookup G' F
+%% Relate a Phi lookup to a function lookup if good
+lookup-good : wf-defs P D G' -> phi-lookup G' F
 			     -> function-lookup F D FD -> type.
-%mode +{G:gamma} +{D:defs} +{G':gamma} +{Tp1:tp} +{TpL1:tp-list} +{F:fun-id Tp1 TpL1}
-   -{FD:fun-decl Tp1 TpL1} +{WFD:wf-defs G D G'}
-   +{GL:gamma-lookup G' F} -{FLU:function-lookup F D FD}
+%mode +{P:phi} +{D:defs} +{P':phi} +{Tp1:tp} +{TpL1:tp-list} +{F:fun-id Tp1 TpL1}
+   -{FD:fun-decl Tp1 TpL1} +{WFD:wf-defs P D P'}
+   +{GL:phi-lookup P' F} -{FLU:function-lookup F D FD}
    (lookup-good WFD GL FLU).
 
-- : lookup-good (wf-defs/s _ _ _) gamma-lookup/hit function-lookup/hit.
+- : lookup-good (wf-defs/s _ _ _) phi-lookup/hit function-lookup/hit.
 
-- : lookup-good (wf-defs/s WFD NI _) (gamma-lookup/miss GL) (function-lookup/miss DL)
+- : lookup-good (wf-defs/s WFD NI _) (phi-lookup/miss GL) (function-lookup/miss DL)
      <- lookup-good WFD GL DL.
 
 
@@ -184,9 +184,9 @@ can-function-apply : {FD : fun-decl T TL} {RL : cst-list TL} function-apply FD R
 
 }%
 
-progress : {E : insn T} wf G E -> wf-defs G D G -> progress-good D E -> type.
-%mode +{D : defs} +{T : tp} +{G : gamma}
-      +{E : insn T} +{WF : wf G E} +{WFD : wf-defs G D G} -{PG : progress-good D E}
+progress : {E : insn T} wf P E -> wf-defs P D P -> progress-good D E -> type.
+%mode +{D : defs} +{T : tp} +{P : phi}
+      +{E : insn T} +{WF : wf P E} +{WFD : wf-defs P D P} -{PG : progress-good D E}
       progress E WF WFD PG.
 
 
@@ -194,7 +194,7 @@ progress : {E : insn T} wf G E -> wf-defs G D G -> progress-good D E -> type.
 
 -/lr : progress (insn/letrec (Defs : pbundle FTL -> bb-def-list FTL) Body)
 	    (wf/letrec WF1) WFD Q
-	<- ({fb : pbundle FTL} {fbind : bb-bind fb (Defs fb)} {wb : wf-pb G (Defs fb)}
+	<- ({fb : pbundle FTL} {fbind : bb-bind fb (Defs fb)} {wb : wf-pb P (Defs fb)}
 	      pb-bind-map fb fbind ->
 	        progress (Body fb) (WF1 fb wb) WFD (PG fb fbind))
 	<- progress-letrec PG Q.
@@ -300,18 +300,18 @@ notin-void : f-notin (fun-id/ N) D -> function-lookup (fun-id/ N) D T -> void ->
 - : notin-void (f-notin/s R FNEQ) function-lookup/hit V
      <- fun-id-eq-neq (fun-id-eq/eq nat-eq/refl) FNEQ V.
 
-function-lookup-unique : gamma-lookup G' F -> wf-defs G D G' ->
+function-lookup-unique : phi-lookup G' F -> wf-defs P D G' ->
 			  function-lookup F D FD1 -> function-lookup F D FD2
 						  -> eq-fun-decl FD1 FD2 -> type.
 %mode function-lookup-unique +GL +WFD +FD1 +FD2 -EQ.
 
 - : function-lookup-unique GL WFD function-lookup/hit function-lookup/hit eq-fun-decl/.
 
-- : function-lookup-unique (gamma-lookup/miss GL') (wf-defs/s WFD' _ _)
+- : function-lookup-unique (phi-lookup/miss GL') (wf-defs/s WFD' _ _)
        (function-lookup/miss DL1) (function-lookup/miss DL2) EQ
      <- function-lookup-unique GL' WFD' DL1 DL2 EQ.
 
-- : function-lookup-unique gamma-lookup/hit (wf-defs/s WFD NI _)
+- : function-lookup-unique phi-lookup/hit (wf-defs/s WFD NI _)
        (function-lookup/miss DL1) (function-lookup/miss DL2) EQ
      <- notin-void NI DL1 V
      <- void-eq-fun-decl V EQ.
@@ -337,7 +337,7 @@ fap-unique : eq-fun-decl FD1 FD2 -> function-apply FD1 RL T1 -> function-apply F
 
 
 %{ Determinism of the system }%
-det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> type.
+det : wf P T -> wf-defs P D P -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> type.
 %mode det +WF +WFD +S1 +S2 -EQ.
 
 - : det _ _ ((step/let SOP1) : step D (insn/let O B) (B R1)) (step/let SOP2) insn-eq/
@@ -347,7 +347,7 @@ det : wf G T -> wf-defs G D G -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> 
 - : det _ _ (step/letrec-v VP) (step/letrec-v VP') insn-eq/.
 
 - : det (wf/letrec WFB) WFD (step/letrec-s Run1) (step/letrec-s Run2) Q
-     <- ({fb : pbundle FTL} {fbind : bb-bind fb (Defs fb)} {wb : wf-pb G (Defs fb)}
+     <- ({fb : pbundle FTL} {fbind : bb-bind fb (Defs fb)} {wb : wf-pb P (Defs fb)}
 	   det (WFB fb wb) WFD (Run1 fb fbind) (Run2 fb fbind) (INEQ fb fbind))
      <- insn-eq-letrec-cong INEQ Q.
 
@@ -387,10 +387,10 @@ det-pgm : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
      <- det-pgm-cong IEQ EQ.
 
 %{ Blocks we need. The first one gives us the block we need in step relations }%
-%block progress-1 : some {FTL : bb-tp-list} {Defs} {G}
+%block progress-1 : some {FTL : bb-tp-list} {Defs} {P}
                     block {fb : pbundle FTL}
 		          {bind : bb-bind fb (Defs fb)}
-		          {wb   : wf-pb G (Defs fb)}
+		          {wb   : wf-pb P (Defs fb)}
 		          {map : pb-bind-map fb bind}.
 
 %worlds (progress-1) (progress-letrec _ _)
@@ -472,14 +472,14 @@ det-pgm : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
 }%
 
 
-wf-bb-bind : bb-bind PB FL -> wf-pb G FL -> type.
-%mode +{BBTpL1:bb-tp-list} +{PB:pbundle BBTpL1} +{FL:bb-def-list BBTpL1} -{G:gamma}
-   +{BB:bb-bind PB FL} -{WFPB:wf-pb G FL} (wf-bb-bind BB WFPB).
+wf-bb-bind : bb-bind PB FL -> wf-pb P FL -> type.
+%mode +{BBTpL1:bb-tp-list} +{PB:pbundle BBTpL1} +{FL:bb-def-list BBTpL1} -{P:phi}
+   +{BB:bb-bind PB FL} -{WFPB:wf-pb P FL} (wf-bb-bind BB WFPB).
 
-wf-bb-bind0 : wf-bb-bind bb-bind0 (wf-pb/nil : wf-pb gamma/z _).
+wf-bb-bind0 : wf-bb-bind bb-bind0 (wf-pb/nil : wf-pb phi/z _).
 
-preservation-pbundle-lookup : pbundle-lookup PB Bundle -> wf-defs G D G
-						       -> wf-pb G Bundle -> type.
+preservation-pbundle-lookup : pbundle-lookup PB Bundle -> wf-defs P D P
+						       -> wf-pb P Bundle -> type.
 %mode preservation-pbundle-lookup +PL +WFD -WF.
 
 - : preservation-pbundle-lookup (pbundle-lookup/ctx-hit BB) WFD Q
@@ -488,14 +488,14 @@ preservation-pbundle-lookup : pbundle-lookup PB Bundle -> wf-defs G D G
 - : preservation-pbundle-lookup (pbundle-lookup/dig PBL) WFD Q
      <- preservation-pbundle-lookup PBL WFD (wf-pb/cons Q _).
 
-preservation-branch-lookup : branch-lookup PB Def -> wf-defs G D G -> wf-bb G Def -> type.
+preservation-branch-lookup : branch-lookup PB Def -> wf-defs P D P -> wf-bb P Def -> type.
 %mode preservation-branch-lookup +BL +WFD -WF.
 
 - : preservation-branch-lookup (branch-lookup/ PBL) WFD BB
      <- preservation-pbundle-lookup PBL WFD (wf-pb/cons _ BB).
 
 
-preservation-pbundle-apply : wf-bb G BB -> bb-apply BB RL T -> wf G T -> type.
+preservation-pbundle-apply : wf-bb P BB -> bb-apply BB RL T -> wf P T -> type.
 %mode preservation-pbundle-apply +WFBB +BB -WF.
 
 - : preservation-pbundle-apply (wf-bb/phi WFP)
@@ -504,7 +504,7 @@ preservation-pbundle-apply : wf-bb G BB -> bb-apply BB RL T -> wf G T -> type.
 
 - : preservation-pbundle-apply (wf-bb/body WF) bb-apply/body WF.
 
-preservation-lookup : function-lookup F D Df -> wf-defs G D G' -> wf-decl G Df -> type.
+preservation-lookup : function-lookup F D Df -> wf-defs P D G' -> wf-decl P Df -> type.
 %mode preservation-lookup +FL +WFD -Decl.
 
 - : preservation-lookup function-lookup/hit (wf-defs/s WFD _ WF) WF.
@@ -512,7 +512,7 @@ preservation-lookup : function-lookup F D Df -> wf-defs G D G' -> wf-decl G Df -
 - : preservation-lookup (function-lookup/miss L) (wf-defs/s WFD _ WF) Q
      <- preservation-lookup L WFD Q.
 
-preservation-fun-apply : wf-decl G Df -> function-apply Df RL I -> wf G I -> type.
+preservation-fun-apply : wf-decl P Df -> function-apply Df RL I -> wf P I -> type.
 %mode preservation-fun-apply +Decl +FA -WF.
 
 - : preservation-fun-apply (wf-decl/body WF) function-apply/body WF.
@@ -521,7 +521,7 @@ preservation-fun-apply : wf-decl G Df -> function-apply Df RL I -> wf G I -> typ
          ((function-apply/parm FA') : function-apply _ (cst-list/cons E _) _) Q
      <- preservation-fun-apply (WD E) FA' Q.
 
-preservation : wf G I -> wf-defs G D G -> step D I I' -> wf G I' -> type.
+preservation : wf P I -> wf-defs P D P -> step D I I' -> wf P I' -> type.
 %mode preservation +WF +WFD +SD -WF'.
 
 - : preservation (wf/let WB) WFD (step/let (SOP : step-op O R)) (WB R).
@@ -536,7 +536,7 @@ preservation : wf G I -> wf-defs G D G -> step D I I' -> wf G I' -> type.
 - : preservation (wf/letrec WFB) WFD (step/letrec-v value/return) wf/return.
 
 - : preservation (wf/letrec WFB) WFD (step/letrec-s ISP) (wf/letrec WFB')
-     <- ({pb} {pbind} {wb : wf-pb G (WFPB pb)} wf-bb-bind pbind wb ->
+     <- ({pb} {pbind} {wb : wf-pb P (WFPB pb)} wf-bb-bind pbind wb ->
 		 preservation (WFB pb wb) WFD (ISP pb pbind) (WFB' pb wb)).
 
 - : preservation wf/br WFD (step/br BBA PBL) Q
@@ -553,10 +553,10 @@ preservation-pgm : wf-pgm P -> step-pgm P P' -> wf-pgm P' -> type.
 - : preservation-pgm (wf-pgm/ WFD WF) (step-pgm/ TSP) (wf-pgm/ WFD WF')
      <- preservation WF WFD TSP WF'.
 
-%block preservation-1 : some {FTL : bb-tp-list} {Defs} {G}
+%block preservation-1 : some {FTL : bb-tp-list} {Defs} {P}
 			 block {pb : pbundle FTL}
 			       {pbind : bb-bind pb (Defs pb)}
-			       {wb : wf-pb G (Defs pb)}
+			       {wb : wf-pb P (Defs pb)}
 			       {wf-bind : wf-bb-bind pbind wb}.
 
 %worlds (preservation-1) (preservation _ _ _ _)

@@ -5,18 +5,18 @@
 }%
 
 %{ Gamma is the typing environment }%
-gamma : type.
+phi : type.
 
-gamma/z : gamma.
-gamma/s : fun-id T TL -> gamma -> gamma.
+phi/z : phi.
+phi/s : fun-id T TL -> phi -> phi.
 
-gamma-lookup : gamma -> fun-id T TL -> type.
-%mode gamma-lookup +G +F.
+phi-lookup : phi -> fun-id T TL -> type.
+%mode phi-lookup +G +F.
 
-gamma-lookup/hit : gamma-lookup (gamma/s F _) F.
+phi-lookup/hit : phi-lookup (phi/s F _) F.
 
-gamma-lookup/miss : gamma-lookup (gamma/s F' R) F
-		     <- gamma-lookup R F.
+phi-lookup/miss : phi-lookup (phi/s F' R) F
+		     <- phi-lookup R F.
 
 %{ fun-id equality }%
 fun-id-eq : fun-id T TL -> fun-id T TL -> bool -> type.
@@ -43,63 +43,63 @@ f-notin/s : f-notin F1 (defs/s F2 _ R)
 	     <- fun-id-eq F1 F2 false
 	     <- f-notin F1 R.
 
-%{ Wellformedness of terms [ G |- t ] }%
-wf : gamma -> insn T -> type.
+%{ Wellformedness of terms [ P |- t ] }%
+wf : phi -> insn T -> type.
 
-%{ Wellformedness of basic blocks [ G |- bb ] }%
-wf-bb : gamma -> bb-def T -> type.
+%{ Wellformedness of basic blocks [ P |- bb ] }%
+wf-bb : phi -> bb-def T -> type.
 
-wf-bb/phi  : wf-bb G (bb-def/phi PHI)
-	      <- ({r : cst T} wf-bb G (PHI r)).
-wf-bb/body : wf-bb G (bb-def/body Insn)
-	      <- wf G Insn.
+wf-bb/phi  : wf-bb P (bb-def/phi PHI)
+	      <- ({r : cst T} wf-bb P (PHI r)).
+wf-bb/body : wf-bb P (bb-def/body Insn)
+	      <- wf P Insn.
 
-%{ Wellformedness of pbundles [ G |- pb ] }%
-wf-pb : gamma -> bb-def-list FTL -> type.
+%{ Wellformedness of pbundles [ P |- pb ] }%
+wf-pb : phi -> bb-def-list FTL -> type.
 
-wf-pb/nil  : wf-pb G bb-def-list/nil.
-wf-pb/cons : wf-pb G (bb-def-list/cons BBD R)
-	      <- wf-bb G BBD
-	      <- wf-pb G R.
-
-
-wf/return : wf G (insn/return R).
-wf/br     : wf G (insn/br _ _).
-wf/brc    : wf G (insn/brc _ _ _ _ _).
-wf/let    : wf G (insn/let Op Bdy)
-	     <- ({r : cst T} wf G (Bdy r)).
-wf/letrec : wf G (insn/letrec Defs Bdy)
-	     <- ({pb : pbundle FTL} wf-pb G (Defs pb)
-		   -> wf G (Bdy pb)).
-wf/do     : wf G (insn/do I Bdy)
-	     <- wf G I
-	     <- ({r : cst T} wf G (Bdy r)).
-
-wf/call   : wf G (insn/call F RL Bdy)
-	     <- gamma-lookup G F
-	     <- ({r} wf G (Bdy r)).
-
-wf-decl : gamma -> fun-decl R TL -> type.
-
-wf-decl/parm : wf-decl G (fun-decl/parm [r : cst T] FD r)
-		<- ({r : cst T} wf-decl G (FD r)).
-
-wf-decl/body : wf-decl G (fun-decl/body (I : insn Tp))
-		<- wf G I.
+wf-pb/nil  : wf-pb P bb-def-list/nil.
+wf-pb/cons : wf-pb P (bb-def-list/cons BBD R)
+	      <- wf-bb P BBD
+	      <- wf-pb P R.
 
 
-%{ Wellformedness of definitions [ G |- D : G' ] }%
-wf-defs : gamma -> defs -> gamma -> type.
+wf/return : wf P (insn/return R).
+wf/br     : wf P (insn/br _ _).
+wf/brc    : wf P (insn/brc _ _ _ _ _).
+wf/let    : wf P (insn/let Op Bdy)
+	     <- ({r : cst T} wf P (Bdy r)).
+wf/letrec : wf P (insn/letrec Defs Bdy)
+	     <- ({pb : pbundle FTL} wf-pb P (Defs pb)
+		   -> wf P (Bdy pb)).
+wf/do     : wf P (insn/do I Bdy)
+	     <- wf P I
+	     <- ({r : cst T} wf P (Bdy r)).
 
-wf-defs/z : wf-defs G defs/z gamma/z.
+wf/call   : wf P (insn/call F RL Bdy)
+	     <- phi-lookup P F
+	     <- ({r} wf P (Bdy r)).
 
-wf-defs/s : wf-defs G (defs/s F Decl DR) (gamma/s F GR)
-	     <- wf-decl G Decl
+wf-decl : phi -> fun-decl R TL -> type.
+
+wf-decl/parm : wf-decl P (fun-decl/parm [r : cst T] FD r)
+		<- ({r : cst T} wf-decl P (FD r)).
+
+wf-decl/body : wf-decl P (fun-decl/body (I : insn Tp))
+		<- wf P I.
+
+
+%{ Wellformedness of definitions [ P |- D : G' ] }%
+wf-defs : phi -> defs -> phi -> type.
+
+wf-defs/z : wf-defs P defs/z phi/z.
+
+wf-defs/s : wf-defs P (defs/s F Decl DR) (phi/s F GR)
+	     <- wf-decl P Decl
 	     <- f-notin F DR
-	     <- wf-defs G DR GR.
+	     <- wf-defs P DR GR.
 
 wf-pgm : pgm -> type.
 
 wf-pgm/ : wf-pgm (pgm/ D T)
-	   <- wf G T
-	   <- wf-defs G D G.
+	   <- wf P T
+	   <- wf-defs P D P.

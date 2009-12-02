@@ -91,7 +91,7 @@ a stack or an infinite set of registers. Some VMs are designed with a
 fairly broad IL intended to capture many different language types
 while others are more constrained, often tied to a single intended
 language. Examples of the former are the the .NET
-CLR/CIL\cite{ecma:2006:335} the C-- language\cite{http:cminmin} and
+CLR/CIL\cite{ecma:2006:335} the C-\ - language\cite{http:cminmin} and
 the LLVM infrastructure \cite{lattner.ea:2009:llvm-ref}, while an
 example of the latter is the Warren abstract
 machine\cite{warren:1983:prolog}.
@@ -277,7 +277,9 @@ compatible way as long as it remains a version 2.x.
 \newcommand{\bbenv}{\mathrm{BB Contexts}}
 \newcommand{\bor}{\; \vert \;}
 \newcommand{\ntypes}{\tau_1 \times \tau_2 \times \dotsb \times \tau_n}
-\newcommand{\ntypesp}{\tau'_1 \times \tau'_2 \times \dotsb \times \tau'_n}
+\newcommand{\ntypesp}{\tau'_1 \times \tau'_2 \times \dotsb \times
+  \tau'_n}
+\newcommand{\ntypespp}{\tau_1 \times \tau_2 \times \dotsb \times \tau_{n'}}
 
 \newcommand{\bbtypes}{(\sigma_1, \dotsc, \sigma_n)}
 
@@ -379,11 +381,11 @@ targeting LLVM; in particular, the \clang{}-project was used.
    \instructions \ni s & ::= \iret{c} \\
                        & \bor \quad \ibr{bb^n}{(c_1, \dotsc, c_n)} \\
                        & \bor \quad \ibrc{c}{bb^n}{(c_1, \dotsc, c_n)}{bb^n}{(c'_1, \dotsc, c'_n)}\\
-                       & \bor \quad \ilet{r}{op}{s} \\
+                       & \bor \quad \ilet{x}{op}{s} \\
                        & \bor \quad \iletrec{bb}{(d_1, d_2, \dotsc, d_n)}{s} \\
-                       & \bor \quad \ido{r}{s_1}{s_2} &
+                       & \bor \quad \ido{x}{s_1}{s_2} &
                        (\text{Internal})\\
-                       & \bor \quad \icall{r}{f}{(c_1, \dotsc,
+                       & \bor \quad \icall{x}{f}{(c_1, \dotsc,
                          c_n)}{s}\\
     \definitions \ni D & ::= \cdot \bor (f(x_1, \dotsc, x_n) = s, D)\\
     \programs \ni p & ::= \ipgm{D}{s}
@@ -421,7 +423,7 @@ formal $\phi$-node parameters to the given basic block. In LLVM, the
 projections are named explicitly by identifier names, but we felt that
 a projection is easier to handle from a formal viewpoint.
 
-The $\ibrc{x}{bb^k}{Ps}{bb^{k'}}{Ps'}$ represents a conditional
+The $\ibrc{x}{bb^k}{(c_1, \dotsc, c_n)}{bb^{k'}}{(c_1, \dotsc, c_n)'}$ represents a conditional
 branch. It will, depending on the value of $x$ transfer control to
 either the first or second basic block projection, injecting the
 corresponding set of $\phi$-node parameters. In LLVM both
@@ -441,7 +443,7 @@ formalization lacks a stack and thus uses the current continuation
 context to keep track of where the computation came from. Function
 calls utilize the instruction while they are executing.
 
-Finally the $\icall{r}{f}{(c_1, \dotsc, c_n)}{s}$ instruction
+Finally the $\icall{x}{f}{(c_1, \dotsc, c_n)}{s}$ instruction
 represents an LLVM '\texttt{call}' instruction in a very simplified
 way. In LLVM it is possible to annotate the call-instruction with a
 large number of hints. These hints are used to handle calling
@@ -542,6 +544,7 @@ part. The only special case is that the less-than comparison operator
 has boolean type.
 
 \fixme{Define typing for basic blocks in the text}
+\newcommand{\btype}{\ntypes -> \bullet}
 \begin{figure}
   \begin{gather*}
     \text{Basic block Definitions:} \quad \boxed{\Phi;\Psi;\Gamma \tpb d
@@ -549,7 +552,7 @@ has boolean type.
     \inference[BB-Def]{\Phi;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n
       \mapsto \tau_n] |- s :
   \tau}{\Phi;\Psi;\Gamma \tpb \lambda(x_1, x_2, \dotsc,
-      x_n).s : \ntypes -> \tau}
+      x_n).s : \ntypes -> \bullet}
   \end{gather*}
   \begin{gather*}
     \text{Instructions:} \quad \boxed{\Phi ; \Psi ; \Gamma |- s : \tau}\\\\
@@ -558,7 +561,7 @@ has boolean type.
     \inference[Tp-let]{\Gamma \tpop op : \tau_1 \quad \Phi ; \Psi ;
       \Gamma[x \mapsto \tau_1] |- s : \tau}{\Phi ; \Psi ; \Gamma |-
       \ilet{x}{op}{s} : \tau}\\\\
-    \inference[Tp-do]{\Phi;\cdot;\Gamma |- s_1 : \tau_1 \quad
+    \inference[Tp-do]{\Phi;\cdot;\cdot |- s_1 : \tau_1 \quad
       \Phi;\Psi;\Gamma[x \mapsto \tau_1] |- s_2 : \tau} {\Phi;\Psi;\Gamma |-
       \ido{x}{s_1}{s_2} : \tau}\\\\
     \inference[Tp-br]{\Psi(bb) = \bbtypes{} \quad \bbtypes{}(k) :
@@ -576,16 +579,17 @@ has boolean type.
       \tau'_n}
     {\Phi;\Psi;\Gamma |- \ibrc{x}{bb^k}{(c_1, \dotsc,
         c_n)}{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}\\\\
-    \inference[Tp-letrec]{\Phi;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
-      \tau_n)];\Gamma \tpb d_1 : Bb \tau_1\\
-      \dotsb \\\Phi;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
-      \tau_n)];\Gamma \tpb d_n : Bb\tau_n \\
-      \Phi;\Psi[bb \mapsto (Bb \tau_1, \dotsc, Bb
-      \tau_n)];\Gamma |- s : \tau}{\Phi;\Psi;\Gamma |- \iletrec{bb}{(d1,
+    \inference[Tp-letrec]{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb
+      d_1 : \ntypes -> \bullet\\
+      \dotsb\\
+      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_n : \ntypespp -> \bullet\\
+      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- s : \tau}
+       {\Phi;\Psi;\Gamma |- \iletrec{bb}{(d_1,
         \dotsc, d_n)}{s} : \tau}\\\\
-    \inference[Tp-call]{\Phi(f) = \tau_1 -> \dotsc -> \tau_n -> \tau\\
-    c_1 : \tau_1 \quad \dotsb \quad c_n : \tau_n}
-  {\Phi;\Psi;\Gamma |- \icall{r}{f}{(c_1, \dotsc, c_n)}{s} : \tau}
+    \inference[Tp-call]{\Phi(f) = \ntypes -> \tau'\\
+    c_1 : \tau_1 \quad \dotsb \quad c_n : \tau_n\\
+  \Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau}
+  {\Phi;\Psi;\Gamma |- \icall{x}{f}{(c_1, \dotsc, c_n)}{s} : \tau}
   \end{gather*}
   \caption{Typing 2}
   \label{fig:type-judgement-2}
@@ -661,7 +665,6 @@ definitions $\Phi$ and that the body is wellformed in empty Basic
 block and variable environments. We write $\boxed{|- P}$ for
 well-formed programs.
 
-\fixme{Convert $D <-> \Phi$ from here on out}
 The criterion for definition blocks examines wellformedness of the
 list of definitions. If the definition list is empty, then the
 function environment has to be as well. Each function must be
@@ -683,31 +686,16 @@ is being built at the same time.
 \chapter{Mini-LLVM Semantics}
 
 In this chapter we present the Mini-LLVM semantics (see figure
-\ref{fig:semantics}). Since \twelf{} is partial to operational
-semantics, we need to decide between a big-step operational semantics
-and a small-step operational semantics.
-
-The semantics in Pierce's seminal work \cite{pierce:2002:types} on
-type systems are mostly given in small step semantics. Focusing our
-effort on a small-step semantics thus gives us a framework in which
-the meta-theory will follow the work of Pierce. A big-step semantics
-is also possible, but then we need to work with a separate notion of
-when terms terminate.
-
-The small-step semantics -- however -- is \emph{inefficient}: we need
-considerably more inference rule applications in order to reduce a
-term to canonical form. On the other hand it is \emph{precise}:
-certain details (like short-circuiting operators) are more easily
-handled by a small step semantics.
-
-We choose a small-step semantics for this work. Mostly to follow the
-structural ideas from Pierce's book ``Types and Programming
-Languages''.
+\ref{fig:semantics}). We chose to implement the semantics as a
+small-step operational semantics. A small-step operational semantics
+is fairly easy to reason about when proving the meta-theoretic
+properties of \emph{preservation} and \emph{progress}. Furthermore, it
+follows the style used in \cite{pierce:2002:types}.
 
 \paragraph{Step relation for operations}
 
 \newcommand{\eop}{=>_{o}} For operations, $\boxed{|- op \eop n}$ is
-the judgement form. The form states the operation $op$ evaluate to a
+the judgement form. The form state that the operation $op$ evaluate to a
 value of $n$. This might look like a big-step semantics, but note that
 all operations are \emph{primitive} in Mini-LLVM: An operation is
 limited by the syntax such that it cannot be an arbitrary tree
@@ -715,46 +703,42 @@ tree. This is also the reason we chose the operation as a name rather
 than the more common \emph{expressions}.
 
 For each possible operator, there is a corresponding inference
-rule. All of these simply unwraps underlying integers and then applies
+rule. Each of these simply unwrap underlying integers and then applies
 the proper mathematical arithmetic operation.
-
+\newcommand{\meval}{:=}
+\newcommand{\dbundle}{(d_1, d_2, \dotsc, d_n)}
 \begin{figure}
   \begin{gather*}
     \text{Operations:} \quad \boxed{|- op \eop n}\\
-    \inference[E-Cst]{}{|- c \eop n} \quad
-    \inference[E-Plus]{|- c_1 \eop n_1 \quad |- c_2 \eop n_2 \quad
-      n_1 + n_2 = n}{|- c_1 + c_2 \eop n}\\\\
-    \inference[E-Mone]{|- c_1 \eop n_1 \quad |- c_2 \eop n_2 \quad
-      n_1 - n_2 = n}{|- c_1 - c_2 \eop n}\\\\
-    \inference[E-Lt]{|- c_1 \eop n_1 \quad |- c_2 \eop n_2 \quad
-      n_1 < n_2 = b}{|- c_1  < c_2 \eop b}
+    \inference[E-Plus]{}{|- n_1 + n_2 \eop n}(n \meval n_1 + n_2)\\\\
+    \inference[E-Mone]{}{|- n_1 - n_2 \eop n}(n \meval n_1 - n_2)\\\\
+    \inference[E-Lt-T]{}{|- n_1  < n_2 \eop \btrue}(n_1 < n_2)\\\\
+    \inference[E-Lt-F]{}{|- n_1  < n_2 \eop \bfalse}(n_1 >= n_2)
   \end{gather*}
   \begin{gather*}
-    \text{Instructions:} \quad \boxed{\Phi;BB |- i -> i'}\\
-    \inference[S-let]{|- o \eop v}{\Phi;BB |- \ilet{x}{o}{i} ->
-      i[v/x]}\\\\
-    \inference[S-letrec-v]{}{\Phi;BB |- \iletrec{bb}{(d_1, \dotsc,
-        d_n)}{\iret{v}} -> \iret{v}}\\\\
-    \inference[S-letrec-s]{\Phi;BB[bb \mapsto Dt] |- i -> i'}
-    {\Phi;BB |- \iletrec{bb}{Dt}{i} -> \iletrec{bb}{Dt}{i'}}\\\\
-    \inference[S-brc-t]{}{\Phi;BB |-
-      \ibrc{\btrue}{bb^k}{Ps}{bb^{k'}}{Ps'} -> \ibr{bb^k}{Ps}}\\\\
-    \inference[S-brc-f]{}{\Phi;BB |-
-      \ibrc{\bfalse}{bb^k}{Ps}{bb^{k'}}{Ps'} ->
-      \ibr{bb^{k'}}{Ps'}}\\\\
-    \inference[S-do-s]{\Phi;BB |- i_1 -> i'_1}{\Phi;BB |-
-      \ido{x}{i_1}{i_2} -> \ido{x}{i'_1}{i_2}}\\\\
-    \inference[S-do-v]{}{\Phi;BB |- \ido{x}{\iret v}{i_2} ->
-      i_2[v/x]}\\\\
-    \inference[S-call]{\Phi(f) = (\;f(x_1, x_2, \dotsc, x_n) = i'\;)}{\Phi;BB |-
-      \icall{r}{f}{(c_1, c_2, \dotsc, c_n)}{i} -> \ido{r}{i'[c_1/x_1, c_2/x_2,
-        \dotsc, c_n/x_n]}{i}}\\\\
-    \inference[S-br]{BB(bb) = Ks \quad Ks(k) = \lambda(x_1, \dotsc, x_n).i}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
-      i[c_1/x_1, \dotsc, c_n/x_n]}
+    \text{Instructions:} \quad \boxed{D;BB |- s -> s'}\\
+    \inference[S-let]{|- o \eop c}{D;BB |- \ilet{x}{o}{s} -> s[c/x]}\\\\
+    \inference[S-letrec-v]{}{D;BB |- \iletrec{bb}{\dbundle}
+      {\iret{c}} -> \iret{c}}\\\\
+    \inference[S-letrec-s]{D;BB[bb \mapsto \dbundle] |- s -> s'}
+    {D;BB |- \iletrec{bb}{\dbundle}{s} -> \iletrec{bb}{\dbundle}{s'}}\\\\
+    \inference[S-brc-t]{}{D;BB |-
+      \ibrc{\btrue}{bb^k}{(c_1, \dotsc, c_n)}{bb^{k'}}{(c_1, \dotsc, c_n)'} -> \ibr{bb^k}{(c_1, \dotsc, c_n)}}\\\\
+    \inference[S-brc-f]{}{D;BB |-
+      \ibrc{\bfalse}{bb^k}{(c_1, \dotsc, c_n)}{bb^{k'}}{(c_1, \dotsc, c_n)'} ->
+      \ibr{bb^{k'}}{(c_1, \dotsc, c_n)'}}\\\\
+    \inference[S-do-s]{D;BB |- s_1 -> s'_1}{D;BB |-
+      \ido{x}{s_1}{s_2} -> \ido{x}{s'_1}{s_2}}\\\\
+    \inference[S-do-v]{}{D;BB |- \ido{x}{\iret{c}}{s_2} -> s_2[c/x]}\\\\
+    \inference[S-call]{D(f) = (\;f(x_1, x_2, \dotsc, x_n) = s'\;)}{D;BB |-
+      \icall{s}{f}{(c_1, c_2, \dotsc, c_n)}{s} -> \ido{x}{s'[c_1/x_1, c_2/x_2,
+        \dotsc, c_n/x_n]}{s}}\\\\
+    \inference[S-br]{BB(bb) = (d_1,\dotsc,d_n) \quad (d_1,\dotsc,d_n)(k) = \lambda(x_1, \dotsc,
+      x_n).s}{D;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
  \end{gather*}
  \begin{gather*}
    \text{Programs:} \quad \boxed{|- P --> P'}\\
-   \inference[SP]{\Phi;\cdot |- i -> i'}{\ipgm{\Phi}{i} --> \ipgm{\Phi}{i'}}
+   \inference[SP]{D;\cdot |- s -> s'}{\ipgm{D}{s} --> \ipgm{D}{s'}}
  \end{gather*}
   \caption{Semantics}
   \label{fig:semantics}
@@ -763,25 +747,26 @@ the proper mathematical arithmetic operation.
 \paragraph{Step relation for instructions}
 
 Instructions is by far the most complex in this system. They have the
-judgment form $\boxed{\Phi;BB |- i -> i'}$. The context $\Phi$
+judgment form $\boxed{D;BB |- s -> s'}$. The context $D$
 contains function definitions we can call. The context $BB$ contains
 the basic blocks we have introduced and can branch to.
 
-In the semantics, we use the notation $i[v/x]$. This means that you
+In the semantics, we use the notation $s[v/x]$. This means that you
 substitute all occurrences of $x$ with $v$ in the syntax tree of
-$i$.
+$s$.
 
+\fixme{Convert $D <-> \Phi$ from here on out}
 The basic sequential operation in LLVM is handled by the
-$\ilet{x}{op}{i}$ instruction in Mini-LLVM. As already noted in
+$\ilet{x}{op}{s}$ instruction in Mini-LLVM. As already noted in
 \ref{llvm-consideration-let}, we translate sequences of instructions
 into nested applications of $\mathbf{let}$s. To execute an operation,
 $op$, is to know the contents of the register $x$. Since we have the
 SSA-property and the SSA/FP correspondence, we can then just propagate
 the value of $x$ to all its uses directly. This is done by
-substituting the result for $x$ in the body of the let, $i$.
+substituting the result for $x$ in the body of the let, $s$.
 
-Evaluation of an instruction $\iletrec{bb}{Defs}{i}$ progresses
-depending on the structure of $i$. If $i$ is of the form $\iret{c}$,
+Evaluation of an instruction $\iletrec{bb}{\dbundle}{s}$ progresses
+depending on the structure of $s$. If $s$ is of the form $\iret{c}$,
 then there is no reference to the basic blocks, and we can get rid of
 them. This is done with the S-letrec-v rule. Otherwise, the S-letrec-s
 rule introduces all the basic blocks into the context at once;
@@ -791,25 +776,22 @@ basic blocks and be replaced with a new basic block from the context.
 
 Conditional branches examine the boolean value and then step into an
 unconditional branch of the right kind. Unconditional branches, the
-S-br rule first look up the appropriate basic block in the
+S-br rule first looks up the appropriate basic block in the
 environment; then it applies the $k$th projection to get at the
 correct basic block. Finally, it resolves the contents of the
 $\phi$-nodes by substitution --- again exploiting the SSA/FP
 correspondence.
 
-The $\ido{x}{i_1}{i_2}$ instruction is equivalent to a normal
-let-construction in an (extended) lambda-calculus. It reduces $i_1$ via the
+The $\ido{x}{s_1}{s_2}$ instruction is equivalent to a normal
+let-construction in a (monadic) lambda-calculus. It reduces $s_1$ via the
 rule S-do-s until it becomes a canonical value (i.e., a $\iret{c}$);
 then applies the rule S-do-v to push down the value of $x$ into the
-body $i_2$.
+body $s_2$.
 
 Finally, function calls are handled by the S-call inference rule. We
 look up the definition of the function call in the function
 context. Then we step into a $\mathbf{do}$ instruction. Thus, we will
-use the $\mathbf{do}$ as a scratchpad for the function evaluation. It
-is not particularly efficient, but it avoids the introduction of a
-separate stack onto Mini-LLVM. Exploitation of the SSA-property leads
-to a simple substitution of function parameters.
+use the $\mathbf{do}$ as a scratchpad for the function evaluation.
 
 \paragraph{Step relation for programs}
 
@@ -828,10 +810,10 @@ explicitly, however.
 \paragraph{Extrinsic vs. Intrinsic encoding}
 
 When we specify a syntax as an abstract syntax tree in a language like
-ML, we usually do so by virtue of a recursive sum type. This syntax
+ML, we usually do so by virtue of an algebraic data type. This syntax
 description allows us to write down some \emph{illegal} programs:
 certain syntax trees will get stuck under evaluation. A typing
-relation then constrain the syntax trees such that only well-typed
+relation then constrains the syntax trees such that only well-typed
 programs are allowed. When the typing relation stands next to the
 syntax description, we say that the encoding is \emph{extrinsic}.
 
@@ -844,7 +826,7 @@ form, called \emph{intrinsic} encoding, is possible in \twelf{},
 Intrinsic encodings have their limitations however. The typing
 relation must be static in the sense that it must be driven by the
 syntactical rules alone. An extrinsic encoding on the contrary can use
-any (Turing Machine-)computable function. This might make the
+any (Turing Machine-) computable function. This might make the
 intrinsic encoding impossible for some typing relations.
 
 In our work, we sought to achieve an intrinsic encoding of as much of
@@ -874,8 +856,11 @@ example properties from the prelude:
 \end{lem}
 \begin{proof}
   Induction on $n_1$: If $n_1$ is $0$ then take $n_3 =
-  n_2$. Otherwise then by induction $(n_1 - 1) + n_2 = (n_3 - 1)$. To this
-  we can add one to both sides to obtain the result.
+  n_2$. Otherwise, $n_1 = n'_1 + 1$. We now apply the induction
+  hypothesis to obtain an $n'_3$ with $n'_1 + n_2 = n'_3$. To this, we
+  can use the rule $n'_1 + 1 + n_2 = n'_3 + 1$ which is valid given
+  our definition of plus. This gives the existence of an $n_3 = n'_3 +
+  1$.
 \end{proof}
 
 Lemmas of this form is very common in \twelf{} signatures. They are
@@ -886,17 +871,11 @@ object and an accompanying relation on the object.
 
 Another very common \twelf{} proof is reasoning from false. We have a
 special type family defined, \texttt{void}, with no constructors
-whatsoever. This can be used to prove absurd statements. Our first
-such statement is
+whatsoever. This can be used to prove absurd statements. For example
 \begin{lem}
   Let $n_1$ and $n_2$ be natural numbers. Then $n_1 = n_2 \land n_1
   \neq n_2 \implies \bottom$.
 \end{lem}
-\begin{proof}
-  The proof relies on the fact that the premise is always false. In
-  our formal encoding we can analyze the structure on $n_1
-  \neq n_2$ to show this.
-\end{proof}
 
 We can reason anything from \texttt{void} because void has no valid
 constructors. Thus the sentence $\forall v \in \texttt{void} \; . \; \exists
@@ -905,6 +884,7 @@ inhabited.
 
 \section{Syntax encoding}
 
+\fixme{Read through this. It is not O.K. yet.}
 We would like to use an intrinsic encoding for as much of the syntax
 as possible. We would also like to use a for \twelf{} classic method
 w.r.t. encoding variables, named \emph{higher order abstract syntax}
@@ -1045,7 +1025,7 @@ list of definitions:
 One rather important milestone in our work is to make sure a correct
 LLVM IL program using a supported subset can be transformed into an
 equivalent Mini-LLVM program. Our running first example will be the
-calculation of triads:
+calculation of triangular numbers:
 \begin{equation}
   \label{eq:1}
   n? = 1 + 2 + \dotsb + n = \sum_{0 < i \leq n} i
@@ -1054,7 +1034,7 @@ calculation of triads:
 The notation $n?$ is due to Knuth\cite[section
 1.2.5]{knuth:1997:taocp1}. We choose this example over the factorial
 function since it is readily computable without the need for a
-multiplication operator. Straightforward recursive implementation of
+multiplication. Straightforward recursive implementation of
 this in C yields:
 \begin{verbatim}
 int
@@ -1066,10 +1046,10 @@ tri (int n) {
 We can then use the \clang{} compiler from C to LLVM IL to generate
 LLVM code for this C fragment. The \clang{} compiler circumvents the
 need to produce SSA IL code by using the stack as a scratch-pad for
-all operations. Any operation will be a load from the memory location
-of the stack and then a store back of the result. Thus the raw output
-from the compiler cannot be used as our Mini-LLVM language has no
-concept of a stack.
+all register operations. Any operation will be a load from the memory
+location of the stack and then a store back of the result. Thus the
+raw output from the compiler cannot be used as our Mini-LLVM language
+has no concept of a stack.
 
 LLVM contains an optimization pass however, \texttt{mem2reg}, which
 can transform stack references into register access. This effectively
@@ -1125,11 +1105,26 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 \chapter{Meta-theory}
 
 \fixme{Describe the ``Meta-theory''}
+
+In this chapter, we describe the meta-theoretic properties of
+Mini-LLVM.
+
 \section{Lemmas}
 
 To prove the usual meta-theoretic theorems we need some auxiliary
-lemmas. For instructions, we need the presence of weakening lemmas for
-instructions with respect to variable- and basic-block-contexts.
+lemmas. In the following, we present the lemmas we need
+
+\begin{lem}{substitution}
+  \label{lem:substitution}
+  Suppose we are given a constant $c$ with $\Gamma \tpc c :
+  \tau$. Further, let a register $x : \tau$ be given. Then, for all
+  instructions $\Phi;\Psi[x \mapsto \tau];\Gamma |- s : \tau'$ we have
+  $\Phi;\Psi\;\Gamma |- s[c/x] : \tau'$.
+\end{lem}
+\begin{proof}
+  Induction on the structure of $s$. Note that the register $x$ must
+  be free in $s[c/x]$.
+\end{proof}
 
 \begin{lem}
   \label{lem:weaken-gamma}
@@ -1171,53 +1166,123 @@ instructions with respect to variable- and basic-block-contexts.
 
 \section{Preservation}
 
-We would like to prove the following theorem:
+To prove preservation, we need a couple of lemmas:
+\begin{lem}{Preservation, constants:}
+  \label{lem:preservation-c}
+  Suppose $\Gamma \tpop op : \tau$ and $op \eop c$ then $\Gamma \tpc
+  c : \tau$.
+\end{lem}
+\begin{proof}
+  Induction on $op \eop c$.\fxnote{Already proven in \twelf{} by
+    intrinsic typing}
+\end{proof}
+
+\begin{lem}{Preservation, instructions:}
+  \label{lem:preservation-i}
+  Suppose $\Phi |- D : \Phi \;$, and $\; \Phi;\Psi;\Gamma |- s : \tau$. Then
+  $D;BB |- s -> s'$ implies $\Phi;\Psi;\Gamma |- s' : \tau$.
+\end{lem}
+\begin{proof}
+  Induction on $\Phi;\Psi;\Gamma |- s -> s'$:\fixme{Many cases are
+    currently missing}
+  \begin{itemize}
+  \item (S-let): If the step is of the form:
+    \begin{equation*}
+      \inference{|- op \eop c}{D;BB |- \ilet{x}{op}{s} -> s[c/x]}
+    \end{equation*}
+    Then the typing relation must be:
+    \begin{equation*}
+    \inference{\Gamma \tpop op : \tau_1 \quad \Phi ; \Psi ;
+      \Gamma[x \mapsto \tau_1] |- s : \tau}{\Phi ; \Psi ; \Gamma |-
+      \ilet{x}{op}{s} : \tau}
+    \end{equation*}
+    We have $\Gamma \tpop op : \tau_1$ and $|- op \eop c$ so by lemma
+    \eqref{lem:preservation-c}, we have $\Gamma \tpc c : \tau_1$. By the
+    substitution lemma \eqref{lem:substitution}, $\Phi;\Psi;\Gamma |-
+    s[c/x] : \tau$ as wanted.
+  \item (S-letrec-v):
+    The step is
+    \begin{equation*}
+      \inference{}{D;BB |- \iletrec{bb}{\dbundle}
+        {\iret{c}} -> \iret{c}}
+    \end{equation*}
+    with the typing rule:
+    \begin{equation*}
+    \inference{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb
+      d_1 : \ntypes -> \bullet\\
+      \dotsb\\
+      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_n : \ntypespp -> \bullet\\
+      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- \iret{c} : \tau}
+       {\Phi;\Psi;\Gamma |- \iletrec{bb}{(d_1,
+        \dotsc, d_n)}{\iret{c}} : \tau}\\\\
+    \end{equation*}
+    Note that $\iret{c}$ has no reference to the basic block
+    identifier $bb$. So it must hold that $\Phi;\Psi';\Gamma |-
+    \iret{c} : \tau$ for all $\Psi'$. In particular $\Phi;\Psi;\Gamma
+    |- \iret{c} : \tau$.
+  \item (S-letrec-s):
+    The step is
+  \begin{equation*}
+    \inference{D;BB[bb \mapsto \dbundle] |- s -> s'}
+    {D;BB |- \iletrec{bb}{\dbundle}{s} -> \iletrec{bb}{\dbundle}{s'}}
+  \end{equation*}
+    with the typing rule:
+        \begin{equation*}
+          \inference{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb
+            d_1 : \ntypes -> \bullet\\
+            \dotsb\\
+            \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_n : \ntypespp
+            -> \bullet\\
+            \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- s : \tau}
+          {\Phi;\Psi;\Gamma |- \iletrec{bb}{(d_1,
+              \dotsc, d_n)}{s} : \tau}\\\\
+    \end{equation*}
+    By the induction hypothesis $\Phi;\Psi[bb \mapsto \bbtypes];\Gamma
+    |- s' : \tau$ which is exactly what we need to construct
+    $\Phi;\Psi;\Gamma |- \iletrec{bb}{(d_1, \dotsc, d_n)}{s'} : \tau$
+    from the Tp-letrec rule.
+  \item (S-brc-t), (S-brc-f):
+    In the conditional branch cases, we simply construct
+    $\Phi;\Psi;\Gamma |- \ibr{bb^k}{(c_1, \dotsc, c_n)}$ from the
+    premises.
+  \item (S-do-v):
+    Use the substitution lemma \eqref{lem:substitution}.
+  \item (S-do-s):
+    By the induction hypothesis on $s_1$.
+  \item (S-call):
+    Since we step to $\ido{x}{s'[c_1/x_1,\dotsc,c_n/x_n]}{s}$, we must
+    construct the premises $\Phi;\cdot;\Gamma |-
+    s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$ and $\Phi;\Psi;\Gamma[x
+    \mapsto \tau'] |- s : \tau$. The second of these follow from the
+    type rule for call. The first will follow from the relation $\Phi
+    |- D : \Phi$ by the rule Wf-defs/s. Successive use of the
+    \eqref{lem:substitution} lemma then establishes $\Phi;\cdot;\cdot
+    |- s[c_1/x_1,\dotsc,c_n/c_n] : \tau'$ as needed.
+  \item (S-branch):
+    The step is
+    \begin{equation*}
+      \inference{BB(bb) = (d_1,\dotsc,d_n) \quad (d_1,\dotsc,d_n)(k) = \lambda(x_1, \dotsc,
+        x_n).s}{D;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
+    \end{equation*}
+    and the typing is
+    \begin{equation*}
+      \inference{\Psi(bb) = \bbtypes{} \quad \bbtypes{}(k) :
+        \ntypes -> \bullet\\
+        \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
+        \quad \Gamma |- c_n : \tau_n}
+      {\Phi;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}
+    \end{equation*}
+    To prove this, we must show that $\Phi;\Psi;\Gamma |-
+    s[c_1/x_1,\dotsc,c_n/x_n] : \tau$. 
+  \end{itemize}
+\end{proof}
+
 \begin{thm}
   \label{thm:preservation}
   If $|- P$ and $|- P --> P'$ then $|- P'$.
 \end{thm}
-To do that, we need a lemma:
-\begin{lem}
-  \label{thm:preservation-i}
-  Suppose $D |- \Phi : D \;$, $\; D;\Psi;\Gamma |- i : \tau$ and $D;\Psi;\Gamma
-  |- BB : \Psi$. In other words that definitions are wellformed, the
-  instruction $i$ is well-typed and that the typing of basic blocks
-  relates to the typing of the instructions. If then $\Phi;BB |- i ->
-  i'$ it implies we have $D;\Psi;\Gamma |- i' : \tau$.
-\end{lem}
 \begin{proof}
-  Induction on: $D;\Psi;\Gamma |- i -> i'$:\fixme{Many cases are
-    currently missing}
-  \begin{itemize}
-  \item (Branch) If the step is of the form
-    \begin{equation*}
-    \inference{BB(bb) = Ks \quad Ks(k) = \lambda(x_1, \dotsc, x_n).i}{\Phi;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} ->
-      i(c_1, \dotsc, c_n)}
-    \end{equation*}
-    then we must have the following type derivation
-    \begin{equation*}
-    \inference{\Psi(bb) = BB\tau{}s \quad BB\tau{}s(k) : \tau_1 -> \tau_2 -> \dotsc ->
-      \tau_n -> \tau\\
-      c_1 : \tau_1 \quad c_2 : \tau_2 \quad \dotsb \quad c_n : \tau_n}
-    {D;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}
-    \end{equation*}
-    The type of the basic block $bb$ is then $BB\tau{}s$. The $k$th
-    projection must have type $\tau_1 -> \dotsc -> \tau_n ->
-    \tau$. Now, by the helper-relation $D;\Psi;\Gamma |- BB : \Psi$,
-    we have that $D;\Psi';\Gamma' \tpb \lambda(x_1, \dotsc, x_n).i :
-    \tau_1 -> \dotsc -> \tau_n -> \tau$. Note that the contexts of
-    variables and basic block definitions are different than those we
-    want. But as $\Gamma' \subseteq \Gamma$ and $\Psi' \subseteq \Psi$
-    we can utilize lemma \eqref{lem:weaken-gamma} and
-    \eqref{lem:weaken-psi} to obtain a proof of $D;\Psi;\Gamma |- t :
-    \tau$ as wanted.
-    \item (Letrec step)
-      \begin{rem}
-        We use induction on the premise and note that we can extend
-        $D;\Psi;\Gamma |- BB : \Psi$ properly so the IH can be
-        applied.\fixme{Preservation needs much more work here}
-      \end{rem}
-  \end{itemize}
+  By application of lemma \eqref{lem:preservation-i}.
 \end{proof}
 \fixme{Rename ``Gamma'' in the Twelf code to something sensible}
 \section{Determinism}
@@ -1383,7 +1448,6 @@ author to change the source after the deadline\footnote{If I on the
   contrary \emph{can} alter the source code, I have a paper to write
   in cryptography}.
 
-\fixme{Find LNCS number for the POPLMark challenge paper}
 \fixme{Include source code}
 \section{Prelude}
 \section{Prelude properties}

@@ -147,8 +147,7 @@ that the reader is familiar with operational semantics, proof theory
 and machine verifiable proofs; in particular the \twelf{} logical
 framework. It is also expected that the reader is familiar with
 SSA-form and its implications (i.e., as found in
-\cite[Chapter 19]{appel:1998:modern})\fixme{Pulled Appel chapter from
-  memory, check when we have access to the book}.
+\cite[Chapter 19]{appel:1998:modern}).
 
 \chapter{Design considerations}
 
@@ -479,7 +478,6 @@ between basic blocks via $\phi$-nodes, there is a $\bbtype$
 designation stating a (possibly empty) list of formal parameters. We
 notate such lists as $\ntypes -> \bullet$ where the last
 ``$\bullet$'' states that it is a function but without return type.
-\fixme{Bullet here and in the figure below}
 The choice of two primitive types is deliberate. It is the simplest
 non-trivial choice of types possible. Had there only been one base
 type, all typing degenerates into questions on type arity in basic
@@ -755,7 +753,6 @@ In the semantics, we use the notation $s[v/x]$. This means that you
 substitute all occurrences of $x$ with $v$ in the syntax tree of
 $s$.
 
-\fixme{Convert $D <-> \Phi$ from here on out}
 The basic sequential operation in LLVM is handled by the
 $\ilet{x}{op}{s}$ instruction in Mini-LLVM. As already noted in
 \ref{llvm-consideration-let}, we translate sequences of instructions
@@ -1183,8 +1180,7 @@ To prove preservation, we need a couple of lemmas:
   $D;BB |- s -> s'$ implies $\Phi;\Psi;\Gamma |- s' : \tau$.
 \end{lem}
 \begin{proof}
-  Induction on $\Phi;\Psi;\Gamma |- s -> s'$:\fixme{Many cases are
-    currently missing}
+  Induction on $\Phi;\Psi;\Gamma |- s -> s'$:
   \begin{itemize}
   \item (S-let): If the step is of the form:
     \begin{equation*}
@@ -1284,7 +1280,6 @@ To prove preservation, we need a couple of lemmas:
 \begin{proof}
   By application of lemma \eqref{lem:preservation-i}.
 \end{proof}
-\fixme{Rename ``Gamma'' in the Twelf code to something sensible}
 \section{Determinism}
 \fixme{Determinism}
 
@@ -1304,39 +1299,39 @@ To prove preservation, we need a couple of lemmas:
   \begin{align*}
     \text{Terms} \quad \ni t & ::= \fskip{} \bor \fsemi{t_1}{t_2} \bor
     \fcall{f}\\
-    \text{Defs} \quad \ni \Phi & ::= \cdot \bor f = t, \Phi\\
-    \text{Programs} \quad \ni P & ::= \fpgm{\Phi}{t}
+    \text{Defs} \quad \ni D & ::= \cdot \bor f = t, D\\
+    \text{Programs} \quad \ni P & ::= \fpgm{D}{t}
   \end{align*}
   \begin{center}
     Semantics:
   \end{center}
   \begin{gather*}
     \boxed{\Phi |- t -> t'}\\
-    \inference[S-Skip]{}{\Phi |- \fsemi{\fskip{}}{t} -> t}\\
-    \inference[S-Semi]{\Phi |- t_1 -> t'_1}{\Phi |- \fsemi{t_1}{t_2}
+    \inference[S-Skip]{}{D |- \fsemi{\fskip{}}{t} -> t}\\
+    \inference[S-Semi]{D |- t_1 -> t'_1}{D |- \fsemi{t_1}{t_2}
       -> \fsemi{t'_1}{t_2}} \quad \quad
-    \inference[S-Call]{\Phi(f) = t}{\Phi |- \fcall{f} -> t}\\
+    \inference[S-Call]{D(f) = t}{D |- \fcall{f} -> t}\\
     \boxed{|- P --> P'}\\
-    \inference[Pgm/]{\Phi |- t -> t'}{\fpgm{\Phi}{t} --> \fpgm{\Phi}{t'}}
+    \inference[Pgm/]{D |- t -> t'}{\fpgm{D}{t} --> \fpgm{D}{t'}}
   \end{gather*}
   \begin{center}
     Typing
   \end{center}
   \begin{gather*}
-    \text{Fun types} \ni \Gamma ::= \cdot | f,\Gamma\\
-    \text{Wellformed terms:} \; \boxed{\Gamma |- t}\\
-    \inference[Wf-Skip]{}{\Gamma |- \fskip{}} \quad \quad
-    \inference[Wf-Call]{f \in \Gamma}{\Gamma |- \fcall{f}}\\
-    \inference[Wf-Semi]{\Gamma |- t_1 \quad \Gamma |- t_2}{\Gamma |-
+    \text{Fun types} \ni \Phi ::= \cdot | f,\Phi\\
+    \text{Wellformed terms:} \; \boxed{\Phi |- t}\\
+    \inference[Wf-Skip]{}{\Phi |- \fskip{}} \quad \quad
+    \inference[Wf-Call]{f \in \Phi}{\Phi |- \fcall{f}}\\
+    \inference[Wf-Semi]{\Phi |- t_1 \quad \Phi |- t_2}{\Phi |-
       \fsemi{t_1}{t_2}}\\
-    \text{Wellformed definitions:} \; \boxed{\Gamma |- \Phi :
-      \Gamma'}\\
-    \inference[WfD/z]{}{\Gamma |- \cdot : \cdot}\\
-    \inference[WfD/s]{\Gamma |- t \quad f \not \in \Gamma' \quad
-      \Gamma |- \Phi' : \Gamma'}{\Gamma |- f = t, \Phi' \; : \;
-      f,\Gamma'}\\
+    \text{Wellformed definitions:} \; \boxed{\Phi |- D :
+      \Phi'}\\
+    \inference[WfD/z]{}{\Phi |- \cdot : \cdot}\\
+    \inference[WfD/s]{\Phi |- t \quad f \not \in \Phi' \quad
+      \Phi |- D' : \Phi'}{\Phi |- f = t, D' \; : \;
+      f,\Phi'}\\
     \text{Program typing:} \; \boxed{|- P}\\
-    \inference{\Gamma |- \Phi : \Gamma \quad \Gamma |- t}{|- \fpgm{\Phi}{t}}
+    \inference{\Phi |- \Phi : \Phi \quad \Phi |- t}{|- \fpgm{D}{t}}
   \end{gather*}
   \caption{Toy language for function calls}
   \label{fig:func-call-lang}

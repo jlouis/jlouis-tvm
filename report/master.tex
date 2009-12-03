@@ -54,6 +54,9 @@
 \newpage{}
 \chapter{Introduction}
 
+\fixme{Remember to check we mention SSA/Good SSA. We deviate from LLVM
+  IL here}
+
 \fixme{Go through the whole encoding chapter. It needs some help!}
 \fixme{Mention something about $\alpha$-conversion and
   contexts. Particularly that it comes for free in \twelf{}}
@@ -280,8 +283,7 @@ compatible way as long as it remains a version 2.x.
   \tau'_n}
 \newcommand{\ntypespp}{\tau_1 \times \tau_2 \times \dotsb \times \tau_{n'}}
 
-\newcommand{\bbtypes}{(\sigma_1, \dotsc, \sigma_n)}
-
+\newcommand{\bbtypes}{(\sigma_1, \dotsc, \sigma_m)}
 In this and the following sections, we present the language
 Mini-LLVM. Mini-LLVM is a subset of the LLVM IL in functionality ---
 it takes a different approach with respect to SSA-form: Mini-LLVM is a
@@ -304,6 +306,7 @@ from which we draw values.
 \newcommand{\BB}{\mathbb{B}}
 \newcommand{\btrue}{\mathbf{True}}
 \newcommand{\bfalse}{\mathbf{False}}
+\newcommand{\dbundle}{(d_1, d_2, \dotsc, d_m)}
 
 Our language will be using several syntactic terminal domains, the
 existence of which we assume (figure \ref{fig:syntactic-domains}). We
@@ -381,7 +384,7 @@ targeting LLVM; in particular, the \clang{}-project was used.
                        & \bor \quad \ibr{bb^n}{(c_1, \dotsc, c_n)} \\
                        & \bor \quad \ibrc{c}{bb^n}{(c_1, \dotsc, c_n)}{bb^n}{(c'_1, \dotsc, c'_n)}\\
                        & \bor \quad \ilet{x}{op}{s} \\
-                       & \bor \quad \iletrec{bb}{(d_1, d_2, \dotsc, d_n)}{s} \\
+                       & \bor \quad \iletrec{bb}{\dbundle}{s} \\
                        & \bor \quad \ido{x}{s_1}{s_2} &
                        (\text{Internal})\\
                        & \bor \quad \icall{x}{f}{(c_1, \dotsc,
@@ -407,12 +410,12 @@ Instructions form the main part of Mini-LLVM. The instruction
 $\iret{c}$ represents returning a value from a function. It models the
 LLVM '\texttt{ret}' instruction.
 
-Basic blocks are introduced with the $\iletrec{bb}{(d_1, \dotsc,
-  d_n)}{s}$ notation. This simultaneously binds the definitions $d_1$
-through $d_n$ of basic blocks to the name $bb$. Note each definition will
-take formal parameters for its $\phi$-nodes. The name $bb$ will be
+Basic blocks are introduced with the $\iletrec{bb}{\dbundle}{s}$
+notation. This simultaneously binds the definitions $d_1$ through
+$d_m$ of basic blocks to the name $bb$. Note each definition will take
+formal parameters for its $\phi$-nodes. The name $bb$ will be
 available in the context of the instruction $i$. We will often in the
-following call a basic block mapping $bb \mapsto (d_1, \dotsc, d_n)$
+following call a basic block mapping $bb \mapsto \dbundle$
 for a Basic block \emph{bundle}.
 
 The instruction $\ibr{bb^k}{(c_1, \dotsc, c_n)}$ designates an
@@ -514,12 +517,12 @@ block definitions.
   \begin{gather*}
     \text{Operations:} \quad \boxed{\Gamma \tpop op : \tau} \\
     \inference[TpOp-Cst]{\Gamma \tpc c : \tau}{\Gamma |- c : \tau}\\\\
-    \inference[TpOp-Plus]{\Gamma \tpop o_1 : \tnat \quad \Gamma
-      \tpop o_2 : \tnat}{\Gamma \tpop o_1 + o_2 : \tnat} \quad
-    \inference[TpOp-Mone]{\Gamma \tpop o_1 : \tnat \quad \Gamma
-      \tpop o_2 : \tnat}{\Gamma \tpop o_1 - o_2 : \tnat}\\\\
-    \inference[TpOp-Lt]{\Gamma \tpop o_1 : \tnat \quad \Gamma
-      \tpop o_2 : \tnat}{\Gamma \tpop o_1 < o_2 : \tbool}
+    \inference[TpOp-Plus]{\Gamma \tpc c_1 : \tnat \quad \Gamma
+      \tpc c_2 : \tnat}{\Gamma \tpop c_1 + c_2 : \tnat} \quad
+    \inference[TpOp-Mone]{\Gamma \tpc c_1 : \tnat \quad \Gamma
+      \tpc c_2 : \tnat}{\Gamma \tpop c_1 - c_2 : \tnat}\\\\
+    \inference[TpOp-Lt]{\Gamma \tpc c_1 : \tnat \quad \Gamma
+      \tpc c_2 : \tnat}{\Gamma \tpop c_1 < c_2 : \tbool}
   \end{gather*}
   \caption{Typing 1}
   \label{fig:type-judgement-1}
@@ -537,20 +540,23 @@ for each of the constant types.
 
 The judgment form for operations is $\boxed{\Gamma \tpop op :
   \tau}$. Under the environment of $\Gamma$ the operation $op$ has
-type $\tau$. These rules are somewhat straightforward for most
-part. The only special case is that the less-than comparison operator
-has boolean type.
+type $\tau$. These rules are rather straightforward.
 
 \fixme{Define typing for basic blocks in the text}
 \newcommand{\btype}{\ntypes -> \bullet}
 \begin{figure}
+  \begin{align*}
+    \text{Definitions:} \ni D & ::= \cdot \bor (f(x_1, x_2, \dotsc,
+    x_l) = s, D)\\
+    \text{Basic Blocks:} \ni BB & ::= \cdot \bor (bb \mapsto \dbundle),BB
+  \end{align*}
   \begin{gather*}
     \text{Basic block Definitions:} \quad \boxed{\Phi;\Psi;\Gamma \tpb d
-      : \tau}\\
+      : \sigma / \tau}\\
     \inference[BB-Def]{\Phi;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n
       \mapsto \tau_n] |- s :
   \tau}{\Phi;\Psi;\Gamma \tpb \lambda(x_1, x_2, \dotsc,
-      x_n).s : \ntypes -> \bullet}
+      x_n).s : (\ntypes -> \bullet) / \tau}
   \end{gather*}
   \begin{gather*}
     \text{Instructions:} \quad \boxed{\Phi ; \Psi ; \Gamma |- s : \tau}\\\\
@@ -562,30 +568,29 @@ has boolean type.
     \inference[Tp-do]{\Phi;\cdot;\cdot |- s_1 : \tau_1 \quad
       \Phi;\Psi;\Gamma[x \mapsto \tau_1] |- s_2 : \tau} {\Phi;\Psi;\Gamma |-
       \ido{x}{s_1}{s_2} : \tau}\\\\
-    \inference[Tp-br]{\Psi(bb) = \bbtypes{} \quad \bbtypes{}(k) :
+    \inference[Tp-br]{\Psi(bb) = \bbtypes{} \quad \sigma_k :
       \ntypes -> \bullet\\
       \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
       \quad \Gamma |- c_n : \tau_n}
     {\Phi;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
     \inference[Tp-brc]{\Gamma \tpc x : \tbool\\
       \Psi(bb) = \bbtypes{}\\
-      \bbtypes{}(k) : \ntypes -> \bullet\\
+      \sigma_k : \ntypes -> \bullet\\
       \Gamma |- c_1 : \tau_1 \quad \dotsb \quad \Gamma |- c_n :
       \tau_n\\
-      \bbtypes{}(k') : \ntypesp -> \bullet\\
+      \sigma_{k'} : \ntypesp -> \bullet\\
       \Gamma |- c'_1 : \tau'_1 \quad \dotsb \quad \Gamma |- c'_n :
       \tau'_n}
     {\Phi;\Psi;\Gamma |- \ibrc{x}{bb^k}{(c_1, \dotsc,
         c_n)}{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}\\\\
     \inference[Tp-letrec]{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb
-      d_1 : \ntypes -> \bullet\\
+      d_1 : \sigma_1 / \tau\\
       \dotsb\\
-      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_n : \ntypespp -> \bullet\\
+      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
       \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- s : \tau}
-       {\Phi;\Psi;\Gamma |- \iletrec{bb}{(d_1,
-        \dotsc, d_n)}{s} : \tau}\\\\
+       {\Phi;\Psi;\Gamma |- \iletrec{bb}{\dbundle}{s} : \tau}\\\\
     \inference[Tp-call]{\Phi(f) = \ntypes -> \tau'\\
-    c_1 : \tau_1 \quad \dotsb \quad c_n : \tau_n\\
+      \Gamma |- c_1 : \tau_1 \quad \dotsb \quad \Gamma |- c_n : \tau_n\\
   \Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau}
   {\Phi;\Psi;\Gamma |- \icall{x}{f}{(c_1, \dotsc, c_n)}{s} : \tau}
   \end{gather*}
@@ -612,7 +617,8 @@ let-binding above.
 Unconditional branches are handled by the Tp-br rule. It states that a
 well-typed branch can look up the basic block in the environment of
 basic blocks and then take the $k$th projection of this to obtain the
-type $\ntypes -> \tau$.
+type $\ntypes -> \bullet$. \fixme{Check we actually write something
+  about the $\bullet$ and explain the details of it}
 
 Conditional branches are well-typed if each path regarded as
 unconditional branches are. Furthermore we require the branch variable
@@ -704,13 +710,13 @@ For each possible operator, there is a corresponding inference
 rule. Each of these simply unwrap underlying integers and then applies
 the proper mathematical arithmetic operation.
 \newcommand{\meval}{:=}
-\newcommand{\dbundle}{(d_1, d_2, \dotsc, d_n)}
 \begin{figure}
   \begin{gather*}
     \text{Operations:} \quad \boxed{|- op \eop n}\\
-    \inference[E-Plus]{}{|- n_1 + n_2 \eop n}(n \meval n_1 + n_2)\\\\
+    \inference[E-Plus]{}{|- n_1 + n_2 \eop n}(n \meval n_1 + n_2)
+    \quad \quad
     \inference[E-Mone]{}{|- n_1 - n_2 \eop n}(n \meval n_1 - n_2)\\\\
-    \inference[E-Lt-T]{}{|- n_1  < n_2 \eop \btrue}(n_1 < n_2)\\\\
+    \inference[E-Lt-T]{}{|- n_1  < n_2 \eop \btrue}(n_1 < n_2) \quad \quad
     \inference[E-Lt-F]{}{|- n_1  < n_2 \eop \bfalse}(n_1 >= n_2)
   \end{gather*}
   \begin{gather*}
@@ -731,7 +737,7 @@ the proper mathematical arithmetic operation.
     \inference[S-call]{D(f) = (\;f(x_1, x_2, \dotsc, x_n) = s'\;)}{D;BB |-
       \icall{s}{f}{(c_1, c_2, \dotsc, c_n)}{s} -> \ido{x}{s'[c_1/x_1, c_2/x_2,
         \dotsc, c_n/x_n]}{s}}\\\\
-    \inference[S-br]{BB(bb) = (d_1,\dotsc,d_n) \quad (d_1,\dotsc,d_n)(k) = \lambda(x_1, \dotsc,
+    \inference[S-br]{BB(bb) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
       x_n).s}{D;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
  \end{gather*}
  \begin{gather*}
@@ -744,13 +750,16 @@ the proper mathematical arithmetic operation.
 
 \paragraph{Step relation for instructions}
 
-Instructions is by far the most complex in this system. They have the
-judgment form $\boxed{D;BB |- s -> s'}$. The context $D$
-contains function definitions we can call. The context $BB$ contains
-the basic blocks we have introduced and can branch to.
+Instructions is by far the most complex in this system. To describe
+these, we need to describe two new classes: definitions and basic
+blocks. Definitions, notated as $D$, is a list of function
+definitions. Basic blocks, notated as $BB$, is a mapping from a basic
+block name to a tuple of basic blocks. Instructions have the
+judgment form $\boxed{D;BB |- s -> s'}$, where definitions and basic
+blocks are contextual.
 
-In the semantics, we use the notation $s[v/x]$. This means that you
-substitute all occurrences of $x$ with $v$ in the syntax tree of
+In the semantics, we use the notation $s[c/x]$. This means that you
+substitute all occurrences of $x$ with $c$ in the syntax tree of
 $s$.
 
 The basic sequential operation in LLVM is handled by the
@@ -929,10 +938,11 @@ where \texttt{bb-tp} is the type of definition lists. We use that to
 introduce a new $bname$ into the context when stepping under a
 $\mathbf{letrec}$ instruction:
 \begin{verbatim}
-step/letrec-s : step D (insn/letrec ([pb] Defs pb) ([pb] Body pb))
-                     (insn/letrec ([pb] Defs pb) ([pb] Body' pb))
-                 <- ({pb} bb-bind pb (Defs pb) ->
-                         step D (Body pb) (Body' pb)).
+step/letrec-s :
+    step D (insn/letrec ([pb] Defs pb) ([pb] Body pb))
+           (insn/letrec ([pb] Defs pb) ([pb] Body' pb))
+     <- ({pb} bb-bind pb (Defs pb) ->
+               step D (Body pb) (Body' pb)).
 \end{verbatim}
 Here, the \texttt{pb} variable is a hypothetical new variable which we
 bind to the definitions with the \texttt{bb-bind} relation. Since
@@ -991,7 +1001,7 @@ The semantics are encoded rather straightforwardly from figure
 context to handle the semantic environments.
 
 The somewhat informal invocation of basic blocks and function calls
-need mention though. In the semantics, we write $i[c_1/x_1, \dotsc,
+need mention though. In the semantics, we write $s[c_1/x_1, \dotsc,
 c_n/x_n]$ for substituting $c_i$ for $x_i$ ($1 \leq i \leq n$). In the
 \twelf{} formalization this is realized by the following construction:
 We have a list $[c_1 : \tau_1, \dotsc, c_n : \tau_n]$ of constant
@@ -1000,7 +1010,7 @@ $\phi$-nodes: $\lambda x_1 : \tau_1 \;.\; (\lambda x_2 : \tau_2 \;.\;
 \dotsc, (\lambda x_n : \tau_n \;.\; i)\dotsb{})$. We can then
 successively apply a constant $c_i : \tau_i$ to the $i$th lambda-term
 and then $\beta$-reduction solves the rest of the substitution. The
-very fact that $\beta$-reduction acts as our substitution principle is
+fact that $\beta$-reduction acts as our substitution principle is
 central to \twelf{}-representations.
 
 \section{Typing encoding}
@@ -1111,12 +1121,22 @@ Mini-LLVM.
 To prove the usual meta-theoretic theorems we need some auxiliary
 lemmas. In the following, we present the lemmas we need
 
-\begin{lem}{substitution}
+\begin{lem}{[Weakening, $\Psi$]}
+  \label{lem:weaken-psi}
+  Instruction typing admits Basic Block weakening: if $D;\Psi;\Gamma
+  |- i : \tau$ and $\Psi \subseteq \Psi'$ then $D;\Psi';\Gamma |- i :
+  \tau$.\fixme{Describe $\Psi \subseteq \Psi'$}
+\end{lem}
+\begin{proof}
+  I have no idea on how to do this yet.\fixme{Get an idea on the weakening!}
+\end{proof}
+
+\begin{lem}{[Substitution]}
   \label{lem:substitution}
   Suppose we are given a constant $c$ with $\Gamma \tpc c :
   \tau$. Further, let a register $x : \tau$ be given. Then, for all
-  instructions $\Phi;\Psi[x \mapsto \tau];\Gamma |- s : \tau'$ we have
-  $\Phi;\Psi\;\Gamma |- s[c/x] : \tau'$.
+  instructions $\Phi;\Psi;\Gamma[x \mapsto \tau] |- s : \tau'$ we have
+  $\Phi;\Psi;\Gamma |- s[c/x] : \tau'$.
 \end{lem}
 \begin{proof}
   Induction on the structure of $s$. Note that the register $x$ must
@@ -1148,15 +1168,6 @@ lemmas. In the following, we present the lemmas we need
   use $y$ in $\Gamma'$ extending it with one new name.
 
   Continuing this process, we can extend to the full $\Gamma'$.
-\end{proof}
-\begin{lem}
-  \label{lem:weaken-psi}
-  Instruction typing admits Basic Block weakening: if $D;\Psi;\Gamma
-  |- i : \tau$ and $\Psi \subseteq \Psi'$ then $D;\Psi';\Gamma |- i :
-  \tau$.
-\end{lem}
-\begin{proof}
-  I have no idea on how to do this yet.\fixme{Get an idea on the weakening!}
 \end{proof}
 \section{Progress}
 \fixme{Progress}
@@ -1434,7 +1445,7 @@ is feasible and reduces the complexity of the semantics.
 All source code are available either upon request from the author, or
 by git revision control on github:
 \url{http://github.com/jlouis/jlouis-tvm/tree/master/src/}. We note
-that the final commit for the source is:\fixme{Update this commit it}
+that the final commit for the source is:\fixme{Update this commit id}
 \begin{center}
   \texttt{cda8e7bb44a0168def492a313ff2d860db2d2889}.
 \end{center}

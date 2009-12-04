@@ -1111,8 +1111,6 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 
 \chapter{Meta-theory}
 
-\fixme{Describe the ``Meta-theory''}
-
 In this chapter, we describe the meta-theoretic properties of
 Mini-LLVM.
 
@@ -1207,7 +1205,7 @@ In the following proofs, we assume that the variable $x'$ is a new
   \label{lem:progress-instructions}
   For all instructions $s$ with $\Phi;\Psi;\Gamma |- s : \tau$ and
   $\Phi |- D : \Phi$, $s$ is either of the form $\iret{c}$ or $D;BB |-
-  s -> s'$.
+  s -> s'$.\fixme{There is a relation in Twelf we need to add here}
 \end{lem}
 \begin{proof}
   TODO \fxnote{This proof is essenstially written down in Twelf}

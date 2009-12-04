@@ -50,7 +50,8 @@
 \tableofcontents{}
 \newpage{}
 \section{Foreword}
-\fixme{Write a foreword}
+
+%audience, treatment, thanks, level.
 \newpage{}
 \chapter{Introduction}
 
@@ -282,8 +283,6 @@ compatible way as long as it remains a version 2.x.
 \newcommand{\ntypesp}{\tau'_1 \times \tau'_2 \times \dotsb \times
   \tau'_n}
 \newcommand{\ntypespp}{\tau_1 \times \tau_2 \times \dotsb \times \tau_{n'}}
-
-\newcommand{\bbtypes}{(\sigma_1, \dotsc, \sigma_m)}
 In this and the following sections, we present the language
 Mini-LLVM. Mini-LLVM is a subset of the LLVM IL in functionality ---
 it takes a different approach with respect to SSA-form: Mini-LLVM is a
@@ -307,7 +306,8 @@ from which we draw values.
 \newcommand{\btrue}{\mathbf{True}}
 \newcommand{\bfalse}{\mathbf{False}}
 \newcommand{\dbundle}{(d_1, d_2, \dotsc, d_m)}
-
+\newcommand{\sbundle}{(\sigma_1, \sigma_2, \dotsc, \sigma_m)}
+\newcommand{\bbtypes}{\sbundle}
 Our language will be using several syntactic terminal domains, the
 existence of which we assume (figure \ref{fig:syntactic-domains}). We
 have variables, $x_1, x_2, \dotsc$ used for naming and discriminating
@@ -516,7 +516,7 @@ block definitions.
   \end{gather*}
   \begin{gather*}
     \text{Operations:} \quad \boxed{\Gamma \tpop op : \tau} \\
-    \inference[TpOp-Cst]{\Gamma \tpc c : \tau}{\Gamma |- c : \tau}\\\\
+    \inference[TpOp-Cst]{\Gamma \tpc c : \tau}{\Gamma \tpop c : \tau}\\\\
     \inference[TpOp-Plus]{\Gamma \tpc c_1 : \tnat \quad \Gamma
       \tpc c_2 : \tnat}{\Gamma \tpop c_1 + c_2 : \tnat} \quad
     \inference[TpOp-Mone]{\Gamma \tpc c_1 : \tnat \quad \Gamma
@@ -545,11 +545,6 @@ type $\tau$. These rules are rather straightforward.
 \fixme{Define typing for basic blocks in the text}
 \newcommand{\btype}{\ntypes -> \bullet}
 \begin{figure}
-  \begin{align*}
-    \text{Definitions:} \ni D & ::= \cdot \bor (f(x_1, x_2, \dotsc,
-    x_l) = s, D)\\
-    \text{Basic Blocks:} \ni BB & ::= \cdot \bor (bb \mapsto \dbundle),BB
-  \end{align*}
   \begin{gather*}
     \text{Basic block Definitions:} \quad \boxed{\Phi;\Psi;\Gamma \tpb d
       : \sigma / \tau}\\
@@ -639,9 +634,9 @@ passed arguments obeys the type scheme.
   \begin{gather*}
     \text{Definition Wellformedness:} \quad \boxed{\Phi |- D : \Phi'}\\\\
     \inference[Wf-defs/z]{}{\Phi |- \cdot : \cdot}\\\\
-    \inference[Wf-defs/s]{\Phi |- D' : \Phi' \quad \Phi;\cdot;[x_1 \mapsto
+    \inference[Wf-defs/s]{\Phi |- D' : \Phi'' \quad \Phi;\cdot;[x_1 \mapsto
       \tau_1 \; \dotsb \; x_n \mapsto \tau_n] |- s :
-      \tau \quad f \not \in \dom{\Phi'}}{\Phi |- (f(x_1, \dotsc, x_n) = s, D') : (f \mapsto \ntypes -> \tau, \Phi')}
+      \tau \quad f \not \in \dom{\Phi'}}{\Phi |- (f(x_1, \dotsc, x_n) = s, D') : (f \mapsto \ntypes -> \tau, \Phi'')}
   \end{gather*}
 
   % \begin{gather*}
@@ -711,6 +706,11 @@ rule. Each of these simply unwrap underlying integers and then applies
 the proper mathematical arithmetic operation.
 \newcommand{\meval}{:=}
 \begin{figure}
+  \begin{align*}
+    \text{Definitions:} \ni D & ::= \cdot \bor (f(x_1, x_2, \dotsc,
+    x_l) = s, D)\\
+    \text{Basic Blocks:} \ni BB & ::= \cdot \bor (bb \mapsto \dbundle),BB
+  \end{align*}
   \begin{gather*}
     \text{Operations:} \quad \boxed{|- op \eop n}\\
     \inference[E-Plus]{}{|- n_1 + n_2 \eop n}(n \meval n_1 + n_2)
@@ -1123,12 +1123,68 @@ lemmas. In the following, we present the lemmas we need
 
 \begin{lem}{[Weakening, $\Psi$]}
   \label{lem:weaken-psi}
-  Instruction typing admits Basic Block weakening: if $D;\Psi;\Gamma
-  |- i : \tau$ and $\Psi \subseteq \Psi'$ then $D;\Psi';\Gamma |- i :
-  \tau$.\fixme{Describe $\Psi \subseteq \Psi'$}
+  Instruction typing admits Basic Block weakening: if $\Phi;\Psi;\Gamma
+  |- s : \tau$ and $bb' \mapsto \sbundle$, then $\Phi;\Psi[bb' \mapsto
+  \sbundle];\Gamma |- s : \tau$.
 \end{lem}
 \begin{proof}
-  I have no idea on how to do this yet.\fixme{Get an idea on the weakening!}
+  By mutual induction on the relation $\Phi;\Psi;\Gamma |- s : \tau$
+  and on $\Phi;\Psi;\Gamma \tpb d : \sigma / \tau$.
+
+  The case Tp-ret is immediate. The cases of BB-def, Tp-let, Tp-do,
+  Tp-letrec and Tp-call are all appeal to the IH.
+
+  For the cases of Tp-br and Tp-brc, we note that since
+  $\Phi;\Psi;\Gamma |- s : \tau$, then $\Psi(bb) =
+  \sbundle$. Therefore, also $\Psi[bb' \mapsto (\sigma_{11}, \dotsc,
+  \sigma_{1m})](bb) = \sbundle$.
+\end{proof}
+
+In the following proofs, we assume that the variable $x'$ is a new
+``fresh'' variable.
+\begin{lem}{[Weakening, $\Gamma$, registers]}
+  \label{lem:weaken-registers}
+  If $\Gamma \tpr x : \tau$ then it implies $\Gamma[x' \mapsto \tau']
+  \tpr x : \tau$
+\end{lem}
+\begin{proof}
+  Since $\Gamma \tpr x : \tau$, we must have $\Gamma(x) = \tau$. And
+  then $\Gamma[x' \mapsto \tau'](x) = \tau$ for $x' \neq x$, which we
+  can assume is the case.
+\end{proof}
+\begin{lem}{[Weakening, $\Gamma$, constants]}
+  \label{lem:weaken-constants}
+  Constants admits weakening of the variable context: $\Gamma \tpc c :
+  \tau$ implies $\Gamma[x' \mapsto \tau'] \tpc c : \tau$.
+\end{lem}
+\begin{proof}
+  Immediate consequence or by use of lemma \ref{lem:weaken-registers}.
+\end{proof}
+\begin{lem}{[Weakening, $\Gamma$, operations]}
+  \label{lem:weaken-operations}
+  Suppose $\Gamma \tpc op : \tau$. Then we have $\Gamma[x' \mapsto
+  \tau'] \tpc op : \tau$.
+\end{lem}
+\begin{proof}
+  All cases are either congruences or can be discharged by use of
+  lemma \ref{lem:weaken-constants}
+\end{proof}
+\begin{lem}{[Weakening, $\Gamma$, instructions]}
+  \label{lem:weaken-gamma}
+  Instruction typing admits weakening in the variable context: Suppose
+  we have $\Phi;\Psi;\Gamma |- s : \tau$ for contexts $\Phi, \Psi$ and
+  $\Gamma$. Then $\Phi;\Psi;\Gamma[x' \mapsto \tau'] |- s : \tau$.
+\end{lem}
+\begin{proof}
+  We run mutual induction on $\Phi;\Psi;\Gamma |- s : \tau$ and the
+  relation $\tpb$.
+
+  The case Tp-ret uses lemma \ref{lem:weaken-constants}. Tp-let is
+  done by the IH and lemma \ref{lem:weaken-operations}. Tp-do is a
+  single appeal to the IH, as $\Phi;\cdot;\cdot |- s_1 : \tau_1$ is
+  already the case. Tp-br and Tp-brc uses \ref{lem:weaken-constants}
+  which is also the case for Tp-call -- with an added appeal to the
+  IH. Finally, we Tp-letrec and BB-def cases uses the IH.
 \end{proof}
 
 \begin{lem}{[Substitution]}
@@ -1143,39 +1199,72 @@ lemmas. In the following, we present the lemmas we need
   be free in $s[c/x]$.
 \end{proof}
 
-\begin{lem}
-  \label{lem:weaken-gamma}
-  Instruction typing admits weakening in the variable context: Suppose
-  we have $D;\Psi;\Gamma |- i : \tau$ for contexts $D, \Psi$ and
-  $\Gamma$. Further suppose $\Gamma \subseteq \Gamma'$ -- then
-  $D;\Psi;\Gamma' |- i : \tau$.
-\end{lem}
-\begin{rem}
-  The notation $\Gamma \subseteq \Gamma'$ warrants some
-  explanation. We say that the environment $\Gamma'$ is an
-  \emph{extension} or \emph{augmentation} of $\Gamma$: If $\Gamma(x) =
-  \tau$ then also $\Gamma'(s) = \tau$ for all $x \in \Gamma$. In
-  addition, $\Gamma'$ might have variables which are not in the
-  original $\Gamma$, and these are required to not shadow any existing
-  variables. We note this is an accordance with the SSA property of
-  Mini-LLVM/LLVM.
-\end{rem}
-\begin{proof}(Sketch)
-  Since we have $D;\Psi;\Gamma |- i : \tau$ we know that $i$ can't use
-  any variable but those in $\Gamma$ and those introduced in the
-  typing derivation. If we systematically use $\alpha$-conversion, we
-  can avoid capture of a new variable $y \not \in \Gamma$. Thus we can
-  use $y$ in $\Gamma'$ extending it with one new name.
-
-  Continuing this process, we can extend to the full $\Gamma'$.
-\end{proof}
 \section{Progress}
+
 \fixme{Progress}
+
+\begin{lem}{[Progress, instructions]}
+  \label{lem:progress-instructions}
+  For all instructions $s$ with $\Phi;\Psi;\Gamma |- s : \tau$ and
+  $\Phi |- D : \Phi$, $s$ is either of the form $\iret{c}$ or $D;BB |-
+  s -> s'$.
+\end{lem}
+\begin{proof}
+  TODO \fxnote{This proof is essenstially written down in Twelf}
+\end{proof}
+
+\begin{thm}{[Progress]}
+  For any program $P$ with $|- P$ either $P$ is a value (i.e., of the
+  form $\ipgm{D}{\iret{c}}$) or $|- P --> P'$.
+\end{thm}
+\begin{proof}
+  By lemma \ref{lem:progress-instructions}.
+\end{proof}
 
 \section{Preservation}
 
-To prove preservation, we need a couple of lemmas:
-\begin{lem}{Preservation, constants:}
+To prove preservation, we need a couple of lemmas, and a helping
+judgement rule.
+
+\newcommand{\tpbb}{|-_{\mathrm{BB}}}
+Like we use the judgment relation $\Phi |- D : \Phi'$ to relate
+function definitions to function typing, we need a similar relation
+$\boxed{\Phi;\Psi;\Gamma \tpbb BB : \Psi'}$ linking basic blocks to their
+typing relations. The helper judgement has two rules:
+\begin{gather*}
+  \text{Basic Block wellformedness:} \quad \boxed{\Phi;\Psi;\Gamma \tpbb
+    BB : \Psi'}\\\\
+  \inference[Wf-bb/z]{}{\Phi;\Psi;\Gamma \tpbb \cdot : \cdot}\\\\
+  \inference[Wf-bb/s]{\Phi;\Psi;\Gamma \tpb d_1 :
+  \sigma_1 / \tau\\
+  \dotsb\\
+  \Phi;\Psi;\Gamma \tpb d_m : \sigma_m / \tau\\
+  \Phi;\Psi;\Gamma \tpbb BB' : \Psi'}
+  {\Phi;\Psi;\Gamma \tpbb (bb \mapsto \dbundle, BB') : (bb \mapsto
+    \sbundle, \Psi')}
+\end{gather*}
+We now present the lemmas needed for preservation, and then present
+the theorem:
+
+\begin{lem}{[Weakening, Basic block wellformedness]}
+  \label{lem:weaken-wf-bb}
+  We can weaken the basic block environment $\Psi$ for Basic block
+  wellformedness. Formally, if $\Phi;\Psi;\Gamma \tpbb BB : \Psi'$
+  then we can weaken $\Psi$ to $\Psi[bb \mapsto \sbundle]$ and then
+  \begin{equation*}
+    \Phi;\Psi[bb\mapsto \sbundle];\Gamma \tpbb BB : \Psi'
+  \end{equation*}
+\end{lem}
+\begin{proof}
+  By induction on the structure of $\tpbb$: If we have the Wf-bb/z
+  rule, then there is nothing to show. If we have the Wf-bb/s rule, we
+  can weaken the premise $\Phi;\Psi;\Gamma \tpbb BB' : \Psi'$ by the
+  induction hypothesis. And the premises of the form $\Phi;\Psi;\Gamma
+  \tpb d_j : \sigma_j / \tau$ can be weakened because of lemma
+  \ref{lem:weaken-psi}.
+\end{proof}
+
+\begin{lem}{[Preservation, constants]}
   \label{lem:preservation-c}
   Suppose $\Gamma \tpop op : \tau$ and $op \eop c$ then $\Gamma \tpc
   c : \tau$.
@@ -1185,10 +1274,31 @@ To prove preservation, we need a couple of lemmas:
     intrinsic typing}
 \end{proof}
 
+\begin{lem}{[Preservation, function lookup]}
+  \label{lem:preservation-lookup}
+  Suppose $D(f) = f(x_1, \dotsc, x_n) = s$ and $\Phi |- D :
+  \Phi'$. Then $\Phi;\cdot;[x_1 \mapsto \tau_1 \dotsb x_n \mapsto
+  \tau_n] |- s : \tau$ where $\Phi'(f) = \tau_1 \times \dotsb \times
+  \tau_n -> \tau$.
+\end{lem}
+\begin{proof}
+  Induction on the structure of $D$: Either we have $D = (f(x_1,
+  \dotsc, x_n) = s, D')$ so the function we seek is the first
+  ``element'' in $D$. Then, by the structure of $\Phi |- D : \Phi'$,
+  we must have a Wf-defs/s rule. From that rule, we have exactly what
+  we seek as premises.
+
+  If on the other hand, we have $D = (f'(x_{1'}, \dotsc, x_{n'}) = s',
+  D')$, then we have, again by the Wf-defs/s rule, that $\Phi : D' :
+  \Phi''$, so we can apply the induction hypothesis on $D'$ and $\Phi
+  |- D' : \Phi''$ to get the desired result.
+\end{proof}
+
 \begin{lem}{Preservation, instructions:}
   \label{lem:preservation-i}
-  Suppose $\Phi |- D : \Phi \;$, and $\; \Phi;\Psi;\Gamma |- s : \tau$. Then
-  $D;BB |- s -> s'$ implies $\Phi;\Psi;\Gamma |- s' : \tau$.
+  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Psi;\Gamma \tpbb BB : \Psi'$ and
+  $\; \Phi;\Psi;\Gamma |- s : \tau$. Then $D;BB |- s -> s'$ implies
+  $\Phi;\Psi;\Gamma |- s' : \tau$.
 \end{lem}
 \begin{proof}
   Induction on $\Phi;\Psi;\Gamma |- s -> s'$:
@@ -1204,8 +1314,8 @@ To prove preservation, we need a couple of lemmas:
       \ilet{x}{op}{s} : \tau}
     \end{equation*}
     We have $\Gamma \tpop op : \tau_1$ and $|- op \eop c$ so by lemma
-    \eqref{lem:preservation-c}, we have $\Gamma \tpc c : \tau_1$. By the
-    substitution lemma \eqref{lem:substitution}, $\Phi;\Psi;\Gamma |-
+    \ref{lem:preservation-c}, we have $\Gamma \tpc c : \tau_1$. By the
+    substitution lemma \ref{lem:substitution}, $\Phi;\Psi;\Gamma |-
     s[c/x] : \tau$ as wanted.
   \item (S-letrec-v):
     The step is
@@ -1215,13 +1325,12 @@ To prove preservation, we need a couple of lemmas:
     \end{equation*}
     with the typing rule:
     \begin{equation*}
-    \inference{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb
-      d_1 : \ntypes -> \bullet\\
+    \inference{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_1 :
+      \sigma_1 / \tau\\
       \dotsb\\
-      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_n : \ntypespp -> \bullet\\
+      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
       \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- \iret{c} : \tau}
-       {\Phi;\Psi;\Gamma |- \iletrec{bb}{(d_1,
-        \dotsc, d_n)}{\iret{c}} : \tau}\\\\
+       {\Phi;\Psi;\Gamma |- \iletrec{bb}{\dbundle}{\iret{c}} : \tau}
     \end{equation*}
     Note that $\iret{c}$ has no reference to the basic block
     identifier $bb$. So it must hold that $\Phi;\Psi';\Gamma |-
@@ -1229,67 +1338,95 @@ To prove preservation, we need a couple of lemmas:
     |- \iret{c} : \tau$.
   \item (S-letrec-s):
     The step is
-  \begin{equation*}
-    \inference{D;BB[bb \mapsto \dbundle] |- s -> s'}
-    {D;BB |- \iletrec{bb}{\dbundle}{s} -> \iletrec{bb}{\dbundle}{s'}}
-  \end{equation*}
+      \begin{equation*}
+        \inference{D;BB[bb \mapsto \dbundle] |- s -> s'}
+        {D;BB |- \iletrec{bb}{\dbundle}{s} -> \iletrec{bb}{\dbundle}{s'}}
+      \end{equation*}
     with the typing rule:
-        \begin{equation*}
-          \inference{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb
-            d_1 : \ntypes -> \bullet\\
+        \begin{equation}
+          \label{eq:preserv-tp-letrec-s}
+          \inference{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_1 :
+            \sigma_1 / \tau\\
             \dotsb\\
-            \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_n : \ntypespp
-            -> \bullet\\
+            \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m
+            / \tau\\
             \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- s : \tau}
-          {\Phi;\Psi;\Gamma |- \iletrec{bb}{(d_1,
-              \dotsc, d_n)}{s} : \tau}\\\\
-    \end{equation*}
-    By the induction hypothesis $\Phi;\Psi[bb \mapsto \bbtypes];\Gamma
-    |- s' : \tau$ which is exactly what we need to construct
-    $\Phi;\Psi;\Gamma |- \iletrec{bb}{(d_1, \dotsc, d_n)}{s'} : \tau$
-    from the Tp-letrec rule.
+          {\Phi;\Psi;\Gamma |- \iletrec{bb}{\dbundle}{s} : \tau}\\\\
+    \end{equation}
+    We will like to call the induction hypothesis on the premise
+    $D;BB[bb -> \dbundle] |- s -> s'$. This in turn will give us the
+    conclusion of $\Phi;\Psi[bb -> \sbundle];\Gamma |- s' : \tau$
+    which we need for the Tp-letrec rule.
+
+    But here we alter the environment of basic blocks, so our
+    judgement $\Phi;\Psi;\Gamma \tpbb BB : \Psi$ will have to be
+    updated. First, we use lemma \ref{lem:weaken-wf-bb} to weaken
+    the judgement to $\Psi;\Psi[bb \mapsto \sbundle] \tpbb BB :
+    \Psi$. Then we construct an instance of the Wf-bb/s rule, where all the
+    needed premises are present in the typing relation
+    \eqref{eq:preserv-tp-letrec-s} and the weakened $\tpbb$
+    judgement. This yields $\Phi;\Psi[bb \mapsto \sbundle];\Gamma
+    \tpbb BB[bb \mapsto \dbundle] : \Psi[bb \mapsto \sbundle]$ and we
+    can thus apply the IH to solve the case.
   \item (S-brc-t), (S-brc-f):
     In the conditional branch cases, we simply construct
     $\Phi;\Psi;\Gamma |- \ibr{bb^k}{(c_1, \dotsc, c_n)}$ from the
     premises.
   \item (S-do-v):
-    Use the substitution lemma \eqref{lem:substitution}.
+    Use the substitution lemma \ref{lem:substitution}.
   \item (S-do-s):
-    By the induction hypothesis on $s_1$.
-  \item (S-call):
-    Since we step to $\ido{x}{s'[c_1/x_1,\dotsc,c_n/x_n]}{s}$, we must
-    construct the premises $\Phi;\cdot;\Gamma |-
-    s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$ and $\Phi;\Psi;\Gamma[x
-    \mapsto \tau'] |- s : \tau$. The second of these follow from the
-    type rule for call. The first will follow from the relation $\Phi
-    |- D : \Phi$ by the rule Wf-defs/s. Successive use of the
-    \eqref{lem:substitution} lemma then establishes $\Phi;\cdot;\cdot
-    |- s[c_1/x_1,\dotsc,c_n/c_n] : \tau'$ as needed.
+    By the induction hypothesis on $s_1$. Note we reset the basic
+    blocks, so we use $\Phi;\cdot;\cdot \tpbb \cdot : \cdot$ in the IH.
+  \item (S-call): Since we step to
+    $\ido{x}{s'[c_1/x_1,\dotsc,c_n/x_n]}{s}$, we must construct the
+    premises $\Phi;\cdot;\Gamma |- s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$
+    and $\Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau$. The second of
+    these follow from the type rule for call. The first follows from
+    the relation $\Phi |- D : \Phi$. We apply lemma
+    \ref{lem:preservation-lookup} to obtain $\Phi;\cdot;[x_1
+    \mapsto \tau_1 \dotsb x_n \mapsto \tau_n] |- s' : \tau'$ as
+    needed. Successive use of the substitution lemma
+    \ref{lem:substitution} then establishes $\Phi;\cdot;\cdot |-
+    s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$.
   \item (S-branch):
     The step is
     \begin{equation*}
-      \inference{BB(bb) = (d_1,\dotsc,d_n) \quad (d_1,\dotsc,d_n)(k) = \lambda(x_1, \dotsc,
-        x_n).s}{D;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
+      \inference{BB(bb) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
+        x_n).s}
+      {D;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
     \end{equation*}
     and the typing is
     \begin{equation*}
-      \inference{\Psi(bb) = \bbtypes{} \quad \bbtypes{}(k) :
+      \inference{\Psi(bb) = \bbtypes{} \quad \sigma_k :
         \ntypes -> \bullet\\
         \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
         \quad \Gamma |- c_n : \tau_n}
       {\Phi;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}
     \end{equation*}
     To prove this, we must show that $\Phi;\Psi;\Gamma |-
-    s[c_1/x_1,\dotsc,c_n/x_n] : \tau$. 
+    s[c_1/x_1,\dotsc,c_n/x_n] : \tau$. This is true if
+    $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$ -- since we can then
+    apply substitution \ref{lem:substitution} successively.
+
+    To obtain $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$, we note
+    it can be found by means of the judgement $\Phi;\Psi;\Gamma \tpbb
+    BB : \Psi$ by induction on $BB$: either it is the ``first
+    element'' in which case the relation we seek is a premise. Or we
+    can apply the IH to $BB'$ and $\Psi'$ (the argument is similar to
+    lemma \ref{lem:preservation-lookup}).
+
+    This solves the case.
   \end{itemize}
 \end{proof}
 
-\begin{thm}
+\begin{thm}{[Preservation]}
   \label{thm:preservation}
   If $|- P$ and $|- P --> P'$ then $|- P'$.
 \end{thm}
 \begin{proof}
-  By application of lemma \eqref{lem:preservation-i}.
+  By application of lemma \ref{lem:preservation-i} where we use
+  $\Phi;\cdot;\cdot \tpbb \cdot : \cdot$ as a starting point for the
+  helper-judgement.
 \end{proof}
 \section{Determinism}
 \fixme{Determinism}
@@ -1454,14 +1591,37 @@ author to change the source after the deadline\footnote{If I on the
   contrary \emph{can} alter the source code, I have a paper to write
   in cryptography}.
 
-\fixme{Include source code}
-\section{Prelude}
-\section{Prelude properties}
-\section{Syntax}
-\section{Semantics}
-\section{Typing}
-\section{Test code}
-\section{Properties}
+\fixme{Cleanup source code for report inclusion, Move this mark down
+  when fixed for a subset}
+% \section{Prelude}
+% {\footnotesize
+% \verbatiminput{../src/prelude.elf}
+% }
+% \section{Prelude properties}
+% {\footnotesize
+% \verbatiminput{../src/prelude-properties.elf}
+% }
+% \section{Syntax}
+% {\footnotesize
+% \verbatiminput{../src/vm-syntax.elf}
+% }
+% \section{Semantics}
+% {\footnotesize
+% \verbatiminput{../src/vm-semantics.elf}
+% }
+% \section{Typing}
+% {\footnotesize
+% \verbatiminput{../src/vm-types.elf}
+% }
+% \section{Test code}
+% {\footnotesize
+% \verbatiminput{../src/vm-test.elf}
+% }
+% \section{Properties}
+% {\footnotesize
+% \verbatiminput{../src/vm-properties.elf}
+% }
+
 \end{document}
 
 %%% Local Variables: 

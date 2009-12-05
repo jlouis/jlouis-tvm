@@ -45,8 +45,9 @@ cst/b : nat -> cst tp/bool.
 
 %{
 
-We will need lists of registers/constants when one makes function calls and when one
-jumps to other basic blocks. Hence, we define them here
+We will need lists of registers/constants when one makes function
+calls and when one jumps to other basic blocks. Hence, we define them
+here
 
 }%
 
@@ -57,13 +58,13 @@ cst-list/cons : cst T -> cst-list TL -> cst-list (tp-list/cons T TL).
 
 %{ Introduction of function bundles.
 
-   Function names
-   Function bundles
+Function names
+Function bundles
 
-   A pbundle is used a reference point in an letrec introduction,
-   ie, letrec PB = (d, ...) in B.
+A pbundle is used a reference point in an letrec introduction,
+ie, letrec PB = (d, ...) in B.
 
-   pbundle+ and bname is used to implement the bb^k notation.
+pbundle+ and bname is used to implement the bb^k notation.
 }%
 
 bname : bb-tp -> type. %name bname Bname.
@@ -74,10 +75,12 @@ pbundle+ : bb-tp-list -> type.
 pbundle0 : pbundle bb-tp-list/nil.
 
 
-%{ When referring to a given entry in a letrec, we utilize a construction of the form
-   bb^k in the operational semantics notation. Here we define, e.g., bb^2 as
-   f-hd (f-tl/s (f-tl/s (f-tl/z FN))) for access to the second entry. This construction
-   lets us define a way to intrinsically define branches to other basic blocks }%
+%{ When referring to a given entry in a letrec, we utilize a
+construction of the form
+bb^k in the operational semantics notation. Here we define, e.g., bb^2 as
+f-hd (f-tl/s (f-tl/s (f-tl/z FN))) for access to the second entry.
+This construction let us define a way to intrinsically define branches
+to other basic blocks }%
 f-hd : pbundle+ (bb-tp-list/cons FT FTL) -> bname FT.
 f-tl/z : pbundle FTL -> pbundle+ FTL.
 f-tl/s : pbundle+ (bb-tp-list/cons FT FTL) -> pbundle+ FTL.
@@ -86,7 +89,7 @@ f-tl/s : pbundle+ (bb-tp-list/cons FT FTL) -> pbundle+ FTL.
 %{ Operations }%
 op : tp -> type.
 %{ Instructions. Either assigning to a register, a return or a branch.
-   These take care of control flow }%
+These take care of control flow }%
 insn : tp -> type.
 
 %{ Syntactic operation equality }%
@@ -102,13 +105,15 @@ bb-def : bb-tp -> type.
 
 %{ HOAS encoding of phi-parameters to a basic block }%
 bb-def/body : insn T -> (bb-def (bb-tp/ tp-list/nil T)).
-bb-def/phi : (cst T0 -> bb-def (bb-tp/ TL T)) -> bb-def (bb-tp/ (tp-list/cons T0 TL) T).
+bb-def/phi : (cst T0 -> bb-def (bb-tp/ TL T))
+              -> bb-def (bb-tp/ (tp-list/cons T0 TL) T).
 
 %{ Lists of basic block definitions. These are used in letrec-blocks }%
 bb-def-list : bb-tp-list -> type.
 
 bb-def-list/nil : bb-def-list bb-tp-list/nil.
-bb-def-list/cons : bb-def FT -> bb-def-list FTL -> bb-def-list (bb-tp-list/cons FT FTL).
+bb-def-list/cons : bb-def FT -> bb-def-list FTL
+                             -> bb-def-list (bb-tp-list/cons FT FTL).
 
 %{ Operations. }%
 %{ Primitive constants }%
@@ -123,7 +128,7 @@ insn/return : cst T -> insn T.
 
 insn/br : bname (bb-tp/ TL T) -> cst-list TL -> insn T.
 insn/brc : cst tp/bool -> bname (bb-tp/ TL T) -> cst-list TL
-                     -> bname (bb-tp/ TL1 T) -> cst-list TL1 -> insn T.
+                   -> bname (bb-tp/ TL1 T) -> cst-list TL1 -> insn T.
 insn/let : op T1 -> (cst T1 -> insn T) -> insn T.
 insn/letrec : (pbundle FTL -> bb-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.

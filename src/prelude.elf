@@ -93,11 +93,12 @@ nat/s : nat -> nat.
 
 %{
 
-Numbers can be added to each other by a simple inference rule system. We call this
-operation 'nat-plus'. Similarly 'nat-mone' defines the well-known mone operation on
-natural numbers.
+Numbers can be added to each other by a simple inference rule
+system. We call this operation 'nat-plus'. Similarly 'nat-mone'
+defines the well-known mone operation on natural numbers.
 
-The nat-lt operation defines a straightforward less-than (<) operation.
+The nat-lt operation defines a straightforward less-than (<)
+operation.
 
 }%
 

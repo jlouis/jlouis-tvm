@@ -41,7 +41,7 @@
   representation. The representation and its meta-theoretic properties
   are encoded into the \twelf{} logical framework and we provide proof
   of \emph{progress}, \emph{preservation} and \emph{determinism} for
-  well-typed programs\fixme{Preservation?}. Finally, we show how small
+  well-typed programs. Finally, we show how small
   LLVM IL programs can be translated to our Mini-LLVM language and
   show that they agree on certain inputs --- making it plausible our
   Mini-LLVM is adequate.
@@ -51,12 +51,40 @@
 \newpage{}
 \section{Foreword}
 
-%audience, treatment, thanks, level.
+This report is meant to be read by people interested in the LLVM
+compiler infrastructure. The goal from the beginning was to shed
+light on the informal approach of LLVM. The basic premise was that
+``if their system works, then it can be formalized'' -- though it
+might prove very hard to do so.
+
+The work was produced by trying to formalize smaller systems and then
+stitch them together. On the large scale, numerous ``full restarts''
+happened when something new was discovered that affected the complete
+formalization. This report attempts to convey the final result, but it
+omits thorough treatment of all the intermediate steps. Production of
+formal systems is partially a learning experience: you keep working
+with the system until you can treat the whole system in your head and
+understand each part. Then, and only then, can you
+present the system in its complete form.
+
+In retrospect, it would probably have been advantageous to let
+\twelf{} enter later in the process. The logical framework was used
+from the very beginning, and that might have hampered development. The
+logic is that if you are struggling with a proof, you do not want to
+be struggling with \twelf{} at the same time.
+
+Of course, since this is a learning process as well as a presentation,
+it is very possible that the treatment contains errors and
+omissions --- they are all mine. I am of the belief that you learn
+more by trying and failing than by standing on secure ground all the
+way.\\
+
+\begin{flushright}
+  Jesper Louis Andersen, December 2009.
+\end{flushright}
+
 \newpage{}
 \chapter{Introduction}
-
-\fixme{Remember to check we mention SSA/Good SSA. We deviate from LLVM
-  IL here}
 
 \fixme{Go through the whole encoding chapter. It needs some help!}
 \fixme{Mention something about $\alpha$-conversion and
@@ -240,6 +268,13 @@ if.else (...) =
 to designate that the value of '\texttt{\%add}' is the one that should
 go to the first $\phi$-node.
 
+In the paper of Appel\cite{appel:1998:ssa}, it is shown that a
+lexically scoped functional form is superior to a more linear form in
+which all basic blocks are introduced in the same scope. The lexical
+scoping of basic blocks will let us represent programs in a more
+convenient form, as is noted by the paper. We thus chose to deviate
+from the LLVM IL in this respect, and follow the functional form more.
+
 \section{Extent of the formalization}
 
 We limit the extent of the formalization to a small subset of
@@ -269,15 +304,15 @@ compatible way as long as it remains a version 2.x.
 \chapter{Syntax of Mini-LLVM}
 
 \newcommand{\variables}{\mathrm{Variables}}
-\newcommand{\BBlabels}{\mathrm{BB Labels}}
+\newcommand{\BBlabels}{\mathrm{Labels}}
 \newcommand{\tnat}{\mathbf{nat}}
 \newcommand{\tbool}{\mathbf{bool}}
 \newcommand{\types}{\mathrm{Types}}
 \newcommand{\typelist}{\mathrm{Type lists}}
-\newcommand{\bbtype}{\mathrm{BB Type}}
+\newcommand{\bbtype}{\mathrm{Label Type}}
 \newcommand{\ftype}{\mathrm{Fun Contexts}}
 \newcommand{\tpenv}{\mathrm{Var Contexts}}
-\newcommand{\bbenv}{\mathrm{BB Contexts}}
+\newcommand{\bbenv}{\mathrm{Label Contexts}}
 \newcommand{\bor}{\; \vert \;}
 \newcommand{\ntypes}{\tau_1 \times \tau_2 \times \dotsb \times \tau_n}
 \newcommand{\ntypesp}{\tau'_1 \times \tau'_2 \times \dotsb \times
@@ -322,7 +357,7 @@ this later on.
   \begin{align*}
     \numbers \ni \NN, \nat & ::= 0 \bor 1 \bor 2 \bor \dotsc\\
     \booleans \ni \BB, \bool & ::= \btrue \bor \bfalse \\
-    \BBlabels \ni bb & ::= bb_1, bb_2, bb_3, \dotsc \\
+    \BBlabels \ni l & ::= l_1, l_2, l_3, \dotsc \\
     \funlabels \ni f & ::= f_1,f_2,f_3,\dotsc
   \end{align*}
   \caption{Syntactic domains}
@@ -381,10 +416,10 @@ targeting LLVM; in particular, the \clang{}-project was used.
                        & \bor \quad c < c \\
    \basicblocks \ni d  & ::= \lambda (x_1, x_2, \cdots, x_n) . s\\
    \instructions \ni s & ::= \iret{c} \\
-                       & \bor \quad \ibr{bb^n}{(c_1, \dotsc, c_n)} \\
-                       & \bor \quad \ibrc{c}{bb^n}{(c_1, \dotsc, c_n)}{bb^n}{(c'_1, \dotsc, c'_n)}\\
+                       & \bor \quad \ibr{l^n}{(c_1, \dotsc, c_n)} \\
+                       & \bor \quad \ibrc{c}{l^n}{(c_1, \dotsc, c_n)}{l^n}{(c'_1, \dotsc, c'_n)}\\
                        & \bor \quad \ilet{x}{op}{s} \\
-                       & \bor \quad \iletrec{bb}{\dbundle}{s} \\
+                       & \bor \quad \iletrec{l}{\dbundle}{s} \\
                        & \bor \quad \ido{x}{s_1}{s_2} &
                        (\text{Internal})\\
                        & \bor \quad \icall{x}{f}{(c_1, \dotsc,
@@ -410,22 +445,22 @@ Instructions form the main part of Mini-LLVM. The instruction
 $\iret{c}$ represents returning a value from a function. It models the
 LLVM '\texttt{ret}' instruction.
 
-Basic blocks are introduced with the $\iletrec{bb}{\dbundle}{s}$
+Basic blocks are introduced with the $\iletrec{l}{\dbundle}{s}$
 notation. This simultaneously binds the definitions $d_1$ through
-$d_m$ of basic blocks to the name $bb$. Note each definition will take
-formal parameters for its $\phi$-nodes. The name $bb$ will be
-available in the context of the instruction $i$. We will often in the
-following call a basic block mapping $bb \mapsto \dbundle$
+$d_m$ of basic blocks to the name $l$. Note each definition will take
+formal parameters for its $\phi$-nodes. The name $l$ will be
+available in the context of the instruction $s$. We will often in the
+following call a basic block mapping $l \mapsto \dbundle$
 for a Basic block \emph{bundle}.
 
-The instruction $\ibr{bb^k}{(c_1, \dotsc, c_n)}$ designates an
+The instruction $\ibr{l^k}{(c_1, \dotsc, c_n)}$ designates an
 unconditional branch to the $k$th projection in the basic block bundle
-represented by the name $bb$. The parameters $c_1$ through $c_n$ are
+represented by the name $l$. The parameters $c_1$ through $c_n$ are
 formal $\phi$-node parameters to the given basic block. In LLVM, the
 projections are named explicitly by identifier names, but we felt that
 a projection is easier to handle from a formal viewpoint.
 
-The $\ibrc{x}{bb^k}{(c_1, \dotsc, c_n)}{bb^{k'}}{(c_1, \dotsc, c_n)'}$ represents a conditional
+The $\ibrc{x}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c_1, \dotsc, c_n)'}$ represents a conditional
 branch. It will, depending on the value of $x$ transfer control to
 either the first or second basic block projection, injecting the
 corresponding set of $\phi$-node parameters. In LLVM both
@@ -459,7 +494,7 @@ like a special variant of a let-binding.
 \paragraph{Programs}
 
 A Mini-LLVM program is a list of definitions $\Phi$ together with an
-initial instruction $i$. The notation is $\ipgm{\Phi}{i}$. Usually, we
+initial instruction $s$. The notation is $\ipgm{\Phi}{s}$. Usually, we
 expect the program to begin by calling a main-function in the list of
 definitions, but we have chosen to deviate from LLVM here and allow
 the execution of an arbitrary instruction rather a call to main. We
@@ -492,7 +527,7 @@ block definitions.
     \bbtype \ni \sigma   & ::= \ntypes -> \bullet\\
     \ftype \ni \Phi & ::= \cdot \bor (f \mapsto (\ntypes -> \tau), \Phi) \\
     \tpenv \ni \Gamma & ::= \cdot \bor (x \mapsto \tau),\Gamma\\
-    \bbenv \ni \Psi   & ::= \cdot \bor (bb \mapsto \bbtypes),\Psi
+    \bbenv \ni \Psi   & ::= \cdot \bor (l \mapsto \bbtypes),\Psi
   \end{align*}
   \caption{Type system}
   \label{fig:type-system}
@@ -563,27 +598,27 @@ type $\tau$. These rules are rather straightforward.
     \inference[Tp-do]{\Phi;\cdot;\cdot |- s_1 : \tau_1 \quad
       \Phi;\Psi;\Gamma[x \mapsto \tau_1] |- s_2 : \tau} {\Phi;\Psi;\Gamma |-
       \ido{x}{s_1}{s_2} : \tau}\\\\
-    \inference[Tp-br]{\Psi(bb) = \bbtypes{} \quad \sigma_k :
+    \inference[Tp-br]{\Psi(l) = \bbtypes{} \quad \sigma_k :
       \ntypes -> \bullet\\
       \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
       \quad \Gamma |- c_n : \tau_n}
-    {\Phi;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
+    {\Phi;\Psi;\Gamma |- \ibr{l^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
     \inference[Tp-brc]{\Gamma \tpc x : \tbool\\
-      \Psi(bb) = \bbtypes{}\\
+      \Psi(l) = \bbtypes{}\\
       \sigma_k : \ntypes -> \bullet\\
       \Gamma |- c_1 : \tau_1 \quad \dotsb \quad \Gamma |- c_n :
       \tau_n\\
       \sigma_{k'} : \ntypesp -> \bullet\\
       \Gamma |- c'_1 : \tau'_1 \quad \dotsb \quad \Gamma |- c'_n :
       \tau'_n}
-    {\Phi;\Psi;\Gamma |- \ibrc{x}{bb^k}{(c_1, \dotsc,
-        c_n)}{bb^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}\\\\
-    \inference[Tp-letrec]{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb
+    {\Phi;\Psi;\Gamma |- \ibrc{x}{l^k}{(c_1, \dotsc,
+        c_n)}{l^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}\\\\
+    \inference[Tp-letrec]{\Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb
       d_1 : \sigma_1 / \tau\\
       \dotsb\\
-      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
-      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- s : \tau}
-       {\Phi;\Psi;\Gamma |- \iletrec{bb}{\dbundle}{s} : \tau}\\\\
+      \Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
+      \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- s : \tau}
+       {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{s} : \tau}\\\\
     \inference[Tp-call]{\Phi(f) = \ntypes -> \tau'\\
       \Gamma |- c_1 : \tau_1 \quad \dotsb \quad \Gamma |- c_n : \tau_n\\
   \Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau}
@@ -638,18 +673,6 @@ passed arguments obeys the type scheme.
       \tau_1 \; \dotsb \; x_n \mapsto \tau_n] |- s :
       \tau \quad f \not \in \dom{\Phi'}}{\Phi |- (f(x_1, \dotsc, x_n) = s, D') : (f \mapsto \ntypes -> \tau, \Phi'')}
   \end{gather*}
-
-  % \begin{gather*}
-  %   \text{Basic Block Wellformedness:} \quad \boxed{\Phi;\Psi;\Gamma |-
-  %   BB : \Psi'}\\\\
-  % \inference[Wf-bb/z]{}{\Phi;\Psi;\Gamma |- \cdot : \cdot}\\\\
-  % \inference[Wf-bb/s]{\Phi;\Psi;\Gamma \tpb d_1 : BB\tau_1\\
-  %                     \dotsb\\
-  %                     \Phi;\Psi;\Gamma \tpb d_n : BB\tau_n\\
-  %                     \Phi;\Psi;\Gamma |- BB' : \Psi'}
-  %                   {\Phi;\Psi;\Gamma |- (bb = (d_1, \dotsc, d_n), BB') : (bb \mapsto
-  %                     (Bb\tau_1,\dotsc,Bb\tau_n), \Psi')}
-  % \end{gather*}
   \begin{gather*}
     \text{Program Wellformedness:} \quad \quad \boxed{|- P}\\\\
     \inference[WF-Pgm]{\Phi |- D : \Phi \quad \Phi;\cdot;\cdot |- s}{|- \ipgm{D}{s}}
@@ -675,7 +698,7 @@ Note that the premise $\Phi |- D : \Phi$ ties the knot on function
 definitions. The function environment $\Phi$ is being examined while it
 is being built at the same time.
 
-% The judgement $\boxed{\Phi;\Psi;\Gamma |- BB : \Psi'}$ is used to state
+% The judgement $\boxed{\Phi;\Psi;\Gamma |- L : \Psi'}$ is used to state
 % that a basic block relates to its context. We will use this in the
 % proof of \emph{preservation}, to maintain the relationship. The idea
 % is that if a basic-block environment is well-formed, all the
@@ -709,7 +732,7 @@ the proper mathematical arithmetic operation.
   \begin{align*}
     \text{Definitions:} \ni D & ::= \cdot \bor (f(x_1, x_2, \dotsc,
     x_l) = s, D)\\
-    \text{Basic Blocks:} \ni BB & ::= \cdot \bor (bb \mapsto \dbundle),BB
+    \text{Basic Blocks:} \ni L & ::= \cdot \bor (l \mapsto \dbundle),L
   \end{align*}
   \begin{gather*}
     \text{Operations:} \quad \boxed{|- op \eop n}\\
@@ -720,25 +743,25 @@ the proper mathematical arithmetic operation.
     \inference[E-Lt-F]{}{|- n_1  < n_2 \eop \bfalse}(n_1 >= n_2)
   \end{gather*}
   \begin{gather*}
-    \text{Instructions:} \quad \boxed{D;BB |- s -> s'}\\
-    \inference[S-let]{|- o \eop c}{D;BB |- \ilet{x}{o}{s} -> s[c/x]}\\\\
-    \inference[S-letrec-v]{}{D;BB |- \iletrec{bb}{\dbundle}
+    \text{Instructions:} \quad \boxed{D;L |- s -> s'}\\
+    \inference[S-let]{|- o \eop c}{D;L |- \ilet{x}{o}{s} -> s[c/x]}\\\\
+    \inference[S-letrec-v]{}{D;L |- \iletrec{l}{\dbundle}
       {\iret{c}} -> \iret{c}}\\\\
-    \inference[S-letrec-s]{D;BB[bb \mapsto \dbundle] |- s -> s'}
-    {D;BB |- \iletrec{bb}{\dbundle}{s} -> \iletrec{bb}{\dbundle}{s'}}\\\\
-    \inference[S-brc-t]{}{D;BB |-
-      \ibrc{\btrue}{bb^k}{(c_1, \dotsc, c_n)}{bb^{k'}}{(c_1, \dotsc, c_n)'} -> \ibr{bb^k}{(c_1, \dotsc, c_n)}}\\\\
-    \inference[S-brc-f]{}{D;BB |-
-      \ibrc{\bfalse}{bb^k}{(c_1, \dotsc, c_n)}{bb^{k'}}{(c_1, \dotsc, c_n)'} ->
-      \ibr{bb^{k'}}{(c_1, \dotsc, c_n)'}}\\\\
-    \inference[S-do-s]{D;BB |- s_1 -> s'_1}{D;BB |-
+    \inference[S-letrec-s]{D;L[l \mapsto \dbundle] |- s -> s'}
+    {D;L |- \iletrec{l}{\dbundle}{s} -> \iletrec{l}{\dbundle}{s'}}\\\\
+    \inference[S-brc-t]{}{D;L |-
+      \ibrc{\btrue}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c_1, \dotsc, c_n)'} -> \ibr{l^k}{(c_1, \dotsc, c_n)}}\\\\
+    \inference[S-brc-f]{}{D;L |-
+      \ibrc{\bfalse}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c_1, \dotsc, c_n)'} ->
+      \ibr{l^{k'}}{(c_1, \dotsc, c_n)'}}\\\\
+    \inference[S-do-s]{D;L |- s_1 -> s'_1}{D;L |-
       \ido{x}{s_1}{s_2} -> \ido{x}{s'_1}{s_2}}\\\\
-    \inference[S-do-v]{}{D;BB |- \ido{x}{\iret{c}}{s_2} -> s_2[c/x]}\\\\
-    \inference[S-call]{D(f) = (\;f(x_1, x_2, \dotsc, x_n) = s'\;)}{D;BB |-
+    \inference[S-do-v]{}{D;L |- \ido{x}{\iret{c}}{s_2} -> s_2[c/x]}\\\\
+    \inference[S-call]{D(f) = (\;f(x_1, x_2, \dotsc, x_n) = s'\;)}{D;L |-
       \icall{s}{f}{(c_1, c_2, \dotsc, c_n)}{s} -> \ido{x}{s'[c_1/x_1, c_2/x_2,
         \dotsc, c_n/x_n]}{s}}\\\\
-    \inference[S-br]{BB(bb) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
-      x_n).s}{D;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
+    \inference[S-br]{L(l) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
+      x_n).s}{D;L |- \ibr{l^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
  \end{gather*}
  \begin{gather*}
    \text{Programs:} \quad \boxed{|- P --> P'}\\
@@ -753,9 +776,9 @@ the proper mathematical arithmetic operation.
 Instructions is by far the most complex in this system. To describe
 these, we need to describe two new classes: definitions and basic
 blocks. Definitions, notated as $D$, is a list of function
-definitions. Basic blocks, notated as $BB$, is a mapping from a basic
+definitions. Basic blocks, notated as $L$, is a mapping from a basic
 block name to a tuple of basic blocks. Instructions have the
-judgment form $\boxed{D;BB |- s -> s'}$, where definitions and basic
+judgment form $\boxed{D;L |- s -> s'}$, where definitions and basic
 blocks are contextual.
 
 In the semantics, we use the notation $s[c/x]$. This means that you
@@ -771,7 +794,7 @@ SSA-property and the SSA/FP correspondence, we can then just propagate
 the value of $x$ to all its uses directly. This is done by
 substituting the result for $x$ in the body of the let, $s$.
 
-Evaluation of an instruction $\iletrec{bb}{\dbundle}{s}$ progresses
+Evaluation of an instruction $\iletrec{l}{\dbundle}{s}$ progresses
 depending on the structure of $s$. If $s$ is of the form $\iret{c}$,
 then there is no reference to the basic blocks, and we can get rid of
 them. This is done with the S-letrec-v rule. Otherwise, the S-letrec-s
@@ -952,19 +975,19 @@ the same as the type of \texttt{(Defs pb)}.
 
 The above construction let us define a basic block bundle, but it does
 not tell the whole story: how to project and call. In a branch
-instruction $\ibr{bb^k}{(c_1, \dotsc, c_n)}$, we need to encode the
-call $bb^k$. We define this by the means of the constants
-\texttt{f-hd, f-tl/s} and \texttt{f-tl/z}. If $bb$ is a
-\texttt{bname}, we define $bb^k$ as:
+instruction $\ibr{l^k}{(c_1, \dotsc, c_n)}$, we need to encode the
+call $l^k$. We define this by the means of the constants
+\texttt{f-hd, f-tl/s} and \texttt{f-tl/z}. If $l$ is a
+\texttt{bname}, we define $l^k$ as:
 \newcommand{\fhd}{\mathtt{f\!\!-\!\!hd}}
 \newcommand{\ftls}{\mathtt{f\!\!-\!\!tl/s}\; }
 \newcommand{\ftlz}[1]{(\mathtt{f\!\!-\!\!tl/z} \; #1)}
 \begin{equation*}
-  \fhd \underbrace{(\ftls(\ftls ( \; \dotsb \; }_{k \; \text{terms}}\ftlz{bb})))
+  \fhd \underbrace{(\ftls(\ftls ( \; \dotsb \; }_{k \; \text{terms}}\ftlz{l})))
 \end{equation*}
 The encoding allows us to maintain the intrinsic typing when transferring
 control to another basic block. Each occurrence of an $\ftls$ will
-have us taking the tail of the definition pointed to by $bb$ -- giving
+have us taking the tail of the definition pointed to by $l$ -- giving
 us the $k$th projection at the front of the list when finished. See
 the \texttt{branch-lookup} relation in the \twelf{} source.
 
@@ -1086,8 +1109,47 @@ return:
 \end{verbatim}
 By hand-translation of this into Twelf, we obtain the following
 twelf-function for the same fragment:
-\fixme{Insert fragment}
-\fixme{Note something about inverted phi-nodes}
+\begin{verbatim}
+pgm_1 = pgm/ (defs/s gauss
+  (fun-decl/parm ([n]
+    fun-decl/body
+      (insn/letrec ([pb]
+        (bb-def-list/cons
+          (bb-def/body (insn/let (op/cmp-lt n (cst/n 1))
+    		     ([r : cst tp/bool]
+                     (insn/brc r (b1 pb) cst-list/nil
+                                 (b2 pb) cst-list/nil))))
+        (bb-def-list/cons
+          (bb-def/body (insn/br (b3 pb)
+                                (cst-list/cons (cst/n 0)
+                                       cst-list/nil)))
+        (bb-def-list/cons
+          (bb-def/body
+    	    (insn/let (op/mone n (cst/n 1))
+    	       ([sub : cst tp/nat]
+                   (insn/call gauss (cst-list/cons sub
+                                            cst-list/nil)
+                        ([call : cst tp/nat]
+                              insn/let (op/plus call n)
+                                ([plus] insn/br (b3 pb)
+                                           (cst-list/cons plus
+                                             cst-list/nil)))))))
+        (bb-def-list/cons
+           (bb-def/phi [retval]
+    	     (bb-def/body (insn/return retval)))
+         bb-def-list/nil)))))
+    ([pb] insn/br (b0 pb) cst-list/nil))))
+     defs/z)
+  (insn/call gauss (cst-list/cons (cst/n 3) cst-list/nil)
+     ([r] insn/return r)).
+\end{verbatim}
+
+Note in the translated code how we translate the $\phi$-nodes. In the
+LLVM IL, we have each basic block starting with the $\phi$-nodes and a
+notation for each predecessor block stating which value should be
+passed. In our translation, we have each branch passing the values on
+as parameters.
+
 \paragraph{Automatic translation}
 
 A full treatment of translation ought to be automatic rather than
@@ -1107,7 +1169,6 @@ must also be created. This inverse parser should take a
 \twelf{}-signature with a test definition and transform it into
 equivalent full LLVM code. It has to invert the passing of
 $\phi$-nodes as well. This can be done by a similar two-pass scan.
-\fixme{Provide at least one more encoding example}
 
 \chapter{Meta-theory}
 
@@ -1122,7 +1183,7 @@ lemmas. In the following, we present the lemmas we need
 \begin{lem}{[Weakening, $\Psi$]}
   \label{lem:weaken-psi}
   Instruction typing admits Basic Block weakening: if $\Phi;\Psi;\Gamma
-  |- s : \tau$ and $bb' \mapsto \sbundle$, then $\Phi;\Psi[bb' \mapsto
+  |- s : \tau$ and $l' \mapsto \sbundle$, then $\Phi;\Psi[l' \mapsto
   \sbundle];\Gamma |- s : \tau$.
 \end{lem}
 \begin{proof}
@@ -1133,9 +1194,9 @@ lemmas. In the following, we present the lemmas we need
   Tp-letrec and Tp-call are all appeal to the IH.
 
   For the cases of Tp-br and Tp-brc, we note that since
-  $\Phi;\Psi;\Gamma |- s : \tau$, then $\Psi(bb) =
-  \sbundle$. Therefore, also $\Psi[bb' \mapsto (\sigma_{11}, \dotsc,
-  \sigma_{1m})](bb) = \sbundle$.
+  $\Phi;\Psi;\Gamma |- s : \tau$, then $\Psi(l) =
+  \sbundle$. Therefore, also $\Psi[l' \mapsto (\sigma_{11}, \dotsc,
+  \sigma_{1m})](l) = \sbundle$.
 \end{proof}
 
 In the following proofs, we assume that the variable $x'$ is a new
@@ -1204,11 +1265,11 @@ In the following proofs, we assume that the variable $x'$ is a new
 \begin{lem}{[Progress, instructions]}
   \label{lem:progress-instructions}
   For all instructions $s$ with $\Phi;\Psi;\Gamma |- s : \tau$ and
-  $\Phi |- D : \Phi$, $s$ is either of the form $\iret{c}$ or $D;BB |-
+  $\Phi |- D : \Phi$, $s$ is either of the form $\iret{c}$ or $D;L |-
   s -> s'$.\fixme{There is a relation in Twelf we need to add here}
 \end{lem}
 \begin{proof}
-  TODO \fxnote{This proof is essenstially written down in Twelf}
+  ... \fixme{Do the progress proof}
 \end{proof}
 
 \begin{thm}{[Progress]}
@@ -1224,21 +1285,21 @@ In the following proofs, we assume that the variable $x'$ is a new
 To prove preservation, we need a couple of lemmas, and a helping
 judgement rule.
 
-\newcommand{\tpbb}{|-_{\mathrm{BB}}}
+\newcommand{\tpbb}{|-_{\mathrm{L}}}
 Like we use the judgment relation $\Phi |- D : \Phi'$ to relate
 function definitions to function typing, we need a similar relation
-$\boxed{\Phi;\Psi;\Gamma \tpbb BB : \Psi'}$ linking basic blocks to their
+$\boxed{\Phi;\Psi;\Gamma \tpbb L : \Psi'}$ linking basic blocks to their
 typing relations. The helper judgement has two rules:
 \begin{gather*}
   \text{Basic Block wellformedness:} \quad \boxed{\Phi;\Psi;\Gamma \tpbb
-    BB : \Psi'}\\\\
+    L : \Psi'}\\\\
   \inference[Wf-bb/z]{}{\Phi;\Psi;\Gamma \tpbb \cdot : \cdot}\\\\
   \inference[Wf-bb/s]{\Phi;\Psi;\Gamma \tpb d_1 :
   \sigma_1 / \tau\\
   \dotsb\\
   \Phi;\Psi;\Gamma \tpb d_m : \sigma_m / \tau\\
-  \Phi;\Psi;\Gamma \tpbb BB' : \Psi'}
-  {\Phi;\Psi;\Gamma \tpbb (bb \mapsto \dbundle, BB') : (bb \mapsto
+  \Phi;\Psi;\Gamma \tpbb L' : \Psi'}
+  {\Phi;\Psi;\Gamma \tpbb (l \mapsto \dbundle, L') : (l \mapsto
     \sbundle, \Psi')}
 \end{gather*}
 We now present the lemmas needed for preservation, and then present
@@ -1247,16 +1308,16 @@ the theorem:
 \begin{lem}{[Weakening, Basic block wellformedness]}
   \label{lem:weaken-wf-bb}
   We can weaken the basic block environment $\Psi$ for Basic block
-  wellformedness. Formally, if $\Phi;\Psi;\Gamma \tpbb BB : \Psi'$
-  then we can weaken $\Psi$ to $\Psi[bb \mapsto \sbundle]$ and then
+  wellformedness. Formally, if $\Phi;\Psi;\Gamma \tpbb L : \Psi'$
+  then we can weaken $\Psi$ to $\Psi[l \mapsto \sbundle]$ and then
   \begin{equation*}
-    \Phi;\Psi[bb\mapsto \sbundle];\Gamma \tpbb BB : \Psi'
+    \Phi;\Psi[l\mapsto \sbundle];\Gamma \tpbb L : \Psi'
   \end{equation*}
 \end{lem}
 \begin{proof}
   By induction on the structure of $\tpbb$: If we have the Wf-bb/z
   rule, then there is nothing to show. If we have the Wf-bb/s rule, we
-  can weaken the premise $\Phi;\Psi;\Gamma \tpbb BB' : \Psi'$ by the
+  can weaken the premise $\Phi;\Psi;\Gamma \tpbb L' : \Psi'$ by the
   induction hypothesis. And the premises of the form $\Phi;\Psi;\Gamma
   \tpb d_j : \sigma_j / \tau$ can be weakened because of lemma
   \ref{lem:weaken-psi}.
@@ -1268,8 +1329,7 @@ the theorem:
   c : \tau$.
 \end{lem}
 \begin{proof}
-  Induction on $op \eop c$.\fxnote{Already proven in \twelf{} by
-    intrinsic typing}
+  Induction on $op \eop c$.
 \end{proof}
 
 \begin{lem}{[Preservation, function lookup]}
@@ -1294,8 +1354,8 @@ the theorem:
 
 \begin{lem}{Preservation, instructions:}
   \label{lem:preservation-i}
-  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Psi;\Gamma \tpbb BB : \Psi'$ and
-  $\; \Phi;\Psi;\Gamma |- s : \tau$. Then $D;BB |- s -> s'$ implies
+  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Psi;\Gamma \tpbb L : \Psi'$ and
+  $\; \Phi;\Psi;\Gamma |- s : \tau$. Then $D;L |- s -> s'$ implies
   $\Phi;\Psi;\Gamma |- s' : \tau$.
 \end{lem}
 \begin{proof}
@@ -1303,7 +1363,7 @@ the theorem:
   \begin{itemize}
   \item (S-let): If the step is of the form:
     \begin{equation*}
-      \inference{|- op \eop c}{D;BB |- \ilet{x}{op}{s} -> s[c/x]}
+      \inference{|- op \eop c}{D;L |- \ilet{x}{op}{s} -> s[c/x]}
     \end{equation*}
     Then the typing relation must be:
     \begin{equation*}
@@ -1318,57 +1378,57 @@ the theorem:
   \item (S-letrec-v):
     The step is
     \begin{equation*}
-      \inference{}{D;BB |- \iletrec{bb}{\dbundle}
+      \inference{}{D;L |- \iletrec{l}{\dbundle}
         {\iret{c}} -> \iret{c}}
     \end{equation*}
     with the typing rule:
     \begin{equation*}
-    \inference{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_1 :
+    \inference{\Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_1 :
       \sigma_1 / \tau\\
       \dotsb\\
-      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
-      \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- \iret{c} : \tau}
-       {\Phi;\Psi;\Gamma |- \iletrec{bb}{\dbundle}{\iret{c}} : \tau}
+      \Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
+      \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- \iret{c} : \tau}
+       {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{\iret{c}} : \tau}
     \end{equation*}
     Note that $\iret{c}$ has no reference to the basic block
-    identifier $bb$. So it must hold that $\Phi;\Psi';\Gamma |-
+    identifier $l$. So it must hold that $\Phi;\Psi';\Gamma |-
     \iret{c} : \tau$ for all $\Psi'$. In particular $\Phi;\Psi;\Gamma
     |- \iret{c} : \tau$.
   \item (S-letrec-s):
     The step is
       \begin{equation*}
-        \inference{D;BB[bb \mapsto \dbundle] |- s -> s'}
-        {D;BB |- \iletrec{bb}{\dbundle}{s} -> \iletrec{bb}{\dbundle}{s'}}
+        \inference{D;L[l \mapsto \dbundle] |- s -> s'}
+        {D;L |- \iletrec{l}{\dbundle}{s} -> \iletrec{l}{\dbundle}{s'}}
       \end{equation*}
     with the typing rule:
         \begin{equation}
           \label{eq:preserv-tp-letrec-s}
-          \inference{\Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_1 :
+          \inference{\Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_1 :
             \sigma_1 / \tau\\
             \dotsb\\
-            \Phi;\Psi[bb \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m
+            \Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m
             / \tau\\
-            \Phi;\Psi[bb \mapsto \bbtypes];\Gamma |- s : \tau}
-          {\Phi;\Psi;\Gamma |- \iletrec{bb}{\dbundle}{s} : \tau}\\\\
+            \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- s : \tau}
+          {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{s} : \tau}\\\\
     \end{equation}
     We will like to call the induction hypothesis on the premise
-    $D;BB[bb -> \dbundle] |- s -> s'$. This in turn will give us the
-    conclusion of $\Phi;\Psi[bb -> \sbundle];\Gamma |- s' : \tau$
+    $D;L[l -> \dbundle] |- s -> s'$. This in turn will give us the
+    conclusion of $\Phi;\Psi[l -> \sbundle];\Gamma |- s' : \tau$
     which we need for the Tp-letrec rule.
 
     But here we alter the environment of basic blocks, so our
-    judgement $\Phi;\Psi;\Gamma \tpbb BB : \Psi$ will have to be
+    judgement $\Phi;\Psi;\Gamma \tpbb L : \Psi$ will have to be
     updated. First, we use lemma \ref{lem:weaken-wf-bb} to weaken
-    the judgement to $\Psi;\Psi[bb \mapsto \sbundle] \tpbb BB :
+    the judgement to $\Psi;\Psi[l \mapsto \sbundle] \tpbb L :
     \Psi$. Then we construct an instance of the Wf-bb/s rule, where all the
     needed premises are present in the typing relation
     \eqref{eq:preserv-tp-letrec-s} and the weakened $\tpbb$
-    judgement. This yields $\Phi;\Psi[bb \mapsto \sbundle];\Gamma
-    \tpbb BB[bb \mapsto \dbundle] : \Psi[bb \mapsto \sbundle]$ and we
+    judgement. This yields $\Phi;\Psi[l \mapsto \sbundle];\Gamma
+    \tpbb L[l \mapsto \dbundle] : \Psi[l \mapsto \sbundle]$ and we
     can thus apply the IH to solve the case.
   \item (S-brc-t), (S-brc-f):
     In the conditional branch cases, we simply construct
-    $\Phi;\Psi;\Gamma |- \ibr{bb^k}{(c_1, \dotsc, c_n)}$ from the
+    $\Phi;\Psi;\Gamma |- \ibr{l^k}{(c_1, \dotsc, c_n)}$ from the
     premises.
   \item (S-do-v):
     Use the substitution lemma \ref{lem:substitution}.
@@ -1389,17 +1449,17 @@ the theorem:
   \item (S-branch):
     The step is
     \begin{equation*}
-      \inference{BB(bb) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
+      \inference{L(l) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
         x_n).s}
-      {D;BB |- \ibr{bb^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
+      {D;L |- \ibr{l^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
     \end{equation*}
     and the typing is
     \begin{equation*}
-      \inference{\Psi(bb) = \bbtypes{} \quad \sigma_k :
+      \inference{\Psi(l) = \bbtypes{} \quad \sigma_k :
         \ntypes -> \bullet\\
         \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
         \quad \Gamma |- c_n : \tau_n}
-      {\Phi;\Psi;\Gamma |- \ibr{bb^k}(c_1, c_2, \dotsc, c_n) : \tau}
+      {\Phi;\Psi;\Gamma |- \ibr{l^k}(c_1, c_2, \dotsc, c_n) : \tau}
     \end{equation*}
     To prove this, we must show that $\Phi;\Psi;\Gamma |-
     s[c_1/x_1,\dotsc,c_n/x_n] : \tau$. This is true if
@@ -1408,9 +1468,9 @@ the theorem:
 
     To obtain $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$, we note
     it can be found by means of the judgement $\Phi;\Psi;\Gamma \tpbb
-    BB : \Psi$ by induction on $BB$: either it is the ``first
+    L : \Psi$ by induction on $L$: either it is the ``first
     element'' in which case the relation we seek is a premise. Or we
-    can apply the IH to $BB'$ and $\Psi'$ (the argument is similar to
+    can apply the IH to $L'$ and $\Psi'$ (the argument is similar to
     lemma \ref{lem:preservation-lookup}).
 
     This solves the case.
@@ -1430,7 +1490,40 @@ the theorem:
 \fixme{Determinism}
 
 \section{Twelf encoding}
-\fixme{Write this section}
+
+We encode the proofs of progress and determinism in \twelf{} -- and
+get \twelf{} to verify their totality. This constitutes a verified
+proof of these theorems (see, for example,
+\cite{harper.crary:2005:how}). The formalization exploits that the
+\twelf{} encoding gives substitution and weakening ``for free'' - but
+it also deviates from the paper proof due to the need for \emph{output
+  factoring}. The coverage checker in \twelf{} can only consider each
+rule in isolation and thus, it can not see that all outputs are
+covered in certain cases. The standard transformation for handling
+this problem is called output factoring.
+
+\paragraph{Missing work}
+Due to time constraints, the proof of preservation which is encoded in
+\twelf{} is currently wrong. There are several problems as is: first,
+the relation $\Phi;\Gamma \tpbb \Psi : BB$ is not treated correctly
+which pose problems. Second, note that $\Psi$ is currently handled in
+the \twelf{}-context.
+
+If we add relations to the \twelf{} context, we can not ``get rid'' of
+these relations again. We need to do this in the rule of Tp-do for the
+$\Psi$ context. One trick to do this is to \emph{version} additions to
+the context. We introduce a set $V := v_1, v_2, \dotsc$ of
+``versions'' and then alter bindings in $\Psi$ from $l \mapsto
+\sbundle$ into $l \mapsto^{v} \sbundle$, augmenting each binding with
+a version. With the versioning in place, we can consider bindings of a
+given version in isolation from other versions. If we generate a new
+fresh version, $v$, then we effectively reset the context. Utilizing
+this trick is thought to be necessary in order to prove preservation.
+
+We are fairly sure that the addition of the $\ido{x}{s_1}{s_2}$ rule
+is the culprit. A system built in the process of constructing the
+semantics, but without $\mathbf{do}$ admitted preservation almost
+trivially.
 
 \chapter{Development Process}
 
@@ -1543,8 +1636,10 @@ report.
   recursive functions in \twelf{} for first-order languages in an
   intrinsically typed syntax.
 \item We formulate and prove the meta-theoretic properties of
-  \emph{progress} and \emph{determinism} in \twelf{}.
-  \fixme{Preservation?}
+  \emph{progress} and \emph{determinism} in \twelf{} and in
+  traditional form on paper.
+\item We formulate and prove the property of \emph{preservation} on
+  paper only.
 \end{itemize}
 
 The work should be of interest to anyone who work with the LLVM
@@ -1589,36 +1684,34 @@ author to change the source after the deadline\footnote{If I on the
   contrary \emph{can} alter the source code, I have a paper to write
   in cryptography}.
 
-\fixme{Cleanup source code for report inclusion, Move this mark down
-  when fixed for a subset}
-% \section{Prelude}
-% {\footnotesize
-% \verbatiminput{../src/prelude.elf}
-% }
-% \section{Prelude properties}
-% {\footnotesize
-% \verbatiminput{../src/prelude-properties.elf}
-% }
-% \section{Syntax}
-% {\footnotesize
-% \verbatiminput{../src/vm-syntax.elf}
-% }
-% \section{Semantics}
-% {\footnotesize
-% \verbatiminput{../src/vm-semantics.elf}
-% }
-% \section{Typing}
-% {\footnotesize
-% \verbatiminput{../src/vm-types.elf}
-% }
-% \section{Test code}
-% {\footnotesize
-% \verbatiminput{../src/vm-test.elf}
-% }
-% \section{Properties}
-% {\footnotesize
-% \verbatiminput{../src/vm-properties.elf}
-% }
+\section{Prelude}
+{\footnotesize
+\verbatiminput{../src/prelude.elf}
+}
+\section{Prelude properties}
+{\footnotesize
+\verbatiminput{../src/prelude-properties.elf}
+}
+\section{Syntax}
+{\footnotesize
+\verbatiminput{../src/vm-syntax.elf}
+}
+\section{Semantics}
+{\footnotesize
+\verbatiminput{../src/vm-semantics.elf}
+}
+\section{Typing}
+{\footnotesize
+\verbatiminput{../src/vm-types.elf}
+}
+\section{Test code}
+{\footnotesize
+\verbatiminput{../src/vm-test.elf}
+}
+\section{Properties}
+{\footnotesize
+\verbatiminput{../src/vm-properties.elf}
+}
 
 \end{document}
 

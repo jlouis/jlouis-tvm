@@ -33,7 +33,8 @@ pbundle-lookup-unique : pbundle-lookup FB (bb-def-list/cons FD1 _)
 
 - : pbundle-lookup-unique FB1 FB2 bb-def-eq/refl.
 
-branch-lookup-unique : branch-lookup PB Def1 -> branch-lookup PB Def2 -> bb-def-eq Def1 Def2 -> type.
+branch-lookup-unique : branch-lookup PB Def1 -> branch-lookup PB Def2
+					     -> bb-def-eq Def1 Def2 -> type.
 %mode branch-lookup-unique +BL1 +BL2 -FDEF.
 
 - : branch-lookup-unique BL1 BL2 bb-def-eq/refl.
@@ -43,7 +44,8 @@ insn-eq : insn T -> insn T -> type.
 insn-eq/ : insn-eq I I.
 
 
-function-apply-unique : bb-def-eq FD1 FD2 -> bb-apply FD1 TL E1 -> bb-apply FD2 TL E2
+function-apply-unique : bb-def-eq FD1 FD2
+			 -> bb-apply FD1 TL E1 -> bb-apply FD2 TL E2
 			 -> insn-eq E1 E2 -> type.
 %mode function-apply-unique +EQ +FA1 +FA2 -TMEQ.
 
@@ -75,7 +77,8 @@ can-pbundle-lookup : {FB : pbundle+ (bb-tp-list/cons FT FTL)}
 - : can-pbundle-lookup (f-tl/s FB) (pbundle-lookup/dig Q)
      <- can-pbundle-lookup FB Q.
 
-can-branch-lookup : {PB : pbundle+ (bb-tp-list/cons BBT R)} branch-lookup PB Def -> type.
+can-branch-lookup : {PB : pbundle+ (bb-tp-list/cons BBT R)}
+		     branch-lookup PB Def -> type.
 %mode can-branch-lookup +PB -Def.
 
 - : can-branch-lookup PB (branch-lookup/ CPL)
@@ -156,25 +159,29 @@ notin-neq : f-notin (fun-id/ N1) D -> wf-defs P D G'
 %% Relate a Phi lookup to a function lookup if good
 lookup-good : wf-defs P D G' -> phi-lookup G' F
 			     -> function-lookup F D FD -> type.
-%mode +{P:phi} +{D:defs} +{P':phi} +{Tp1:tp} +{TpL1:tp-list} +{F:fun-id Tp1 TpL1}
+%mode +{P:phi} +{D:defs} +{P':phi} +{Tp1:tp} +{TpL1:tp-list}
+   +{F:fun-id Tp1 TpL1}
    -{FD:fun-decl Tp1 TpL1} +{WFD:wf-defs P D P'}
    +{GL:phi-lookup P' F} -{FLU:function-lookup F D FD}
    (lookup-good WFD GL FLU).
 
 - : lookup-good (wf-defs/s _ _ _) phi-lookup/hit function-lookup/hit.
 
-- : lookup-good (wf-defs/s WFD NI _) (phi-lookup/miss GL) (function-lookup/miss DL)
+- : lookup-good (wf-defs/s WFD NI _) (phi-lookup/miss GL)
+         (function-lookup/miss DL)
      <- lookup-good WFD GL DL.
 
 
 %% Effectiveness, we can always function apply
-can-function-apply : {FD : fun-decl T TL} {RL : cst-list TL} function-apply FD RL I -> type.
+can-function-apply : {FD : fun-decl T TL} {RL : cst-list TL}
+		      function-apply FD RL I -> type.
 %mode +{TL:tp-list} +{T:tp} -{I:insn T} +{FD:fun-decl T TL} +{RL:cst-list TL}
    -{FA:function-apply FD RL I} (can-function-apply FD RL FA).
 
 - : can-function-apply (fun-decl/body B) cst-list/nil function-apply/body.
 
-- : can-function-apply (fun-decl/parm B) (cst-list/cons R RL) (function-apply/parm Q)
+- : can-function-apply (fun-decl/parm B) (cst-list/cons R RL)
+        (function-apply/parm Q)
      <- can-function-apply (B R) RL Q.
 
 
@@ -186,7 +193,8 @@ can-function-apply : {FD : fun-decl T TL} {RL : cst-list TL} function-apply FD R
 
 progress : {E : insn T} wf P E -> wf-defs P D P -> progress-good D E -> type.
 %mode +{D : defs} +{T : tp} +{P : phi}
-      +{E : insn T} +{WF : wf P E} +{WFD : wf-defs P D P} -{PG : progress-good D E}
+      +{E : insn T} +{WF : wf P E} +{WFD : wf-defs P D P}
+      -{PG : progress-good D E}
       progress E WF WFD PG.
 
 
@@ -231,7 +239,8 @@ pgm-progress-good/value : pgm-progress-good (pgm/ D T)
 pgm-progress-good/step  : pgm-progress-good (pgm/ D T)
 			   <- step D T T'.
 
-progress-pgm-factor : (progress-good D I) -> pgm-progress-good (pgm/ D I) -> type.
+progress-pgm-factor : (progress-good D I)
+		       -> pgm-progress-good (pgm/ D I) -> type.
 %mode progress-pgm-factor +PG -PGG.
 
 - : progress-pgm-factor (progress-good/value VP) (pgm-progress-good/value VP).
@@ -245,7 +254,8 @@ progress-pgm : {P : pgm} wf-pgm P -> pgm-progress-good P -> type.
      <- progress-pgm-factor IPP Q.
 
 %{ Congruence on letrec }%
-insn-eq-letrec-cong : ({fb} {fbind: bb-bind fb (Defs fb)} insn-eq (B1 fb) (B2 fb)) ->
+insn-eq-letrec-cong : ({fb} {fbind: bb-bind fb (Defs fb)}
+			 insn-eq (B1 fb) (B2 fb)) ->
 		      insn-eq (insn/letrec Defs B1) (insn/letrec Defs B2) -> type.
 %mode insn-eq-letrec-cong +EQ -TEQLR.
 
@@ -256,7 +266,8 @@ op-eq/ : op-eq O O.
 cst-eq : cst T -> cst T -> type.
 cst-eq/ : cst-eq R R.
 
-insn-eq-let-cong : {Bd : cst T -> insn T'} cst-eq R1 R2 -> insn-eq (Bd R1) (Bd R2) -> type.
+insn-eq-let-cong : {Bd : cst T -> insn T'} cst-eq R1 R2
+		    -> insn-eq (Bd R1) (Bd R2) -> type.
 %mode +{T : tp} +{T' : tp} +{R1 : cst T} +{R2 : cst T}
       +{Bd : cst T -> insn T'}
       +{EQ : cst-eq R1 R2}
@@ -266,7 +277,8 @@ insn-eq-let-cong : {Bd : cst T -> insn T'} cst-eq R1 R2 -> insn-eq (Bd R1) (Bd R
 - : insn-eq-let-cong Bd cst-eq/ insn-eq/.
 
 
-insn-eq-do-cong : insn-eq T1 T2 -> insn-eq (insn/do T1 B) (insn/do T2 B) -> type.
+insn-eq-do-cong : insn-eq T1 T2
+		   -> insn-eq (insn/do T1 B) (insn/do T2 B) -> type.
 %mode +{A : tp} +{B : tp} +{T1 : insn A} +{T2 : insn A} +{Bd : cst A -> insn B}
       +{EQ1 : insn-eq T1 T2}
       -{DEQ : insn-eq (insn/do T1 Bd) (insn/do T2 Bd)}
@@ -291,7 +303,8 @@ void-eq-fun-decl : void -> eq-fun-decl FD FD' -> type.
 %mode +{Tp1:tp} +{TpL1:tp-list} +{FD:fun-decl Tp1 TpL1} +{FD':fun-decl Tp1 TpL1}
    +{V:void} -{EQ:eq-fun-decl FD FD'} (void-eq-fun-decl V EQ).
 
-notin-void : f-notin (fun-id/ N) D -> function-lookup (fun-id/ N) D T -> void -> type.
+notin-void : f-notin (fun-id/ N) D
+	      -> function-lookup (fun-id/ N) D T -> void -> type.
 %mode notin-void +FIN +DL -V.
 
 - : notin-void (f-notin/s R NEQ) (function-lookup/miss DL) V
@@ -300,12 +313,13 @@ notin-void : f-notin (fun-id/ N) D -> function-lookup (fun-id/ N) D T -> void ->
 - : notin-void (f-notin/s R FNEQ) function-lookup/hit V
      <- fun-id-eq-neq (fun-id-eq/eq nat-eq/refl) FNEQ V.
 
-function-lookup-unique : phi-lookup G' F -> wf-defs P D G' ->
-			  function-lookup F D FD1 -> function-lookup F D FD2
-						  -> eq-fun-decl FD1 FD2 -> type.
+function-lookup-unique : phi-lookup G' F -> wf-defs P D G'
+			 -> function-lookup F D FD1 -> function-lookup F D FD2
+			 -> eq-fun-decl FD1 FD2 -> type.
 %mode function-lookup-unique +GL +WFD +FD1 +FD2 -EQ.
 
-- : function-lookup-unique GL WFD function-lookup/hit function-lookup/hit eq-fun-decl/.
+- : function-lookup-unique GL WFD
+       function-lookup/hit function-lookup/hit eq-fun-decl/.
 
 - : function-lookup-unique (phi-lookup/miss GL') (wf-defs/s WFD' _ _)
        (function-lookup/miss DL1) (function-lookup/miss DL2) EQ
@@ -326,28 +340,34 @@ function-lookup-unique : phi-lookup G' F -> wf-defs P D G' ->
      <- notin-void NI DL1 V
      <- void-eq-fun-decl V EQ.
 
-fap-unique : eq-fun-decl FD1 FD2 -> function-apply FD1 RL T1 -> function-apply FD2 RL T2
-							     -> insn-eq T1 T2 -> type.
+fap-unique : eq-fun-decl FD1 FD2 -> function-apply FD1 RL T1
+				 -> function-apply FD2 RL T2
+				 -> insn-eq T1 T2 -> type.
 %mode fap-unique +EQ +FA1 +FA2 -IEQ.
 
 - : fap-unique eq-fun-decl/ function-apply/body function-apply/body insn-eq/.
 
-- : fap-unique eq-fun-decl/ (function-apply/parm FA1) (function-apply/parm FA2) EQ
+- : fap-unique eq-fun-decl/
+       (function-apply/parm FA1) (function-apply/parm FA2) EQ
      <- fap-unique eq-fun-decl/ FA1 FA2 EQ.
 
 
 %{ Determinism of the system }%
-det : wf P T -> wf-defs P D P -> step D T T1 -> step D T T2 -> insn-eq T1 T2 -> type.
+det : wf P T -> wf-defs P D P -> step D T T1 -> step D T T2
+					     -> insn-eq T1 T2 -> type.
 %mode det +WF +WFD +S1 +S2 -EQ.
 
-- : det _ _ ((step/let SOP1) : step D (insn/let O B) (B R1)) (step/let SOP2) insn-eq/
+- : det _ _ ((step/let SOP1) : step D (insn/let O B) (B R1))
+             (step/let SOP2) insn-eq/
      <- det-op SOP1 SOP2 REQ
      <- insn-eq-let-cong B REQ Q.
 
 - : det _ _ (step/letrec-v VP) (step/letrec-v VP') insn-eq/.
 
 - : det (wf/letrec WFB) WFD (step/letrec-s Run1) (step/letrec-s Run2) Q
-     <- ({fb : pbundle FTL} {fbind : bb-bind fb (Defs fb)} {wb : wf-pb P (Defs fb)}
+     <- ({fb : pbundle FTL}
+         {fbind : bb-bind fb (Defs fb)}
+         {wb : wf-pb P (Defs fb)}
 	   det (WFB fb wb) WFD (Run1 fb fbind) (Run2 fb fbind) (INEQ fb fbind))
      <- insn-eq-letrec-cong INEQ Q.
 
@@ -400,7 +420,9 @@ det-pgm : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
                      (can-step-op _ _)
                      (lookup-good _ _ _)
                      (can-function-apply _ _ _)
-                     (can-bb-apply _ _) (can-pbundle-lookup _ _) (can-branch-lookup _ _).
+                     (can-bb-apply _ _)
+                     (can-pbundle-lookup _ _)
+                     (can-branch-lookup _ _).
 
 %worlds () (progress-pgm-factor _ _)
            (progress-pgm _ _ _).
@@ -473,8 +495,8 @@ det-pgm : wf-pgm P -> step-pgm P P' -> step-pgm P P'' -> pgm-eq P' P'' -> type.
 
 
 wf-bb-bind : bb-bind PB FL -> wf-pb P FL -> type.
-%mode +{BBTpL1:bb-tp-list} +{PB:pbundle BBTpL1} +{FL:bb-def-list BBTpL1} -{P:phi}
-   +{BB:bb-bind PB FL} -{WFPB:wf-pb P FL} (wf-bb-bind BB WFPB).
+%mode +{BBTpL1:bb-tp-list} +{PB:pbundle BBTpL1} +{FL:bb-def-list BBTpL1}
+   -{P:phi} +{BB:bb-bind PB FL} -{WFPB:wf-pb P FL} (wf-bb-bind BB WFPB).
 
 wf-bb-bind0 : wf-bb-bind bb-bind0 (wf-pb/nil : wf-pb phi/z _).
 
@@ -488,7 +510,8 @@ preservation-pbundle-lookup : pbundle-lookup PB Bundle -> wf-defs P D P
 - : preservation-pbundle-lookup (pbundle-lookup/dig PBL) WFD Q
      <- preservation-pbundle-lookup PBL WFD (wf-pb/cons Q _).
 
-preservation-branch-lookup : branch-lookup PB Def -> wf-defs P D P -> wf-bb P Def -> type.
+preservation-branch-lookup : branch-lookup PB Def -> wf-defs P D P
+						  -> wf-bb P Def -> type.
 %mode preservation-branch-lookup +BL +WFD -WF.
 
 - : preservation-branch-lookup (branch-lookup/ PBL) WFD BB
@@ -504,7 +527,8 @@ preservation-pbundle-apply : wf-bb P BB -> bb-apply BB RL T -> wf P T -> type.
 
 - : preservation-pbundle-apply (wf-bb/body WF) bb-apply/body WF.
 
-preservation-lookup : function-lookup F D Df -> wf-defs P D G' -> wf-decl P Df -> type.
+preservation-lookup : function-lookup F D Df -> wf-defs P D G'
+					     -> wf-decl P Df -> type.
 %mode preservation-lookup +FL +WFD -Decl.
 
 - : preservation-lookup function-lookup/hit (wf-defs/s WFD _ WF) WF.
@@ -512,7 +536,8 @@ preservation-lookup : function-lookup F D Df -> wf-defs P D G' -> wf-decl P Df -
 - : preservation-lookup (function-lookup/miss L) (wf-defs/s WFD _ WF) Q
      <- preservation-lookup L WFD Q.
 
-preservation-fun-apply : wf-decl P Df -> function-apply Df RL I -> wf P I -> type.
+preservation-fun-apply : wf-decl P Df -> function-apply Df RL I
+				      -> wf P I -> type.
 %mode preservation-fun-apply +Decl +FA -WF.
 
 - : preservation-fun-apply (wf-decl/body WF) function-apply/body WF.

@@ -6,7 +6,7 @@
 \author{Jesper Louis
   Andersen\\jesper.louis.andersen@gmail.com\\140280-2029}
 \title{Formalizing a Virtual Machine}
-\date{\today}
+\date{December 4, 2009}
 
 \newlength{\drop}
 \newcommand*{\titleM}{\begingroup% Misericords, T&H p 153
@@ -89,6 +89,7 @@ way.\\
 \fixme{Go through the whole encoding chapter. It needs some help!}
 \fixme{Mention something about $\alpha$-conversion and
   contexts. Particularly that it comes for free in \twelf{}}
+\fixme{Mention that the $k$'s are in range in the typing?}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -1258,18 +1259,101 @@ In the following proofs, we assume that the variable $x'$ is a new
   be free in $s[c/x]$.
 \end{proof}
 
+\paragraph{A helper judgement}
+
+\newcommand{\tpbb}{|-_{\mathrm{L}}}
+To prove the theorems of progress and preservation, we will make use
+of a helper-judgement. The problem we will like to solve with this
+helper-lemma is that there is no relation between a list of basic
+blocks $L$ and the context $\Psi$ of their typing. By analysis we can
+determine the relation to have the form $\boxed{\Phi;\Gamma \tpbb \Psi :
+  L / \tau}$. This relation is driven by the typing context of $\Psi$.
+
+The relation somewhat resembles the judgment $\Phi |- D : \Phi'$ used
+to relate function definitions to function typing, and the general
+idea is the same.
+
+\begin{gather*}
+  \text{Basic Block wellformedness:} \quad \boxed{\Phi;\Gamma \tpbb
+    \Psi : L / \tau}\\\\
+  \inference[Wf-bb/z]{}{\Phi;\Gamma \tpbb \cdot : L / \tau}\\\\
+  \inference[Wf-bb/s]{\Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_1 :  \sigma_1 / \tau\\
+  \dotsb\\
+  \Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_m : \sigma_m / \tau\\
+  \Phi;\Gamma \tpbb \Psi' : L\\
+  L(l) = \dbundle}
+  {\Phi;\Gamma \tpbb (l \mapsto \sbundle, \Psi') : L / \tau}
+\end{gather*}
+There are two rules for this relation. The first rule state that any
+environment of basic blocks relates to the empty context. This is
+important for the correct typing of the $\mathbf{do}$ block. The
+second rule describes how to decompose a $\Psi$. Apart from the
+recursive rule, we require that there is a match for a name $l$ with
+respect to typing. Furthermore, this rule defines the resulting type
+of the function as $\tau$.
+
+\fixme{Carry out lem:tpbb-lookup}
+
 \section{Progress}
 
 \fixme{Progress}
 
-\begin{lem}{[Progress, instructions]}
-  \label{lem:progress-instructions}
-  For all instructions $s$ with $\Phi;\Psi;\Gamma |- s : \tau$ and
-  $\Phi |- D : \Phi$, $s$ is either of the form $\iret{c}$ or $D;L |-
-  s -> s'$.\fixme{There is a relation in Twelf we need to add here}
+\begin{lem}{[Effectiveness, operations]}
+  \label{lem:can-step-op}
+  For all operations $o$ there exists a derivation, $|- o \eop c$.
 \end{lem}
 \begin{proof}
-  ... \fixme{Do the progress proof}
+  Straightforward case analysis. We use basic facts of the
+  effectiveness of arithmetic on natural numbers. For instance:
+  $\forall n_1, n_2 \in \NN . \exists n_1 + n_2 = n_3$.
+\end{proof}
+\begin{lem}{[Progress, instructions]}
+  \label{lem:progress-instructions}
+  For all instructions $s$ with $\Phi;\Psi;\Gamma |- s : \tau$, $\Phi
+  |- D : \Phi$ and $\Phi;\Gamma \tpbb \Psi : L / \tau$; $s$ is either
+  of the form $\iret{c}$ or $D;L |- s -> s'$.
+\end{lem}
+\begin{proof}
+  The proof proceeds by induction on the structure of $s$:
+  \begin{itemize}
+  \item (Return): If $s$ is of the form $\iret{c}$, it already a
+    canonical value.
+  \item (Letrec): Suppose $s$ is of the form
+    $\iletrec{l}{\dbundle}{s'}$. We look at the form of $s'$. If is
+    $\iret{c}$, then we can step by the rule S-letrec-v. Otherwise, we
+    will have to show that the rule S-letrec-s applies.
+
+    We claim $D;L[l \mapsto \dbundle] |- s' -> s''$ in this
+    case. Since $\Phi;\Psi;\Gamma |- s : \tau$, we know -- by the
+    Tp-letrec rule -- that $\Phi;\Psi[l \mapsto \sbundle];\Gamma |- s'
+    : \tau$. Furthermore, it is fairly clear that $L[l \mapsto
+    \dbundle](l) = \dbundle$ if $L$ is partial and that $\Phi;\Psi[l
+    \mapsto \sbundle];\Gamma \tpb d_j : \sigma_j / \tau$ for $1 \leq j
+    \leq m$. Thus we have the premises to construct
+    \begin{equation*}
+      \Phi;\Gamma \tpbb \Psi[l \mapsto \sbundle] : L[l \mapsto \dbundle]
+    \end{equation*}
+    and therefore, we can apply the induction hypothesis which proves the claim.
+
+    Because the claim holds, we can apply the rule S-letrec-s with the
+    claim as a premise so the $\mathbf{letrec}$ rule steps.
+  \item (Branch, unconditional): Suppose $s$ has the form $\ibr{l^k}{(c_1, \dotsc,
+      c_n)}$. We want to show that the S-br rule applies; which means
+    we must show that $L(l) = \dbundle$.
+
+    Since $\Phi;\Psi;\Gamma |- \ibr{l^k}{(c_1, dotsc, c_n)}$, we have
+    $\Psi(l) = \sbundle$ from the premises. Because $\Phi;\Gamma \tpbb \Psi : L$ and we can apply lemma
+    \ref{lem:tpbb-lookup} which gives that $L(l) = \dbundle$.
+
+  \item (Branch, conditional): These two cases can step by the cases
+    S-brc-t and S-brc-f respectively.
+  \item (Let): We show that the expression $\ilet{x}{o}{s}$ can step
+    by the S-let rule. By lemma \ref{lem:can-step-op} used on $o$,
+    there exists a derivation $|- o \eop c$. Using this as the premise
+    for the S-let rule solves the case.
+  \item (Do):
+  \item (Call):
+  \end{itemize}
 \end{proof}
 
 \begin{thm}{[Progress]}
@@ -1277,51 +1361,17 @@ In the following proofs, we assume that the variable $x'$ is a new
   form $\ipgm{D}{\iret{c}}$) or $|- P --> P'$.
 \end{thm}
 \begin{proof}
-  By lemma \ref{lem:progress-instructions}.
+  Since $|- P$ we have $\Phi |- D : \Phi$ and $\Phi;\cdot;\cdot |- s :
+  \tau$ by definition. We can then use lemma
+  \ref{lem:progress-instructions} because $\Phi;\Gamma \tpbb \cdot :
+  \cdot / \tau$. This establishes that $s$ is either of the form
+  $\iret{c}$ for some $c$ or that $D;\cdot |- s -> s'$. The latter is
+  exactly the premise for $|- P --> P'$.
 \end{proof}
 
 \section{Preservation}
 
-To prove preservation, we need a couple of lemmas, and a helping
-judgement rule.
-
-\newcommand{\tpbb}{|-_{\mathrm{L}}}
-Like we use the judgment relation $\Phi |- D : \Phi'$ to relate
-function definitions to function typing, we need a similar relation
-$\boxed{\Phi;\Psi;\Gamma \tpbb L : \Psi'}$ linking basic blocks to their
-typing relations. The helper judgement has two rules:
-\begin{gather*}
-  \text{Basic Block wellformedness:} \quad \boxed{\Phi;\Psi;\Gamma \tpbb
-    L : \Psi'}\\\\
-  \inference[Wf-bb/z]{}{\Phi;\Psi;\Gamma \tpbb \cdot : \cdot}\\\\
-  \inference[Wf-bb/s]{\Phi;\Psi;\Gamma \tpb d_1 :
-  \sigma_1 / \tau\\
-  \dotsb\\
-  \Phi;\Psi;\Gamma \tpb d_m : \sigma_m / \tau\\
-  \Phi;\Psi;\Gamma \tpbb L' : \Psi'}
-  {\Phi;\Psi;\Gamma \tpbb (l \mapsto \dbundle, L') : (l \mapsto
-    \sbundle, \Psi')}
-\end{gather*}
-We now present the lemmas needed for preservation, and then present
-the theorem:
-
-\begin{lem}{[Weakening, Basic block wellformedness]}
-  \label{lem:weaken-wf-bb}
-  We can weaken the basic block environment $\Psi$ for Basic block
-  wellformedness. Formally, if $\Phi;\Psi;\Gamma \tpbb L : \Psi'$
-  then we can weaken $\Psi$ to $\Psi[l \mapsto \sbundle]$ and then
-  \begin{equation*}
-    \Phi;\Psi[l\mapsto \sbundle];\Gamma \tpbb L : \Psi'
-  \end{equation*}
-\end{lem}
-\begin{proof}
-  By induction on the structure of $\tpbb$: If we have the Wf-bb/z
-  rule, then there is nothing to show. If we have the Wf-bb/s rule, we
-  can weaken the premise $\Phi;\Psi;\Gamma \tpbb L' : \Psi'$ by the
-  induction hypothesis. And the premises of the form $\Phi;\Psi;\Gamma
-  \tpb d_j : \sigma_j / \tau$ can be weakened because of lemma
-  \ref{lem:weaken-psi}.
-\end{proof}
+To prove preservation, we need a couple of lemmas:
 
 \begin{lem}{[Preservation, constants]}
   \label{lem:preservation-c}
@@ -1499,31 +1549,31 @@ proof of these theorems (see, for example,
 it also deviates from the paper proof due to the need for \emph{output
   factoring}. The coverage checker in \twelf{} can only consider each
 rule in isolation and thus, it can not see that all outputs are
-covered in certain cases. The standard transformation for handling
-this problem is called output factoring.
+covered in certain cases.
 
 \paragraph{Missing work}
 Due to time constraints, the proof of preservation which is encoded in
 \twelf{} is currently wrong. There are several problems as is: first,
-the relation $\Phi;\Gamma \tpbb \Psi : BB$ is not treated correctly
+the relation $\Phi;\Gamma \tpbb \Psi : L$ is not treated correctly
 which pose problems. Second, note that $\Psi$ is currently handled in
 the \twelf{}-context.
 
 If we add relations to the \twelf{} context, we can not ``get rid'' of
 these relations again. We need to do this in the rule of Tp-do for the
-$\Psi$ context. One trick to do this is to \emph{version} additions to
-the context. We introduce a set $V := v_1, v_2, \dotsc$ of
+$\Psi$ context where the $\Psi$ is changed into $\cdot$ in the
+leftmost premise. One trick to do this is to \emph{version} additions
+to the context. We introduce a set $V := v_1, v_2, \dotsc$ of
 ``versions'' and then alter bindings in $\Psi$ from $l \mapsto
 \sbundle$ into $l \mapsto^{v} \sbundle$, augmenting each binding with
 a version. With the versioning in place, we can consider bindings of a
-given version in isolation from other versions. If we generate a new
-fresh version, $v$, then we effectively reset the context. Utilizing
-this trick is thought to be necessary in order to prove preservation.
+given version in isolation from bindings with differing versions. If
+we generate a new fresh version, $v$, then we effectively reset the
+context. Utilizing this trick is thought to be necessary in order to
+prove preservation.
 
 We are fairly sure that the addition of the $\ido{x}{s_1}{s_2}$ rule
-is the culprit. A system built in the process of constructing the
-semantics, but without $\mathbf{do}$ admitted preservation almost
-trivially.
+is the culprit. A system built in the development process containing
+basic blocks, but without $\mathbf{do}$, admitted preservation.
 
 \chapter{Development Process}
 
@@ -1682,7 +1732,7 @@ that the final commit for the source is:\fixme{Update this commit id}
 Since this commit is an SHA-1 checksum, it is impossible for the
 author to change the source after the deadline\footnote{If I on the
   contrary \emph{can} alter the source code, I have a paper to write
-  in cryptography}.
+  in cryptography.}.
 
 \section{Prelude}
 {\footnotesize

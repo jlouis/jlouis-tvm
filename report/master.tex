@@ -92,7 +92,6 @@ way.\\
 \fixme{Mention that the $k$'s are in range in the typing?}
 \fixme{We should \emph{really} say something about the structure of $D$
   and $\Phi$ and $L$}
-\fixme{Make $\sigma : \tau$ into $\sigma = \tau$}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -554,7 +553,7 @@ block definitions.
     \inference[TpC-Bool]{}{\Gamma \tpc b : \tbool}
   \end{gather*}
   \begin{gather*}
-    \text{Operations:} \quad \boxed{\Gamma \tpop op : \tau} \\
+    \text{Operations:} \quad \boxed{\Gamma \tpop o : \tau} \\
     \inference[TpOp-Cst]{\Gamma \tpc c : \tau}{\Gamma \tpop c : \tau}\\\\
     \inference[TpOp-Plus]{\Gamma \tpc c_1 : \tnat \quad \Gamma
       \tpc c_2 : \tnat}{\Gamma \tpop c_1 + c_2 : \tnat} \quad
@@ -577,8 +576,8 @@ that in the environment of $\Gamma$ the constant $c$ has type
 $\tau$. There are 3 different cases, one for register lookup, and two
 for each of the constant types.
 
-The judgment form for operations is $\boxed{\Gamma \tpop op :
-  \tau}$. Under the environment of $\Gamma$ the operation $op$ has
+The judgment form for operations is $\boxed{\Gamma \tpop o :
+  \tau}$. Under the environment of $\Gamma$ the operation $o$ has
 type $\tau$. These rules are rather straightforward.
 
 \fixme{Define typing for basic blocks in the text}
@@ -596,23 +595,22 @@ type $\tau$. These rules are rather straightforward.
     \text{Instructions:} \quad \boxed{\Phi ; \Psi ; \Gamma |- s : \tau}\\\\
     \inference[Tp-ret]{\Gamma \tpc c : \tau}{\Phi ; \Psi ;
       \Gamma |- \iret{c} : \tau} \quad
-    \inference[Tp-let]{\Gamma \tpop op : \tau_1 \quad \Phi ; \Psi ;
+    \inference[Tp-let]{\Gamma \tpop o : \tau_1 \quad \Phi ; \Psi ;
       \Gamma[x \mapsto \tau_1] |- s : \tau}{\Phi ; \Psi ; \Gamma |-
-      \ilet{x}{op}{s} : \tau}\\\\
+      \ilet{x}{o}{s} : \tau}\\\\
     \inference[Tp-do]{\Phi;\cdot;\cdot |- s_1 : \tau_1 \quad
       \Phi;\Psi;\Gamma[x \mapsto \tau_1] |- s_2 : \tau} {\Phi;\Psi;\Gamma |-
       \ido{x}{s_1}{s_2} : \tau}\\\\
-    \inference[Tp-br]{\Psi(l) = \bbtypes{} \quad \sigma_k :
-      \ntypes -> \bullet\\
+    \inference[Tp-br]{\Psi(l) = \bbtypes{} \quad \sigma_k = \ntypes -> \bullet\\
       \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
       \quad \Gamma |- c_n : \tau_n}
     {\Phi;\Psi;\Gamma |- \ibr{l^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
     \inference[Tp-brc]{\Gamma \tpc x : \tbool\\
       \Psi(l) = \bbtypes{}\\
-      \sigma_k : \ntypes -> \bullet\\
+      \sigma_k = \ntypes -> \bullet\\
       \Gamma |- c_1 : \tau_1 \quad \dotsb \quad \Gamma |- c_n :
       \tau_n\\
-      \sigma_{k'} : \ntypesp -> \bullet\\
+      \sigma_{k'} = \ntypesp -> \bullet\\
       \Gamma |- c'_1 : \tau'_1 \quad \dotsb \quad \Gamma |- c'_n :
       \tau'_n}
     {\Phi;\Psi;\Gamma |- \ibrc{x}{l^k}{(c_1, \dotsc,
@@ -640,8 +638,8 @@ instruction $s$ has a type of $\tau$ in the environment of
 $\Phi;\Psi;\Gamma$. % Do not explain it. It should be clear!
 
 An instruction of the form $\iret{c}$ has type $\tau$ if the constant
-it returns has. Correct typing of an $\ilet{x}{op}{s}$ instruction
-requires that the operation $op$ returns the same type as is used for
+it returns has. Correct typing of an $\ilet{x}{o}{s}$ instruction
+requires that the operation $o$ returns the same type as is used for
 the register $x$ in the body $s$.
 
 The rule Tp-do defines a typing of a $\ido{x}{s_1}{s_2}$
@@ -721,7 +719,7 @@ follows the style used in \cite{pierce:2002:types}.
 
 \paragraph{Step relation for operations}
 
-\newcommand{\eop}{=>_{o}} For operations, $\boxed{|- op \eop n}$ is
+\newcommand{\eop}{=>_{o}} For operations, $\boxed{|- o \eop n}$ is
 the judgement form. The form state that the operation $op$ evaluate to a
 value of $n$. This might look like a big-step semantics, but note that
 all operations are \emph{primitive} in Mini-LLVM: An operation is
@@ -740,7 +738,7 @@ the proper mathematical arithmetic operation.
     \text{Basic Blocks:} \ni L & ::= \cdot \bor (l \mapsto \dbundle),L
   \end{align*}
   \begin{gather*}
-    \text{Operations:} \quad \boxed{|- op \eop n}\\
+    \text{Operations:} \quad \boxed{|- o \eop n}\\
     \inference[E-Plus]{}{|- n_1 + n_2 \eop n}(n \meval n_1 + n_2)
     \quad \quad
     \inference[E-Mone]{}{|- n_1 - n_2 \eop n}(n \meval n_1 - n_2)\\\\
@@ -791,10 +789,10 @@ substitute all occurrences of $x$ with $c$ in the syntax tree of
 $s$.
 
 The basic sequential operation in LLVM is handled by the
-$\ilet{x}{op}{s}$ instruction in Mini-LLVM. As already noted in
+$\ilet{x}{o}{s}$ instruction in Mini-LLVM. As already noted in
 \ref{llvm-consideration-let}, we translate sequences of instructions
 into nested applications of $\mathbf{let}$s. To execute an operation,
-$op$, is to know the contents of the register $x$. Since we have the
+$o$, is to know the contents of the register $x$. Since we have the
 SSA-property and the SSA/FP correspondence, we can then just propagate
 the value of $x$ to all its uses directly. This is done by
 substituting the result for $x$ in the body of the let, $s$.
@@ -1226,8 +1224,8 @@ In the following proofs, we assume that the variable $x'$ is a new
 \end{proof}
 \begin{lem}{[Weakening, $\Gamma$, operations]}
   \label{lem:weaken-operations}
-  Suppose $\Gamma \tpc op : \tau$. Then we have $\Gamma[x' \mapsto
-  \tau'] \tpc op : \tau$.
+  Suppose $\Gamma \tpc o : \tau$. Then we have $\Gamma[x' \mapsto
+  \tau'] \tpc o : \tau$.
 \end{lem}
 \begin{proof}
   All cases are either congruences or can be discharged by use of
@@ -1425,11 +1423,11 @@ To prove preservation, we need a couple of lemmas:
 
 \begin{lem}{[Preservation, constants]}
   \label{lem:preservation-c}
-  Suppose $\Gamma \tpop op : \tau$ and $op \eop c$ then $\Gamma \tpc
+  Suppose $\Gamma \tpop o : \tau$ and $o \eop c$ then $\Gamma \tpc
   c : \tau$.
 \end{lem}
 \begin{proof}
-  Induction on $op \eop c$.
+  Induction on $o \eop c$.
 \end{proof}
 
 \begin{lem}{[Preservation, function lookup]}
@@ -1454,7 +1452,7 @@ To prove preservation, we need a couple of lemmas:
 
 \begin{lem}{Preservation, instructions:}
   \label{lem:preservation-i}
-  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Psi;\Gamma \tpbb L : \Psi'$ and
+  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Gamma \tpbb \Psi : L$ and
   $\; \Phi;\Psi;\Gamma |- s : \tau$. Then $D;L |- s -> s'$ implies
   $\Phi;\Psi;\Gamma |- s' : \tau$.
 \end{lem}
@@ -1463,15 +1461,15 @@ To prove preservation, we need a couple of lemmas:
   \begin{itemize}
   \item (S-let): If the step is of the form:
     \begin{equation*}
-      \inference{|- op \eop c}{D;L |- \ilet{x}{op}{s} -> s[c/x]}
+      \inference{|- o \eop c}{D;L |- \ilet{x}{o}{s} -> s[c/x]}
     \end{equation*}
     Then the typing relation must be:
     \begin{equation*}
-    \inference{\Gamma \tpop op : \tau_1 \quad \Phi ; \Psi ;
+    \inference{\Gamma \tpop o : \tau_1 \quad \Phi ; \Psi ;
       \Gamma[x \mapsto \tau_1] |- s : \tau}{\Phi ; \Psi ; \Gamma |-
-      \ilet{x}{op}{s} : \tau}
+      \ilet{x}{o}{s} : \tau}
     \end{equation*}
-    We have $\Gamma \tpop op : \tau_1$ and $|- op \eop c$ so by lemma
+    We have $\Gamma \tpop o : \tau_1$ and $|- o \eop c$ so by lemma
     \ref{lem:preservation-c}, we have $\Gamma \tpc c : \tau_1$. By the
     substitution lemma \ref{lem:substitution}, $\Phi;\Psi;\Gamma |-
     s[c/x] : \tau$ as wanted.
@@ -1555,7 +1553,7 @@ To prove preservation, we need a couple of lemmas:
     \end{equation*}
     and the typing is
     \begin{equation*}
-      \inference{\Psi(l) = \bbtypes{} \quad \sigma_k :
+      \inference{\Psi(l) = \bbtypes{} \quad \sigma_k =
         \ntypes -> \bullet\\
         \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
         \quad \Gamma |- c_n : \tau_n}
@@ -1725,9 +1723,10 @@ report.
 \paragraph{Summary}
 \begin{itemize}
 \item We present a formal semantics for Mini-LLVM, a subset of the
-  LLVM IL language. We provide syntax, semantics and a type system for
-  Mini-LLVM. We believe it can be used as a starting point for a
-  formalization of the full LLVM syntax and semantics.
+  LLVM IL language with a functional inspiration. We provide syntax,
+  semantics and a type system for Mini-LLVM. We believe it can be used
+  as a starting point for a formalization of the full LLVM syntax and
+  semantics.
 \item We encode the semantics in the logical framework \twelf{},
   utilizing HOAS and \emph{regular worlds} in the formalization where
   possible. We show that the encoding can correctly evaluate a small
@@ -1736,8 +1735,8 @@ report.
   recursive functions in \twelf{} for first-order languages in an
   intrinsically typed syntax.
 \item We formulate and prove the meta-theoretic properties of
-  \emph{progress} and \emph{determinism} in \twelf{} and in
-  traditional form on paper.
+  \emph{progress} and \emph{determinism} in \twelf{}. We also provide
+  traditional proofs on paper.
 \item We formulate and prove the property of \emph{preservation} on
   paper only.
 \end{itemize}
@@ -1766,9 +1765,6 @@ be conquered. It would be interesting to analyze if a monadic solution
 is feasible and reduces the complexity of the semantics.
 
 \bibliography{biblio}
-% State what the goals of this project is.
-% State we focus on the operational semantics.
-% State we will use Twelf where applicable if time allows.
 
 \appendix
 \chapter{Source code}

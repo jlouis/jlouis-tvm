@@ -90,6 +90,9 @@ way.\\
 \fixme{Mention something about $\alpha$-conversion and
   contexts. Particularly that it comes for free in \twelf{}}
 \fixme{Mention that the $k$'s are in range in the typing?}
+\fixme{We should \emph{really} say something about the structure of $D$
+  and $\Phi$ and $L$}
+\fixme{Make $\sigma : \tau$ into $\sigma = \tau$}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -629,6 +632,7 @@ type $\tau$. These rules are rather straightforward.
   \label{fig:type-judgement-2}
 \end{figure}
 
+\newcommand{\ftypeone}{\ntypes -> \tau_1}
 In figure \ref{fig:type-judgement-2} we present the typing relations
 for instructions. The general judgment for these is
 $\boxed{\Phi;\Psi;\Gamma |- s : \tau}$. This specifies that the
@@ -759,7 +763,7 @@ the proper mathematical arithmetic operation.
       \ido{x}{s_1}{s_2} -> \ido{x}{s'_1}{s_2}}\\\\
     \inference[S-do-v]{}{D;L |- \ido{x}{\iret{c}}{s_2} -> s_2[c/x]}\\\\
     \inference[S-call]{D(f) = (\;f(x_1, x_2, \dotsc, x_n) = s'\;)}{D;L |-
-      \icall{s}{f}{(c_1, c_2, \dotsc, c_n)}{s} -> \ido{x}{s'[c_1/x_1, c_2/x_2,
+      \icall{x}{f}{(c_1, c_2, \dotsc, c_n)}{s} -> \ido{x}{s'[c_1/x_1, c_2/x_2,
         \dotsc, c_n/x_n]}{s}}\\\\
     \inference[S-br]{L(l) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
       x_n).s}{D;L |- \ibr{l^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
@@ -1292,11 +1296,21 @@ recursive rule, we require that there is a match for a name $l$ with
 respect to typing. Furthermore, this rule defines the resulting type
 of the function as $\tau$.
 
-\fixme{Carry out lem:tpbb-lookup}
+\begin{lem}
+  \label{lem:tpbb-lookup}
+  Suppose $\Phi;\Gamma \tpbb \Psi : L / \tau$ and $\Psi(l) =
+  \sbundle$. Then $L(l) = \dbundle$.
+\end{lem}
+\begin{proof}
+  Induction on the structure of $\Phi;\Gamma \tpbb \Psi : L / \tau$:
+  If we have $\Psi = l \mapsto \sbundle, \Phi'$ then by the rule Wf-bb/s, we
+  have $L(l) = \dbundle$ as a premise. If on the other hand $\Psi = l'
+  \mapsto \dotsb, \Phi'$ then, $\Phi'(l) = \sbundle$. By induction on
+  the Wf-bb/s premise $\Phi;\Gamma \tpbb \Psi' : L$ we can get $L(l) =
+  \dbundle$ as wanted.
+\end{proof}
 
 \section{Progress}
-
-\fixme{Progress}
 
 \begin{lem}{[Effectiveness, operations]}
   \label{lem:can-step-op}
@@ -1307,6 +1321,25 @@ of the function as $\tau$.
   effectiveness of arithmetic on natural numbers. For instance:
   $\forall n_1, n_2 \in \NN . \exists n_1 + n_2 = n_3$.
 \end{proof}
+
+\begin{lem}{[Function lookup, progress]}
+  \label{lem:phi-lookup-good}
+  If $\Phi |- D : \Phi$ and $\Phi(f) = \ftype$ then $D(f) = (\; f(x_1,
+  x_2, \dotsc, x_n) = s$.
+\end{lem}
+\begin{proof}
+  Induction on $\Phi |- D : \Phi$. Either we have $\Phi = (f \mapsto
+  \ftype),\Phi'$ in which case the rule states that $D = (f(x_1,
+  \dotsc, x_n) = s, D')$. Since $D$ is partial, this means $D(f) = (\; f(x_1,
+  x_2, \dotsc, x_n) = s$.
+
+  Otherwise, $\Phi = (f' \mapsto \dotsb, \Phi')$ But then $\Phi'(f) =
+  \ftype$ and by induction, we can find $D'(f) = (\; f(x_1,
+  x_2, \dotsc, x_n) = s$. Stitching this together with $D = (f'
+  \mapsto \dotsb, D')$ yields $D(f) = (\; f(x_1,  x_2, \dotsc, x_n) =
+  s$ as wanted.
+\end{proof}
+
 \begin{lem}{[Progress, instructions]}
   \label{lem:progress-instructions}
   For all instructions $s$ with $\Phi;\Psi;\Gamma |- s : \tau$, $\Phi
@@ -1351,8 +1384,24 @@ of the function as $\tau$.
     by the S-let rule. By lemma \ref{lem:can-step-op} used on $o$,
     there exists a derivation $|- o \eop c$. Using this as the premise
     for the S-let rule solves the case.
-  \item (Do):
-  \item (Call):
+  \item (Do): Suppose that $s$ is of the form $\ido{x}{s_1}{s_2}$. We
+    discriminate on the form of $s_1$. If the form is $\iret{c}$, then
+    we can step by the rule of S-do-v.
+
+    Otherwise, we must construct $D;L |- s_1 -> s'_1$ because then
+    this can be used as a premise in the rule S-do-s. The typing rule
+    Tp-do gives us $\Phi;\cdot;\cdot |- s_1 : \tau_1$. And by the rule
+    Wf-bb/z we have $\Phi;\cdot \tpbb \cdot : L / tau_1$. Thus we can
+    apply the induction hypothesis to obtain the needed premise $D;L
+    |- s_1 -> s'_1$ and we can step with S-do-s.
+  \item (Call): Suppose the form of $s$ is $\icall{x}{f}{(c_1, c_2,
+      \dotsc, c_n)}{s}$. We show the rule S-call applies and that we
+    can step. In other words, we must show the premise $D(f) = (\;
+    f(x_1, \dotsc, x_n) = s' \;)$ holds.
+
+    By the typing rule Tp-call, we have $\Phi(f) = \ftypeone$. This
+    means we can apply lemma \ref{lem:phi-lookup-good} to obtain the
+    proper lookup $D(f)$.
   \end{itemize}
 \end{proof}
 
@@ -1371,6 +1420,7 @@ of the function as $\tau$.
 
 \section{Preservation}
 
+\fixme{Fix preservation}
 To prove preservation, we need a couple of lemmas:
 
 \begin{lem}{[Preservation, constants]}

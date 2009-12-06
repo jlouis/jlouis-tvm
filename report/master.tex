@@ -86,8 +86,7 @@ way.\\
 \newpage{}
 \chapter{Introduction}
 \newcommand{\dom}[1]{\mathrm{dom}(#1)}
-\fixme{Fresh variables}
-\fixme{Free variables}
+\fixme{Fresh variables --- think about the consequence}
 \fixme{In the lemmas, make sure we mention something to the like of
   $l' \not \in \dom{\Psi}$}
 It is well known in compiler construction, that intermediate languages
@@ -501,6 +500,15 @@ definitions, but we have chosen to deviate from LLVM here and allow
 the execution of an arbitrary instruction rather a call to main. We
 can simply limit valid programs to begin by a forced instruction
 call to a function ``\texttt{main}'', should we so desire.
+
+\paragraph{Free variables and fresh names}
+\newcommand{\fv}{\mathrm{FV}}
+We define a function $\fv(s)$ which returns the set of free variables
+for a given instruction $s$. The function is defined inductively in
+the obvious way.
+
+For any class of names, we assume we can generate a new unique fresh
+name which has not been used before.
 
 \paragraph{A remark on lists}
 

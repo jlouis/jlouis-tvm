@@ -86,6 +86,7 @@ way.\\
 \newpage{}
 \chapter{Introduction}
 \fixme{Fresh variables}
+\fixme{Free variables}
 \fixme{Find the sheets for the report front matter}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
@@ -639,6 +640,7 @@ type $\tau$. These rules are rather straightforward.
 \end{figure}
 
 \newcommand{\ftypeone}{\ntypes -> \tau_1}
+\newcommand{\ftypez}{\ntypes -> \tau}
 
 In figure \ref{fig:type-judgement-2} we present the typing relations
 for instructions. Basic blocks are typed by the judgement
@@ -1192,7 +1194,6 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 
 \chapter{Meta-theory}
 
-\fixme{Read-through-marker}
 \fixme{Andrzej had some nasty corrections to this. Add them}
 
 In this chapter, we describe the meta-theoretic properties of
@@ -1201,7 +1202,7 @@ Mini-LLVM.
 \section{Lemmas}
 
 To prove the usual meta-theoretic theorems we need some auxiliary
-lemmas. In the following, we present the lemmas we need
+lemmas.
 
 \begin{lem}{[Weakening, $\Psi$]}
   \label{lem:weaken-psi}
@@ -1231,11 +1232,11 @@ lemmas. In the following, we present the lemmas we need
 \begin{proof}
   Immediate consequence of lemma \ref{lem:weaken-psi} and the rule
   BB-Def. We weaken the premise and so it can used to construct a
-  new BB-Def rule as wanted.
+  new BB-Def rule as wanted. Alternatively, the proof is actually part
+  of the mutual induction hypothesis in lemma \ref{lem:weaken-psi} so we
+  could regard this lemma as being part of the lemma above.
 \end{proof}
 
-In the following proofs, we assume that the variable $x'$ is a new
-``fresh'' variable.
 \begin{lem}{[Weakening, $\Gamma$, registers]}
   \label{lem:weaken-registers}
   If $\Gamma \tpr x : \tau$ then it implies $\Gamma[x' \mapsto \tau']
@@ -1252,7 +1253,7 @@ In the following proofs, we assume that the variable $x'$ is a new
   \tau$ implies $\Gamma[x' \mapsto \tau'] \tpc c : \tau$.
 \end{lem}
 \begin{proof}
-  Immediate consequence or by use of lemma \ref{lem:weaken-registers}.
+  Case analysis: Immediate consequence or by use of lemma \ref{lem:weaken-registers}.
 \end{proof}
 \begin{lem}{[Weakening, $\Gamma$, operations]}
   \label{lem:weaken-operations}
@@ -1278,7 +1279,7 @@ In the following proofs, we assume that the variable $x'$ is a new
   single appeal to the IH, as $\Phi;\cdot;\cdot |- s_1 : \tau_1$ is
   already the case. Tp-br and Tp-brc uses \ref{lem:weaken-constants}
   which is also the case for Tp-call -- with an added appeal to the
-  IH. Finally, we Tp-letrec and BB-def cases uses the IH.
+  IH. Finally, the Tp-letrec and BB-def cases uses the IH.
 \end{proof}
 
 \begin{lem}{[Substitution]}
@@ -1314,7 +1315,7 @@ idea is the same.
   \inference[Wf-bb/s]{\Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_1 :  \sigma_1 / \tau\\
   \dotsb\\
   \Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_m : \sigma_m / \tau\\
-  \Phi;\Gamma \tpbb \Psi' : L\\
+  \Phi;\Gamma \tpbb \Psi' : L / \tau\\
   L(l) = \dbundle}
   {\Phi;\Gamma \tpbb (l \mapsto \sbundle, \Psi') : L / \tau}
 \end{gather*}
@@ -1336,7 +1337,7 @@ of the function as $\tau$.
   If we have $\Psi = l \mapsto \sbundle, \Phi'$ then by the rule Wf-bb/s, we
   have $L(l) = \dbundle$ as a premise. If on the other hand $\Psi = l'
   \mapsto \dotsb, \Phi'$ then, $\Phi'(l) = \sbundle$. By induction on
-  the Wf-bb/s premise $\Phi;\Gamma \tpbb \Psi' : L$ we can get $L(l) =
+  the Wf-bb/s premise $\Phi;\Gamma \tpbb \Psi' : L / \tau$ we can get $L(l) =
   \dbundle$ as wanted.
 \end{proof}
 
@@ -1353,9 +1354,9 @@ of the function as $\tau$.
   premises of that rule is exactly what we seek.
 
   Otherwise, the conclusion is of the form $\Phi;\Gamma \tpbb (l'
-  \mapsto \dotsb, \Psi'$ with $l \neq l'$. In that case, we must have
+  \mapsto \dotsb, \Psi') : L/\tau$ with $l \neq l'$. In that case, we must have
   $\Psi'(l) = \sbundle$, so we can apply the induction hypothesis with
-  $\Phi;\Gamma \tpbb \Psi' : L$. This yields a proof of
+  $\Phi;\Gamma \tpbb \Psi' : L / \tau$. This yields a proof of
   $\Phi;\Psi';\Gamma \tpb d_k : \sigma_k / \tau$. We now apply lemma
   \ref{lem:weaken-psi-d} on this to weaken it to $\Phi;\Psi;\Gamma
   \tpb d_k : \sigma_k / \tau$ as wanted.
@@ -1375,20 +1376,20 @@ of the function as $\tau$.
 
 \begin{lem}{[Function lookup, progress]}
   \label{lem:phi-lookup-good}
-  If $\Phi |- D : \Phi$ and $\Phi(f) = \ftype$ then $D(f) = (\; f(x_1,
+  If $\Phi |- D : \Phi$ and $\Phi(f) = \ftypez$ then $D(f) = (\; f(x_1,
   x_2, \dotsc, x_n) = s$.
 \end{lem}
 \begin{proof}
   Induction on $\Phi |- D : \Phi$. Either we have $\Phi = (f \mapsto
-  \ftype),\Phi'$ in which case the rule states that $D = (f(x_1,
-  \dotsc, x_n) = s, D')$. Since $D$ is partial, this means $D(f) = (\; f(x_1,
+  \ftypez),\Phi'$ in which case the rule states that $D = (f(x_1,
+  \dotsc, x_n) = s, D')$. By our lookup method, this means $D(f) = (\; f(x_1,
   x_2, \dotsc, x_n) = s$.
 
   Otherwise, $\Phi = (f' \mapsto \dotsb, \Phi')$ But then $\Phi'(f) =
-  \ftype$ and by induction, we can find $D'(f) = (\; f(x_1,
+  \ftypez$ and by induction, we can find $D'(f) = (\; f(x_1,
   x_2, \dotsc, x_n) = s$. Stitching this together with $D = (f'
   \mapsto \dotsb, D')$ yields $D(f) = (\; f(x_1,  x_2, \dotsc, x_n) =
-  s$ as wanted.
+  s \; )$ as wanted.
 \end{proof}
 
 \begin{lem}{[Progress, instructions]}
@@ -1415,7 +1416,8 @@ of the function as $\tau$.
     \mapsto \sbundle];\Gamma \tpb d_j : \sigma_j / \tau$ for $1 \leq j
     \leq m$. Thus we have the premises to construct
     \begin{equation*}
-      \Phi;\Gamma \tpbb \Psi[l \mapsto \sbundle] : L[l \mapsto \dbundle]
+      \Phi;\Gamma \tpbb \Psi[l \mapsto \sbundle] : L[l \mapsto
+      \dbundle] / \tau
     \end{equation*}
     and therefore, we can apply the induction hypothesis which proves the claim.
 
@@ -1426,7 +1428,8 @@ of the function as $\tau$.
     we must show that $L(l) = \dbundle$.
 
     Since $\Phi;\Psi;\Gamma |- \ibr{l^k}{(c_1, dotsc, c_n)}$, we have
-    $\Psi(l) = \sbundle$ from the premises. Because $\Phi;\Gamma \tpbb \Psi : L$ and we can apply lemma
+    $\Psi(l) = \sbundle$ from the premises. Because $\Phi;\Gamma \tpbb
+    \Psi : L / \tau$ and we can apply lemma
     \ref{lem:tpbb-lookup} which gives that $L(l) = \dbundle$.
 
   \item (Branch, conditional): These two cases can step by the cases
@@ -1442,7 +1445,7 @@ of the function as $\tau$.
     Otherwise, we must construct $D;L |- s_1 -> s'_1$ because then
     this can be used as a premise in the rule S-do-s. The typing rule
     Tp-do gives us $\Phi;\cdot;\cdot |- s_1 : \tau_1$. And by the rule
-    Wf-bb/z we have $\Phi;\cdot \tpbb \cdot : L / tau_1$. Thus we can
+    Wf-bb/z we have $\Phi;\cdot \tpbb \cdot : L / \tau_1$. Thus we can
     apply the induction hypothesis to obtain the needed premise $D;L
     |- s_1 -> s'_1$ and we can step with S-do-s.
   \item (Call): Suppose the form of $s$ is $\icall{x}{f}{(c_1, c_2,
@@ -1470,6 +1473,7 @@ of the function as $\tau$.
 \end{proof}
 
 \section{Preservation}
+\fixme{Read-through-marker}
 
 To prove preservation, we need a couple of lemmas:
 
@@ -1699,7 +1703,7 @@ proof is only present in \twelf{}.
  Immediate consequence of lemma \ref{lem:det} due to the rule SP.
 \end{proof}
 
-
+\fixme{End marker}
 \section{Twelf encoding}
 
 We encode the proofs of progress and determinism in \twelf{} -- and
@@ -1856,7 +1860,7 @@ report.
 \item We formulate and prove the meta-theoretic properties of
   \emph{progress} and \emph{determinism} in \twelf{}.
 \item We formulate and prove the properties of \emph{progress} and
-  \emph{preservation} paper only.
+  \emph{preservation} on paper.
 \end{itemize}
 
 The work should be of interest to anyone who work with the LLVM

@@ -85,9 +85,11 @@ way.\\
 
 \newpage{}
 \chapter{Introduction}
+\newcommand{\dom}[1]{\mathrm{dom}(#1)}
 \fixme{Fresh variables}
 \fixme{Free variables}
-\fixme{Find the sheets for the report front matter}
+\fixme{In the lemmas, make sure we mention something to the like of
+  $l' \not \in \dom{\Psi}$}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -341,7 +343,6 @@ from which we draw values.
 \newcommand{\dbundle}{(d_1, d_2, \dotsc, d_m)}
 \newcommand{\sbundle}{(\sigma_1, \sigma_2, \dotsc, \sigma_m)}
 \newcommand{\bbtypes}{\sbundle}
-\newcommand{\dom}[1]{\mathrm{dom}(#1)}
 
 Our language will be using several syntactic terminal domains, the
 existence of which we assume (figure \ref{fig:syntactic-domains}). We
@@ -417,7 +418,7 @@ targeting LLVM; in particular, the \clang{}-project was used.
    \basicblocks \ni d  & ::= \lambda (x_1, x_2, \cdots, x_n) . s\\
    \instructions \ni s & ::= \iret{c} \\
                        & \bor \quad \ibr{l^n}{(c_1, \dotsc, c_n)} \\
-                       & \bor \quad \ibrc{c}{l^n}{(c_1, \dotsc, c_n)}{l^n}{(c'_1, \dotsc, c'_n)}\\
+                       & \bor \quad \ibrc{c}{l^n}{(c_1, \dotsc, c_n)}{l^{n'}}{(c'_1, \dotsc, c'_n)}\\
                        & \bor \quad \ilet{x}{op}{s} \\
                        & \bor \quad \iletrec{l}{\dbundle}{s} \\
                        & \bor \quad \ido{x}{s_1}{s_2} &
@@ -538,9 +539,9 @@ block definitions.
   \begin{align*}
     \types \ni \tau & ::= \tnat \bor \tbool \\
     \bbtype \ni \sigma   & ::= \ntypes -> \bullet\\
-    \ftype \ni \Phi & ::= \cdot \bor (f \mapsto (\ntypes -> \tau), \Phi) \\
-    \tpenv \ni \Gamma & ::= \cdot \bor (x \mapsto \tau),\Gamma\\
-    \bbenv \ni \Psi   & ::= \cdot \bor (l \mapsto \bbtypes),\Psi
+    \ftype \ni \Phi & ::= \cdot \bor f \mapsto (\ntypes -> \tau), \Phi \\
+    \tpenv \ni \Gamma & ::= \cdot \bor x \mapsto \tau,\Gamma\\
+    \bbenv \ni \Psi   & ::= \cdot \bor l \mapsto \bbtypes,\Psi
   \end{align*}
   \caption{Type system}
   \label{fig:type-system}
@@ -770,10 +771,10 @@ the proper mathematical arithmetic operation.
     \inference[S-letrec-s]{D;L[l \mapsto \dbundle] |- s -> s'}
     {D;L |- \iletrec{l}{\dbundle}{s} -> \iletrec{l}{\dbundle}{s'}}\\\\
     \inference[S-brc-t]{}{D;L |-
-      \ibrc{\btrue}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c_1, \dotsc, c_n)'} -> \ibr{l^k}{(c_1, \dotsc, c_n)}}\\\\
+      \ibrc{\btrue}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c'_1, \dotsc, c'_n)} -> \ibr{l^k}{(c_1, \dotsc, c_n)}}\\\\
     \inference[S-brc-f]{}{D;L |-
-      \ibrc{\bfalse}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c_1, \dotsc, c_n)'} ->
-      \ibr{l^{k'}}{(c_1, \dotsc, c_n)'}}\\\\
+      \ibrc{\bfalse}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c'_1, \dotsc, c'_n)} ->
+      \ibr{l^{k'}}{(c'_1, \dotsc, c'_n)}}\\\\
     \inference[S-do-s]{D;L |- s_1 -> s'_1}{D;L |-
       \ido{x}{s_1}{s_2} -> \ido{x}{s'_1}{s_2}}\\\\
     \inference[S-do-v]{}{D;L |- \ido{x}{\iret{c}}{s_2} -> s_2[c/x]}\\\\
@@ -1194,8 +1195,6 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 
 \chapter{Meta-theory}
 
-\fixme{Andrzej had some nasty corrections to this. Add them}
-
 In this chapter, we describe the meta-theoretic properties of
 Mini-LLVM.
 
@@ -1473,7 +1472,6 @@ of the function as $\tau$.
 \end{proof}
 
 \section{Preservation}
-\fixme{Read-through-marker}
 
 To prove preservation, we need a couple of lemmas:
 
@@ -1506,9 +1504,9 @@ To prove preservation, we need a couple of lemmas:
   |- D' : \Phi''$ to get the desired result.
 \end{proof}
 
-\begin{lem}{Preservation, instructions:}
+\begin{lem}{[Preservation, instructions]}
   \label{lem:preservation-i}
-  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Gamma \tpbb \Psi : L$ and
+  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Gamma \tpbb \Psi : L / \tau$ and
   $\; \Phi;\Psi;\Gamma |- s : \tau$. Then $D;L |- s -> s'$ implies
   $\Phi;\Psi;\Gamma |- s' : \tau$.
 \end{lem}
@@ -1574,9 +1572,10 @@ To prove preservation, we need a couple of lemmas:
     Tp-letrec rule for $\iletrec{l}{\dbundle}{s'}$.
 
     We now claim $\Phi;\Gamma \tpbb \Psi[l \mapsto \sbundle] :
-    L[l\mapsto \dbundle]$. To see this, note that for a fresh $l$, we
-    certainly have $\Phi;\Gamma \tpbb \Psi : L[l\mapsto \dbundle]$
-    because of the assumption $\Phi;\Gamma \tpbb \Psi : L$. We also
+    L[l\mapsto \dbundle] / \tau$. To see this, note that for a fresh
+    $l \not \in \dom{\Psi}$, we \fixme{Consider lemmaing this}
+    certainly have $\Phi;\Gamma \tpbb \Psi : L[l\mapsto \dbundle] / \tau$
+    because of the assumption $\Phi;\Gamma \tpbb \Psi : L / \tau$. We also
     have $L[l\mapsto \dbundle](l) = \dbundle$. And by the Tp-letrec
     rule for $\iletrec{x}{\dbundle}{s}$, we have the relation $\Phi;\Psi[l \mapsto
     \sbundle];\Gamma \tpb d_j : \sigma_j / \tau$ for $1 \leq j \leq
@@ -1596,30 +1595,29 @@ To prove preservation, we need a couple of lemmas:
     \ref{lem:substitution} on the other Tp-do premise
     $\Phi;\Psi;\Gamma[x \mapsto \tau_1] |- s_2 : \tau$ to obtain
     $\Phi;\Psi;\Gamma |- s_2[c/x] : \tau$.
-  \item (S-do-s):
-    We must show that the Tp-do rule fits $\ido{x}{s'_1}{s_2}$. To
-    show this, we must show $\Phi;\cdot;\cdot |- s'_1 : \tau_1$. By
-    the assumption $\Phi |- D : \Phi$, from the S-do-s premise $D;L |-
-    s_1 -> s'_1$ and the Tp-do premise $\Phi;\cdot;\cdot |- s_1 :
-    \tau$, we have most of the premises for applying the IH. The only
-    thing missing is $\Phi;\cdot \tpbb \cdot : L$. But this holds
-    because it is a construction of the Wf-bb/z rule. Thus we can
-    apply the IH to obtain $\Phi;\cdot;\cdot |- s'_1 : \tau_1$ as
-    wanted.
+  \item (S-do-s): We must show that the Tp-do rule fits
+    $\ido{x}{s'_1}{s_2}$. To show this, we must show $\Phi;\cdot;\cdot
+    |- s'_1 : \tau_1$. By the assumption $\Phi |- D : \Phi$, from the
+    S-do-s premise $D;L |- s_1 -> s'_1$ and the Tp-do premise
+    $\Phi;\cdot;\cdot |- s_1 : \tau$, we have most of the premises for
+    applying the IH. The only thing missing is $\Phi;\cdot \tpbb \cdot
+    : L / \tau_1$. But this holds because it is a construction of the
+    Wf-bb/z rule. Thus we can apply the IH to obtain $\Phi;\cdot;\cdot
+    |- s'_1 : \tau_1$ as wanted.
   \item (S-call):
     The case concerns a call statement
     $\icall{x}{f}{(c_1,\dotsc,c_n)}{s}$. This rule steps by the S-call
     rule to $\ido{x}{s'[c_1/x_1,\dotsc,c_n/x_n]}{s}$; so we
     must construct the premises of the Tp-do typing relation. These are
     $\Phi;\cdot;\cdot |- s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$ and
-    $\Phi;\Psi;\Gamma[x \mapsto  |- s : \tau$.
+    $\Phi;\Psi;\Gamma[x \mapsto  \tau'] |- s : \tau$.
 
     We take the second rule first. By the Tp-call typing relation, we
     have a premise $\Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau$
     which is what we need.
 
     To construct the first rule, we need to apply lemma
-    \ref{lem:preservation-lookup} first to $D(f) = \dotsb$ from the
+    \ref{lem:preservation-lookup} to $D(f) = \dotsb$ from the
     S-call premises and $\Phi : D : \Phi$ from the assumptions. This
     yields $\Phi;\cdot;[x_1 \mapsto \tau_1 \; \dotsb ;\ x_n \mapsto
     \tau_n] |- s' : \tau'$. We have $\Gamma |- c_1 : \tau_1$ from the
@@ -1703,7 +1701,6 @@ proof is only present in \twelf{}.
  Immediate consequence of lemma \ref{lem:det} due to the rule SP.
 \end{proof}
 
-\fixme{End marker}
 \section{Twelf encoding}
 
 We encode the proofs of progress and determinism in \twelf{} -- and

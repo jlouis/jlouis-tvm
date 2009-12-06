@@ -34,17 +34,17 @@
   We present the language Mini-LLVM, an idealized subset of the IL
   language for the \emph{Low Level Virtual machine}(LLVM). From an
   informal LLVM-description, we give a formal account of the syntax,
-  semantics types and meta-theoretic properties of Mini-LLVM. We thus
-  establish the -- to our knowledge -- first partial formalization of
-  LLVM. Our formalization exploits the SSA-form requirement of the
+  semantics, types and meta-theoretic properties of Mini-LLVM. We thus
+  establish the --- to our knowledge --- first partial formalization
+  of LLVM. Our formalization exploits the SSA-form requirement of the
   LLVM IL in a novel way to transform the IL into a functional
-  representation. The representation and its meta-theoretic properties
-  are encoded into the \twelf{} logical framework and we provide proof
-  of \emph{progress}, \emph{preservation} and \emph{determinism} for
-  well-typed programs. Finally, we show how small
-  LLVM IL programs can be translated to our Mini-LLVM language and
-  show that they agree on certain inputs --- making it plausible our
-  Mini-LLVM is adequate.
+  representation. The representation and most of its meta-theoretic
+  properties are encoded into the \twelf{} logical framework and we
+  provide proof of \emph{progress}, \emph{preservation} and
+  \emph{determinism} for well-typed programs. Finally, we show how
+  small LLVM IL programs can be translated to our Mini-LLVM language
+  and show that they agree on certain inputs --- making it plausible
+  our Mini-LLVM is adequate.
 \end{abstract}
 \newpage{}
 \tableofcontents{}
@@ -85,13 +85,8 @@ way.\\
 
 \newpage{}
 \chapter{Introduction}
-
-\fixme{Go through the whole encoding chapter. It needs some help!}
-\fixme{Mention something about $\alpha$-conversion and
-  contexts. Particularly that it comes for free in \twelf{}}
-\fixme{Mention that the $k$'s are in range in the typing?}
-\fixme{We should \emph{really} say something about the structure of $D$
-  and $\Phi$ and $L$}
+\fixme{Fresh variables}
+\fixme{Find the sheets for the report front matter}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -181,12 +176,11 @@ meta-theory of our Mini-LLVM language is presented. It is expected
 that the reader is familiar with operational semantics, proof theory
 and machine verifiable proofs; in particular the \twelf{} logical
 framework. It is also expected that the reader is familiar with
-SSA-form and its implications (i.e., as found in
+SSA-form and its implications (e.g., as found in
 \cite[Chapter 19]{appel:1998:modern}).
 
 \chapter{Design considerations}
 
-\fixme{Read from ``Design considerations'' and onwards}
 In this section, we limit the scope of the formalization and present
 the main design considerations before attempting to formalize the work.
 
@@ -262,7 +256,7 @@ transfer as parameters. In the example, we would have a function
 return (%retval) =
    ret %retval
 \end{verbatim}
-for the return-basic-block. And the branch to it would be
+for the return basic-block. And the branch to it would be
 \begin{verbatim}
 if.else (...) =
   ...
@@ -276,7 +270,7 @@ lexically scoped functional form is superior to a more linear form in
 which all basic blocks are introduced in the same scope. The lexical
 scoping of basic blocks will let us represent programs in a more
 convenient form, as is noted by the paper. We thus chose to deviate
-from the LLVM IL in this respect, and follow the functional form more.
+from the LLVM IL in this respect, and follow the functional form closer.
 
 \section{Extent of the formalization}
 
@@ -346,6 +340,8 @@ from which we draw values.
 \newcommand{\dbundle}{(d_1, d_2, \dotsc, d_m)}
 \newcommand{\sbundle}{(\sigma_1, \sigma_2, \dotsc, \sigma_m)}
 \newcommand{\bbtypes}{\sbundle}
+\newcommand{\dom}[1]{\mathrm{dom}(#1)}
+
 Our language will be using several syntactic terminal domains, the
 existence of which we assume (figure \ref{fig:syntactic-domains}). We
 have variables, $x_1, x_2, \dotsc$ used for naming and discriminating
@@ -496,15 +492,28 @@ like a special variant of a let-binding.
 
 \paragraph{Programs}
 
-A Mini-LLVM program is a list of definitions $\Phi$ together with an
-initial instruction $s$. The notation is $\ipgm{\Phi}{s}$. Usually, we
+A Mini-LLVM program is a list of definitions $D$ together with an
+initial instruction $s$. The notation is $\ipgm{D}{s}$. Usually, we
 expect the program to begin by calling a main-function in the list of
 definitions, but we have chosen to deviate from LLVM here and allow
 the execution of an arbitrary instruction rather a call to main. We
 can simply limit valid programs to begin by a forced instruction
 call to a function ``\texttt{main}'', should we so desire.
 
-\chapter{Mini-LLVM type sytem}
+\paragraph{A remark on lists}
+
+Lists of definitions, $D$ is defined to be either the empty list
+$\cdot$ or a ``cons'' by $k \mapsto v,D'$ for some key/value pair
+$k,v$. We will be introducing several list-like definitions of this
+form. Hence, we will handle them once and for all. Since they are
+list-like, we can handle them on a case-by-case analysis -- and we
+will do so extensively in the formalization. We treat $D$ as
+a partial function and write $D(k) = v$ for the search through the
+list-like construction on an element-by-element basis and obtaining
+$v$. In particular, if $D(k) = v$ then $k$ must be in the domain of
+$D$ and lookup succeeded.
+
+\chapter{Mini-LLVM type system}
 \label{chap:type-system}
 
 In this chapter we describe a type system for our Mini-LLVM
@@ -580,7 +589,6 @@ The judgment form for operations is $\boxed{\Gamma \tpop o :
   \tau}$. Under the environment of $\Gamma$ the operation $o$ has
 type $\tau$. These rules are rather straightforward.
 
-\fixme{Define typing for basic blocks in the text}
 \newcommand{\btype}{\ntypes -> \bullet}
 \begin{figure}
   \begin{gather*}
@@ -631,10 +639,17 @@ type $\tau$. These rules are rather straightforward.
 \end{figure}
 
 \newcommand{\ftypeone}{\ntypes -> \tau_1}
+
 In figure \ref{fig:type-judgement-2} we present the typing relations
-for instructions. The general judgment for these is
-$\boxed{\Phi;\Psi;\Gamma |- s : \tau}$. This specifies that the
-instruction $s$ has a type of $\tau$ in the environment of
+for instructions. Basic blocks are typed by the judgement
+$\boxed{\Phi;\Psi;\Gamma \tpb d : \sigma / \tau}$. This form states
+that a basic block definition $d$ has the basic block type $\sigma$
+and any returns occurring in it has type $\tau$. This under the
+mentioned contexts for functions, basic blocks and variables.
+
+The general judgment for these is $\boxed{\Phi;\Psi;\Gamma |- s :
+  \tau}$. This specifies that the instruction $s$ has a type of $\tau$
+in the environment of
 $\Phi;\Psi;\Gamma$. % Do not explain it. It should be clear!
 
 An instruction of the form $\iret{c}$ has type $\tau$ if the constant
@@ -650,8 +665,8 @@ let-binding above.
 Unconditional branches are handled by the Tp-br rule. It states that a
 well-typed branch can look up the basic block in the environment of
 basic blocks and then take the $k$th projection of this to obtain the
-type $\ntypes -> \bullet$. \fixme{Check we actually write something
-  about the $\bullet$ and explain the details of it}
+type $\ntypes -> \bullet$. We are not interested in the return value
+of a branch here. We check them in the Tp-letrec rule described later.
 
 Conditional branches are well-typed if each path regarded as
 unconditional branches are. Furthermore we require the branch variable
@@ -660,14 +675,14 @@ to be a boolean value.
 The Tp-letrec rule introduces basic blocks. It first checks that each
 basic block definition is well-typed. Then it type checks the body $s$
 under an augmented environment where a mapping to the basic block
-identifier has been made.
+identifier has been made. The rule also ensures type agreement of all the basic
+blocks containing a return instruction of the form $\iret{c}$.
 
 Finally, function calls are well-typed if we can look up the function
 identifier in the function environment $\Phi$; and can show the
 passed arguments obeys the type scheme.
 
 \section{Programs}
-\newcommand{\dom}[1]{\mathrm{dom}(#1)}
 \begin{figure}
   \begin{gather*}
     \text{Definition Wellformedness:} \quad \boxed{\Phi |- D : \Phi'}\\\\
@@ -719,13 +734,13 @@ follows the style used in \cite{pierce:2002:types}.
 
 \paragraph{Step relation for operations}
 
-\newcommand{\eop}{=>_{o}} For operations, $\boxed{|- o \eop n}$ is
-the judgement form. The form state that the operation $op$ evaluate to a
+\newcommand{\eop}{=>_{o}} For operations, $\boxed{|- o \eop n}$ is the
+judgement form. The form state that the operation $op$ evaluate to a
 value of $n$. This might look like a big-step semantics, but note that
 all operations are \emph{primitive} in Mini-LLVM: An operation is
-limited by the syntax such that it cannot be an arbitrary tree
-tree. This is also the reason we chose the operation as a name rather
-than the more common \emph{expressions}.
+limited by the syntax such that it cannot be an arbitrary tree. This
+is also the reason we chose the operation as a name rather than the
+more common \emph{expressions}.
 
 For each possible operator, there is a corresponding inference
 rule. Each of these simply unwrap underlying integers and then applies
@@ -743,7 +758,7 @@ the proper mathematical arithmetic operation.
     \quad \quad
     \inference[E-Mone]{}{|- n_1 - n_2 \eop n}(n \meval n_1 - n_2)\\\\
     \inference[E-Lt-T]{}{|- n_1  < n_2 \eop \btrue}(n_1 < n_2) \quad \quad
-    \inference[E-Lt-F]{}{|- n_1  < n_2 \eop \bfalse}(n_1 >= n_2)
+    \inference[E-Lt-F]{}{|- n_1  < n_2 \eop \bfalse}(n_1 \geq n_2)
   \end{gather*}
   \begin{gather*}
     \text{Instructions:} \quad \boxed{D;L |- s -> s'}\\
@@ -832,7 +847,6 @@ introduces the definitions in the context so they are callable from
 the body.
 
 \chapter{Twelf encoding}
-
 We now seek to encode the syntax and semantics in Twelf. When
 encoding, we must make certain choices along the way. Almost any
 operational semantics will omit specific parts --- in the name of
@@ -858,7 +872,7 @@ form, called \emph{intrinsic} encoding, is possible in \twelf{},
 Intrinsic encodings have their limitations however. The typing
 relation must be static in the sense that it must be driven by the
 syntactical rules alone. An extrinsic encoding on the contrary can use
-any (Turing Machine-) computable function. This might make the
+any computable function. This might make the
 intrinsic encoding impossible for some typing relations.
 
 In our work, we sought to achieve an intrinsic encoding of as much of
@@ -916,7 +930,6 @@ inhabited.
 
 \section{Syntax encoding}
 
-\fixme{Read through this. It is not O.K. yet.}
 We would like to use an intrinsic encoding for as much of the syntax
 as possible. We would also like to use a for \twelf{} classic method
 w.r.t. encoding variables, named \emph{higher order abstract syntax}
@@ -942,21 +955,19 @@ language syntax, directly handling the type in the syntax.
 A complication with an intrinsic typing is how to type basic blocks. A
 basic block is essentially a list of definitions $d_1, d_2, \dotsc,
 d_n$, with each definition of the form $\lambda (x_1, \dotsc,
-x_n).i$. The latter can be represented by a standard \twelf{}-HOAS-trick:
+x_n).s$. The latter can be represented by a standard \twelf{}-HOAS-trick:
 If $i$ is the syntax tree of the function body, we represent the
 $\phi$-variable by wrapping the syntax tree in an LF-lambda: $\lambda
-(x : \texttt{reg t}) . i$, where $x$ might be bound in $i$. Thus,
+(x : \texttt{reg t}) . s$, where $x$ might be bound in $s$. Thus,
 substitution is LF-application. By successively wrapping once for each
 $x_i$ variable, we obtain a definition $d$. Since the typing is
 intrinsic, we let each wrapping book-keep the typing.
 
-The definition list also intrinsically encodes the typing. It is a
-typical functional style list with a \texttt{nil} and a \texttt{cons}
-element, but with a type-designation on each element.
+We use lists of definitions to encode $\dbundle$. But when we build up
+the list, we also intrinsically keep track of the types of each $d_k$.
 
-This construction encodes types for a list of definitions $d_1, d_2,
-\dotsc, d_n$ -- but we wish to handle such definitions by \twelf{}
-regular worlds. Hence, we have an type family
+We wish to handle such definitions by \twelf{} regular worlds. Hence,
+we have an type family
 \begin{verbatim}
 bname : bb-tp -> type.
 \end{verbatim}
@@ -971,10 +982,11 @@ step/letrec-s :
                step D (Body pb) (Body' pb)).
 \end{verbatim}
 Here, the \texttt{pb} variable is a hypothetical new variable which we
-bind to the definitions with the \texttt{bb-bind} relation. Since
-definitions are allowed to call each other, we pass in the \texttt{pb}
-variable to the definitions. Note that the type of \texttt{pb} will be
-the same as the type of \texttt{(Defs pb)}.
+bind to the definitions with the \texttt{bb-bind} relation. This is
+the reason for the requirement that $l$ be ``fresh'' in the
+semantics. Since definitions are allowed to call each other, we pass
+in the \texttt{pb} variable to the definitions. Note that the type of
+\texttt{pb} will be the same as the type of \texttt{(Defs pb)}.
 
 The above construction let us define a basic block bundle, but it does
 not tell the whole story: how to project and call. In a branch
@@ -1049,9 +1061,9 @@ directly transcribed from the operational semantics given in chapter
 The notation $f \not \in D$ is implemented by a simple scan over the
 list of definitions:
 \begin{gather*}
-  \text{Function Absence:} \quad \boxed{f \not \in D}\\
-  \inference[f-notin/z]{}{f \not \in \cdot}\\\\
-  \inference[f-notin/s]{f \neq f' \quad f \not \in D'}{f \not \in (f' = t, D')}
+  \text{Function Absence:} \quad \boxed{f \not \in \dom{D}}\\
+  \inference[f-notin/z]{}{f \not \in \dom{\cdot}}\\\\
+  \inference[f-notin/s]{f \neq f' \quad f \not \in \dom{D'}}{f \not \in \dom{f' = t, D'}}
 \end{gather*}
 \section{Transformation of LLVM Programs to Mini-LLVM}
 
@@ -1079,10 +1091,10 @@ tri (int n) {
 We can then use the \clang{} compiler from C to LLVM IL to generate
 LLVM code for this C fragment. The \clang{} compiler circumvents the
 need to produce SSA IL code by using the stack as a scratch-pad for
-all register operations. Any operation will be a load from the memory
-location of the stack and then a store back of the result. Thus the
-raw output from the compiler cannot be used as our Mini-LLVM language
-has no concept of a stack.
+all register operations. Any operation will be a load from a memory
+location on the stack and then a store of the result back to the
+stack. Thus the raw output from the compiler cannot be used as our
+Mini-LLVM language has no concept of a stack.
 
 LLVM contains an optimization pass however, \texttt{mem2reg}, which
 can transform stack references into register access. This effectively
@@ -1153,6 +1165,11 @@ notation for each predecessor block stating which value should be
 passed. In our translation, we have each branch passing the values on
 as parameters.
 
+We have tried to compute the result of a few functions like these by
+hand-translating them into \twelf{} and executing queries. The queries
+seem to agree with the results produced by the LLVM IL. Though this is
+no proof, it hints that the system is not totally off from reality.
+
 \paragraph{Automatic translation}
 
 A full treatment of translation ought to be automatic rather than
@@ -1175,8 +1192,8 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 
 \chapter{Meta-theory}
 
+\fixme{Read-through-marker}
 \fixme{Andrzej had some nasty corrections to this. Add them}
-\fixme{We miss a proof still for the helper judgement}
 
 In this chapter, we describe the meta-theoretic properties of
 Mini-LLVM.
@@ -1188,7 +1205,7 @@ lemmas. In the following, we present the lemmas we need
 
 \begin{lem}{[Weakening, $\Psi$]}
   \label{lem:weaken-psi}
-  Instruction typing admits Basic Block weakening: if $\Phi;\Psi;\Gamma
+  Instruction typing admits basic block weakening: if $\Phi;\Psi;\Gamma
   |- s : \tau$ and $l' \mapsto \sbundle$, then $\Phi;\Psi[l' \mapsto
   \sbundle];\Gamma |- s : \tau$.
 \end{lem}
@@ -1203,6 +1220,18 @@ lemmas. In the following, we present the lemmas we need
   $\Phi;\Psi;\Gamma |- s : \tau$, then $\Psi(l) =
   \sbundle$. Therefore, also $\Psi[l' \mapsto (\sigma_{11}, \dotsc,
   \sigma_{1m})](l) = \sbundle$.
+\end{proof}
+
+\begin{lem}{[Weakening, Definitions, $\Psi$]}
+  \label{lem:weaken-psi-d}
+  Definitions admit basic block weakening: if $\Phi;\Psi;\Gamma \tpb d
+  : \sigma / \tau$ and for a fresh $l'$, $l' \mapsto \sbundle$, then
+  $\Phi;\Psi[l' \mapsto \sbundle];\Gamma \tpb d : \sigma / \tau$.
+\end{lem}
+\begin{proof}
+  Immediate consequence of lemma \ref{lem:weaken-psi} and the rule
+  BB-Def. We weaken the premise and so it can used to construct a
+  new BB-Def rule as wanted.
 \end{proof}
 
 In the following proofs, we assume that the variable $x'$ is a new
@@ -1309,6 +1338,27 @@ of the function as $\tau$.
   \mapsto \dotsb, \Phi'$ then, $\Phi'(l) = \sbundle$. By induction on
   the Wf-bb/s premise $\Phi;\Gamma \tpbb \Psi' : L$ we can get $L(l) =
   \dbundle$ as wanted.
+\end{proof}
+
+\begin{lem}
+  \label{lem:preservation-lookup}
+  Support $\Phi;\Gamma \tpbb \Psi : L / \tau$ and $\Psi(l) =
+  \sbundle$. Then for all $1 \leq k \leq m$ we have $\Phi;\Psi;\Gamma
+  \tpb d_k : \sigma_k / \tau$.
+\end{lem}
+\begin{proof}
+  Induction on the derivation $\Phi;\Gamma \tpbb \Psi : L /
+  \tau$. Either we have a Wf-bb/s rule with a conclusion of the form
+  $\Phi;\Gamma \tpbb (l \mapsto \sbundle, \Psi') : L$ then the
+  premises of that rule is exactly what we seek.
+
+  Otherwise, the conclusion is of the form $\Phi;\Gamma \tpbb (l'
+  \mapsto \dotsb, \Psi'$ with $l \neq l'$. In that case, we must have
+  $\Psi'(l) = \sbundle$, so we can apply the induction hypothesis with
+  $\Phi;\Gamma \tpbb \Psi' : L$. This yields a proof of
+  $\Phi;\Psi';\Gamma \tpb d_k : \sigma_k / \tau$. We now apply lemma
+  \ref{lem:weaken-psi-d} on this to weaken it to $\Phi;\Psi;\Gamma
+  \tpb d_k : \sigma_k / \tau$ as wanted.
 \end{proof}
 
 \section{Progress}
@@ -1594,15 +1644,7 @@ To prove preservation, we need a couple of lemmas:
     s[c_1/x_1,\dotsc,c_n/x_n] : \tau$. We first show $\Phi;\Psi;\Gamma
     \tpb d_k : \sigma_k / \tau$ holds. By the premise $\Psi(l) =
     \sbundle$, we can apply the lemma \ref{lem:preservation-lookup} to
-    obtain a value $\Phi;\Psi';\Gamma \tpb d_k : \sigma_k / \tau$,
-    where $Psi' \subseteq Psi$ in the following sense: If $l' \in
-    \dom{\Psi'}$ then also $l' \in \dom{\Psi}$ (we use that the
-    context is partial). If for some label name $l^{*} \not \in
-    \dom{\Psi'}$ but $l^{*} \in \dom{\Psi}$ we use weakening
-    \ref{lem:weaken-psi-d}, to weaken the statement into
-    $\Phi;\Psi'[l_1 \mapsto \dotsb];\Gamma \tpb d_k : \sigma_k /
-    \tau$. Successive application of \ref{lem:weaken-psi-d} yields
-    $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$.
+    obtain a value $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$,
 
     Next, from $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$ we
     immediately have $\Phi;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n
@@ -1627,7 +1669,36 @@ To prove preservation, we need a couple of lemmas:
   helper-judgement.
 \end{proof}
 \section{Determinism}
-\fixme{Determinism}
+
+In this section we present the statement of determinism. The actual
+proof is only present in \twelf{}.
+
+\begin{lem}{[Determinism, operations]}
+  \label{lem:det-op}
+  Suppose $|- o \eop c_1$ and $|- o \eop c_2$. Then $c_1 = c_2$.
+\end{lem}
+\begin{proof}
+  In \twelf{}.
+\end{proof}
+
+\begin{lem}{[Determinism, instructions]}
+  \label{lem:det}
+  Suppose $\Phi;\Psi;\Gamma |- s : \tau$, $\Phi |- D : \Phi$ and
+  $\Phi;\Gamma \tpbb \Psi : L$. Then $D;L |- s -> s_1$ and $D;L |- s
+  -> s_2$ implies syntactic equality of $s_1$ and $s_2$.
+\end{lem}
+\begin{proof}
+  In \twelf{} by induction on $D;L |- s -> s_1$.
+\end{proof}
+\begin{thm}[Determinism]
+  \label{thm:det-pgm}
+  Suppose a program, $P$, is wellformed $|- P$. If $|- P --> P_1$
+  and $|- P --> P_2$; then $P_1$ and $P_2$ are syntactically equal.
+\end{thm}
+\begin{proof}
+ Immediate consequence of lemma \ref{lem:det} due to the rule SP.
+\end{proof}
+
 
 \section{Twelf encoding}
 
@@ -1640,6 +1711,12 @@ it also deviates from the paper proof due to the need for \emph{output
   factoring}. The coverage checker in \twelf{} can only consider each
 rule in isolation and thus, it can not see that all outputs are
 covered in certain cases.
+
+For the proof of determinism, we make good use of the \twelf{}-keyword
+\texttt{\%{}unique} which automatically determine that certain
+relations are unique. By giving \twelf{} enough knowledge through
+these uniqueness hints, the main proof of determinism becomes much
+easier.
 
 \paragraph{Missing work}
 Due to time constraints, the proof of preservation which is encoded in
@@ -1777,10 +1854,9 @@ report.
   recursive functions in \twelf{} for first-order languages in an
   intrinsically typed syntax.
 \item We formulate and prove the meta-theoretic properties of
-  \emph{progress} and \emph{determinism} in \twelf{}. We also provide
-  traditional proofs on paper.
-\item We formulate and prove the property of \emph{preservation} on
-  paper only.
+  \emph{progress} and \emph{determinism} in \twelf{}.
+\item We formulate and prove the properties of \emph{progress} and
+  \emph{preservation} paper only.
 \end{itemize}
 
 The work should be of interest to anyone who work with the LLVM

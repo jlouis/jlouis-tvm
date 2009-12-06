@@ -1175,6 +1175,9 @@ $\phi$-nodes as well. This can be done by a similar two-pass scan.
 
 \chapter{Meta-theory}
 
+\fixme{Andrzej had some nasty corrections to this. Add them}
+\fixme{We miss a proof still for the helper judgement}
+
 In this chapter, we describe the meta-theoretic properties of
 Mini-LLVM.
 
@@ -1418,7 +1421,6 @@ of the function as $\tau$.
 
 \section{Preservation}
 
-\fixme{Fix preservation}
 To prove preservation, we need a couple of lemmas:
 
 \begin{lem}{[Preservation, constants]}
@@ -1488,10 +1490,13 @@ To prove preservation, we need a couple of lemmas:
       \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- \iret{c} : \tau}
        {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{\iret{c}} : \tau}
     \end{equation*}
-    Note that $\iret{c}$ has no reference to the basic block
-    identifier $l$. So it must hold that $\Phi;\Psi';\Gamma |-
-    \iret{c} : \tau$ for all $\Psi'$. In particular $\Phi;\Psi;\Gamma
-    |- \iret{c} : \tau$.
+    We will focus on the premise $\Phi;\Psi[l \mapsto \bbtypes];\Gamma
+    |- \iret{c} : \tau$  since if we can show $\Phi;\Psi;\Gamma |-
+    \iret{c} : \tau$ then we are done with the case. By the Tp-ret
+    rule, it holds that $\Gamma \tpc c : \tau$ from the premise $\Phi;\Psi[l \mapsto \bbtypes];\Gamma
+    |- \iret{c} : \tau$. So for any $\Psi'$ and $\Phi'$ we have
+    $\Phi';\Psi';\Gamma |- \iret{c} : \tau$ by the Tp-ret rule. In
+    particular, $\Phi;\Psi;\Gamma |- \iret{c} : \tau$ as wanted.
   \item (S-letrec-s):
     The step is
       \begin{equation*}
@@ -1509,41 +1514,67 @@ To prove preservation, we need a couple of lemmas:
             \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- s : \tau}
           {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{s} : \tau}\\\\
     \end{equation}
-    We will like to call the induction hypothesis on the premise
-    $D;L[l -> \dbundle] |- s -> s'$. This in turn will give us the
-    conclusion of $\Phi;\Psi[l -> \sbundle];\Gamma |- s' : \tau$
-    which we need for the Tp-letrec rule.
+    We must show that $\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{s'} :
+    \tau$. We note, that if the premise $\Phi;\Psi[l \mapsto
+    \bbtypes];\Gamma |- s' : \tau$ holds, then we can construct a
+    Tp-letrec rule for $\iletrec{l}{\dbundle}{s'}$.
 
-    But here we alter the environment of basic blocks, so our
-    judgement $\Phi;\Psi;\Gamma \tpbb L : \Psi$ will have to be
-    updated. First, we use lemma \ref{lem:weaken-wf-bb} to weaken
-    the judgement to $\Psi;\Psi[l \mapsto \sbundle] \tpbb L :
-    \Psi$. Then we construct an instance of the Wf-bb/s rule, where all the
-    needed premises are present in the typing relation
-    \eqref{eq:preserv-tp-letrec-s} and the weakened $\tpbb$
-    judgement. This yields $\Phi;\Psi[l \mapsto \sbundle];\Gamma
-    \tpbb L[l \mapsto \dbundle] : \Psi[l \mapsto \sbundle]$ and we
-    can thus apply the IH to solve the case.
-  \item (S-brc-t), (S-brc-f):
-    In the conditional branch cases, we simply construct
-    $\Phi;\Psi;\Gamma |- \ibr{l^k}{(c_1, \dotsc, c_n)}$ from the
-    premises.
+    We now claim $\Phi;\Gamma \tpbb \Psi[l \mapsto \sbundle] :
+    L[l\mapsto \dbundle]$. To see this, note that for a fresh $l$, we
+    certainly have $\Phi;\Gamma \tpbb \Psi : L[l\mapsto \dbundle]$
+    because of the assumption $\Phi;\Gamma \tpbb \Psi : L$. We also
+    have $L[l\mapsto \dbundle](l) = \dbundle$. And by the Tp-letrec
+    rule for $\iletrec{x}{\dbundle}{s}$, we have the relation $\Phi;\Psi[l \mapsto
+    \sbundle];\Gamma \tpb d_j : \sigma_j / \tau$ for $1 \leq j \leq
+    m$. Thus we have all the premises to show the claim.
+
+    By the claim, the premise $D;L[l\mapsto \dbundle] |- s -> s'$
+    from the S-letrec-s rule and the premise $\Phi;\Psi[l \mapsto
+    \sbundle];\Gamma |- s : \tau$, we can apply the IH which yields $\Phi;\Psi[l \mapsto
+    \bbtypes];\Gamma |- s' : \tau$. Thus we can construct a Tp-letrec
+    rule for $\iletrec{l}{\dbundle}{s'}$.
   \item (S-do-v):
-    Use the substitution lemma \ref{lem:substitution}.
+    We have a step relation of the S-do-v form and we have a typing of
+    the form Tp-do. We want to show $\Phi;\Psi;\Gamma |- s_2[c/x] :
+    \tau$. From the Tp-do rule we know $\Phi;\cdot;\cdot |- \iret{c} :
+    \tau_1$. This gives, from the Tp-ret rule, that $\cdot \tpc c :
+    \tau_1$. We can thus use the substitution lemma
+    \ref{lem:substitution} on the other Tp-do premise
+    $\Phi;\Psi;\Gamma[x \mapsto \tau_1] |- s_2 : \tau$ to obtain
+    $\Phi;\Psi;\Gamma |- s_2[c/x] : \tau$.
   \item (S-do-s):
-    By the induction hypothesis on $s_1$. Note we reset the basic
-    blocks, so we use $\Phi;\cdot;\cdot \tpbb \cdot : \cdot$ in the IH.
-  \item (S-call): Since we step to
-    $\ido{x}{s'[c_1/x_1,\dotsc,c_n/x_n]}{s}$, we must construct the
-    premises $\Phi;\cdot;\Gamma |- s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$
-    and $\Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau$. The second of
-    these follow from the type rule for call. The first follows from
-    the relation $\Phi |- D : \Phi$. We apply lemma
-    \ref{lem:preservation-lookup} to obtain $\Phi;\cdot;[x_1
-    \mapsto \tau_1 \dotsb x_n \mapsto \tau_n] |- s' : \tau'$ as
-    needed. Successive use of the substitution lemma
-    \ref{lem:substitution} then establishes $\Phi;\cdot;\cdot |-
-    s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$.
+    We must show that the Tp-do rule fits $\ido{x}{s'_1}{s_2}$. To
+    show this, we must show $\Phi;\cdot;\cdot |- s'_1 : \tau_1$. By
+    the assumption $\Phi |- D : \Phi$, from the S-do-s premise $D;L |-
+    s_1 -> s'_1$ and the Tp-do premise $\Phi;\cdot;\cdot |- s_1 :
+    \tau$, we have most of the premises for applying the IH. The only
+    thing missing is $\Phi;\cdot \tpbb \cdot : L$. But this holds
+    because it is a construction of the Wf-bb/z rule. Thus we can
+    apply the IH to obtain $\Phi;\cdot;\cdot |- s'_1 : \tau_1$ as
+    wanted.
+  \item (S-call):
+    The case concerns a call statement
+    $\icall{x}{f}{(c_1,\dotsc,c_n)}{s}$. This rule steps by the S-call
+    rule to $\ido{x}{s'[c_1/x_1,\dotsc,c_n/x_n]}{s}$; so we
+    must construct the premises of the Tp-do typing relation. These are
+    $\Phi;\cdot;\cdot |- s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$ and
+    $\Phi;\Psi;\Gamma[x \mapsto  |- s : \tau$.
+
+    We take the second rule first. By the Tp-call typing relation, we
+    have a premise $\Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau$
+    which is what we need.
+
+    To construct the first rule, we need to apply lemma
+    \ref{lem:preservation-lookup} first to $D(f) = \dotsb$ from the
+    S-call premises and $\Phi : D : \Phi$ from the assumptions. This
+    yields $\Phi;\cdot;[x_1 \mapsto \tau_1 \; \dotsb ;\ x_n \mapsto
+    \tau_n] |- s' : \tau'$. We have $\Gamma |- c_1 : \tau_1$ from the
+    premises of the Tp-call rule. Utilizing the lemma
+    \ref{lem:substitution} once yields $\Phi;\cdot;[x_2 \mapsto \tau_2
+    \dotsb x_n : \tau_n] |- s'[c_1/x_1] : \tau'$. Successive
+    applications of lemma \ref{lem:substitution} then yields
+    $\Phi;\cdot;\cdot |- s'[c_1/x_1,\dotsc,c_n/x_n] : \tau'$ as
+    wanted.
   \item (S-branch):
     The step is
     \begin{equation*}
@@ -1559,19 +1590,30 @@ To prove preservation, we need a couple of lemmas:
         \quad \Gamma |- c_n : \tau_n}
       {\Phi;\Psi;\Gamma |- \ibr{l^k}(c_1, c_2, \dotsc, c_n) : \tau}
     \end{equation*}
-    To prove this, we must show that $\Phi;\Psi;\Gamma |-
-    s[c_1/x_1,\dotsc,c_n/x_n] : \tau$. This is true if
-    $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$ -- since we can then
-    apply substitution \ref{lem:substitution} successively.
+    To solve this case, we must show that $\Phi;\Psi;\Gamma |-
+    s[c_1/x_1,\dotsc,c_n/x_n] : \tau$. We first show $\Phi;\Psi;\Gamma
+    \tpb d_k : \sigma_k / \tau$ holds. By the premise $\Psi(l) =
+    \sbundle$, we can apply the lemma \ref{lem:preservation-lookup} to
+    obtain a value $\Phi;\Psi';\Gamma \tpb d_k : \sigma_k / \tau$,
+    where $Psi' \subseteq Psi$ in the following sense: If $l' \in
+    \dom{\Psi'}$ then also $l' \in \dom{\Psi}$ (we use that the
+    context is partial). If for some label name $l^{*} \not \in
+    \dom{\Psi'}$ but $l^{*} \in \dom{\Psi}$ we use weakening
+    \ref{lem:weaken-psi-d}, to weaken the statement into
+    $\Phi;\Psi'[l_1 \mapsto \dotsb];\Gamma \tpb d_k : \sigma_k /
+    \tau$. Successive application of \ref{lem:weaken-psi-d} yields
+    $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$.
 
-    To obtain $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$, we note
-    it can be found by means of the judgement $\Phi;\Psi;\Gamma \tpbb
-    L : \Psi$ by induction on $L$: either it is the ``first
-    element'' in which case the relation we seek is a premise. Or we
-    can apply the IH to $L'$ and $\Psi'$ (the argument is similar to
-    lemma \ref{lem:preservation-lookup}).
-
-    This solves the case.
+    Next, from $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$ we
+    immediately have $\Phi;\Psi;\Gamma[x_1 \mapsto \tau_1 \dotsb x_n
+    \mapsto \tau_n] |- s : \tau$. From the premise of the typing rule
+    Tp-br we have $\Gamma \tpc c_i : \tau_i$ for $1 \leq i \leq
+    n$. Thus we can apply \ref{lem:substitution} successively yielding
+    $\Phi;\Psi;\Gamma |- s[c_1/x_1,\dotsc,c_n/x_n] : \tau$ as wanted.
+  \item (S-brc-t), (S-brc-f):
+    In the conditional branch cases, we immediately construct
+    $\Phi;\Psi;\Gamma |- \ibr{l^k}{(c_1, \dotsc, c_n)}$ from the
+    premises.
   \end{itemize}
 \end{proof}
 

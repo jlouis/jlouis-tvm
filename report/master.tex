@@ -89,7 +89,8 @@ way.\\
 \newpage{}
 \chapter{Introduction}
 \newcommand{\dom}[1]{\mathrm{dom}(#1)}
-\newcommand{\lbl}[1]{l[#1]} 
+\newcommand{\lbl}[1]{l[#1]}
+\newcommand{\lblp}[1]{l'[#1]}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -782,8 +783,8 @@ the proper mathematical arithmetic operation.
     \inference[S-letrec-s]{D;L[l \mapsto \dbundle] |- s -> s'}
     {D;L |- \iletrec{l}{\dbundle}{s} -> \iletrec{l}{\dbundle}{s'}}(l \not \in \dom{L})\\\\
     \inference[S-brc-t]{}{D;L |-
-      \ibrc{\btrue}{\lbl{k}}{(c_1, \dotsc, c_n)}{\lbl{{k'}}}{(c'_1, \dotsc,
-        c'_n)} -> \ibr{\lbl{k}}{(c_1, \dotsc, c_n)}}\\\\
+      \ibrc{\btrue}{\lbl{k}}{(c_1, \dotsc, c_n)}{\lblp{k'}}{(c'_1, \dotsc,
+        c'_{n'})} -> \ibr{\lbl{k}}{(c_1, \dotsc, c_n)}}\\\\
     \inference[S-brc-f]{}{D;L |-
       \ibrc{\bfalse}{\lbl{k}}{(c_1, \dotsc, c_n)}{\lbl{{k'}}}{(c'_1, \dotsc, c'_n)} ->
       \ibr{\lbl{{k'}}}{(c'_1, \dotsc, c'_n)}}\\\\
@@ -1315,8 +1316,8 @@ To prove the theorems of progress and preservation, we will make use
 of a helper-judgement. The problem we will like to solve with this
 helper-lemma is that there is no relation between a list of basic
 blocks $L$ and the context $\Psi$ of their typing. By analysis we can
-determine the relation to have the form $\boxed{\Phi;\Gamma \tpbb \Psi :
-  L / \tau}$. This relation is driven by the typing context of $\Psi$.
+determine the relation to have the form $\boxed{\Phi;\Gamma \tpbb L :
+  \Psi / \tau}$. This relation is driven by the typing context of $\Psi$.
 
 The relation somewhat resembles the judgment $\Phi |- D : \Phi'$ used
 to relate function definitions to function typing, and the general
@@ -1324,14 +1325,14 @@ idea is the same.
 
 \begin{gather*}
   \text{Basic Block wellformedness:} \quad \boxed{\Phi;\Gamma \tpbb
-    \Psi : L / \tau}\\\\
-  \inference[Wf-bb/z]{}{\Phi;\Gamma \tpbb \cdot : L / \tau}\\\\
+    L : \Psi / \tau}\\\\
+  \inference[Wf-bb/z]{}{\Phi;\Gamma \tpbb L : \cdot / \tau}\\\\
   \inference[Wf-bb/s]{\Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_1 :  \sigma_1 / \tau\\
   \vdots\\
   \Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_m : \sigma_m / \tau\\
-  \Phi;\Gamma \tpbb \Psi' : L / \tau\\
+  \Phi;\Gamma \tpbb L : \Psi' / \tau\\
   L(l) = \dbundle}
-  {\Phi;\Gamma \tpbb (l \mapsto \sbundle, \Psi') : L / \tau}(l \not \in \dom{\Psi'})
+  {\Phi;\Gamma \tpbb L : (l \mapsto \sbundle, \Psi') / \tau}(l \not \in \dom{\Psi'})
 \end{gather*}
 There are two rules for this relation. The first rule state that any
 environment of basic blocks relates to the empty context. This is
@@ -1343,34 +1344,34 @@ of the function as $\tau$.
 
 \begin{lem}
   \label{lem:tpbb-lookup}
-  Suppose $\Phi;\Gamma \tpbb \Psi : L / \tau$ and $\Psi(l) =
+  Suppose $\Phi;\Gamma \tpbb L : \Psi / \tau$ and $\Psi(l) =
   \sbundle$. Then $L(l) = \dbundle$.
 \end{lem}
 \begin{proof}
-  Induction on the structure of $\Phi;\Gamma \tpbb \Psi : L / \tau$:
+  Induction on the structure of $\Phi;\Gamma \tpbb L : \Psi / \tau$:
   If we have $\Psi = l \mapsto \sbundle, \Phi'$ then by the rule Wf-bb/s, we
   have $L(l) = \dbundle$ as a premise. If on the other hand $\Psi = l'
   \mapsto \dotsb, \Phi'$ then, $\Phi'(l) = \sbundle$. By induction on
-  the Wf-bb/s premise $\Phi;\Gamma \tpbb \Psi' : L / \tau$ we can get $L(l) =
+  the Wf-bb/s premise $\Phi;\Gamma \tpbb L : \Psi' / \tau$ we can get $L(l) =
   \dbundle$ as wanted.
 \end{proof}
 
 \begin{lem}
   \label{lem:preservation-lookup}
-  Support $\Phi;\Gamma \tpbb \Psi : L / \tau$ and $\Psi(l) =
+  Support $\Phi;\Gamma \tpbb L : \Psi / \tau$ and $\Psi(l) =
   \sbundle$. Then for all $1 \leq k \leq m$ we have $\Phi;\Psi;\Gamma
   \tpb d_k : \sigma_k / \tau$.
 \end{lem}
 \begin{proof}
-  Induction on the derivation $\Phi;\Gamma \tpbb \Psi : L /
+  Induction on the derivation $\Phi;\Gamma \tpbb L : \Psi /
   \tau$. Either we have a Wf-bb/s rule with a conclusion of the form
-  $\Phi;\Gamma \tpbb (l \mapsto \sbundle, \Psi') : L$ then the
+  $\Phi;\Gamma \tpbb L : (l \mapsto \sbundle, \Psi') / \tau$ then the
   premises of that rule is exactly what we seek.
 
-  Otherwise, the conclusion is of the form $\Phi;\Gamma \tpbb (l'
-  \mapsto \dotsb, \Psi') : L/\tau$ with $l \neq l'$. In that case, we must have
+  Otherwise, the conclusion is of the form $\Phi;\Gamma \tpbb L : (l'
+  \mapsto \dotsb, \Psi') / \tau$ with $l \neq l'$. In that case, we must have
   $\Psi'(l) = \sbundle$, so we can apply the induction hypothesis with
-  $\Phi;\Gamma \tpbb \Psi' : L / \tau$. This yields a proof of
+  $\Phi;\Gamma \tpbb L : \Psi' / \tau$. This yields a proof of
   $\Phi;\Psi';\Gamma \tpb d_k : \sigma_k / \tau$. We now apply lemma
   \ref{lem:weaken-psi-d} on this to weaken it to $\Phi;\Psi;\Gamma
   \tpb d_k : \sigma_k / \tau$ since we have ensured that $l'$ can't be
@@ -1380,14 +1381,14 @@ of the function as $\tau$.
 \newcommand{\dbundlep}{(d'_1, \dotsc, d'_m)}
 \begin{lem}
   \label{lem:tpbb-weaken-l}
-  Suppose $\Phi;\Gamma \tpbb \Psi : L / \tau$. Further let $l' \mapsto
+  Suppose $\Phi;\Gamma \tpbb L : \Psi / \tau$. Further let $l' \mapsto
   \dbundlep$ be a binding where $l' \not \in \dom{\Psi}$. Then
-  $\Phi;\Gamma \tpbb \Psi : L[l' \mapsto \dbundlep] / \tau$.
+  $\Phi;\Gamma \tpbb L[l' \mapsto \dbundlep] : \Psi / \tau$.
 \end{lem}
 \begin{proof}
-  By induction on $\Phi;\Gamma \tpbb \Psi : L / \tau$. The Wf-bb/z
+  By induction on $\Phi;\Gamma \tpbb L : \Psi / \tau$. The Wf-bb/z
   case is immediate. For the Wf-bb/s case we note that $\Phi;\Gamma
-  \tpbb \Psi' : L[l' \mapsto \dbundlep] / \tau$ holds by
+  \tpbb L[l' \mapsto \dbundlep] : \Psi' / \tau$ holds by
   induction. And certainly $L[l' \mapsto \dbundlep](l) = \dbundle$
   since $l' \not \in \dom{\Psi}$. This means all premises are
   fulfilled for the Wf-bb/s case.
@@ -1426,7 +1427,7 @@ of the function as $\tau$.
 \begin{lem}{[Progress, instructions]}
   \label{lem:progress-instructions}
   For all instructions $s$ with $\Phi;\Psi;\cdot |- s : \tau$, $\Phi
-  |- D : \Phi$ and $\Phi;\cdot \tpbb \Psi : L / \tau$; $s$ is either
+  |- D : \Phi$ and $\Phi;\cdot \tpbb L : \Psi / \tau$; $s$ is either
   of the form $\iret{c}$ or $D;L |- s -> s'$.
 \end{lem}
 \begin{proof}
@@ -1447,8 +1448,7 @@ of the function as $\tau$.
     \mapsto \sbundle];\Gamma \tpb d_j : \sigma_j / \tau$ for $1 \leq j
     \leq m$. Thus we have the premises to construct
     \begin{equation*}
-      \Phi;\Gamma \tpbb \Psi[l \mapsto \sbundle] : L[l \mapsto
-      \dbundle] / \tau
+      \Phi;\Gamma \tpbb L[l \mapsto \dbundle] : \Psi[l \mapsto \sbundle] / \tau
     \end{equation*}
     and therefore, we can apply the induction hypothesis which proves the claim.
 
@@ -1460,7 +1460,7 @@ of the function as $\tau$.
 
     Since $\Phi;\Psi;\Gamma |- \ibr{\lbl{k}}{(c_1, dotsc, c_n)}$, we have
     $\Psi(l) = \sbundle$ from the premises. Because $\Phi;\Gamma \tpbb
-    \Psi : L / \tau$ and we can apply lemma
+    L : \Psi / \tau$ and we can apply lemma
     \ref{lem:tpbb-lookup} which gives that $L(l) = \dbundle$.
 
   \item (Branch, conditional): These two cases can step by the cases
@@ -1477,7 +1477,7 @@ of the function as $\tau$.
     Otherwise, we must construct $D;L |- s_1 -> s'_1$ because then
     this can be used as a premise in the rule S-do-s. The typing rule
     Tp-do gives us $\Phi;\cdot;\cdot |- s_1 : \tau_1$. And by the rule
-    Wf-bb/z we have $\Phi;\cdot \tpbb \cdot : L / \tau_1$. Thus we can
+    Wf-bb/z we have $\Phi;\cdot \tpbb L : \cdot / \tau_1$. Thus we can
     apply the induction hypothesis to obtain the needed premise $D;L
     |- s_1 -> s'_1$ and we can step with S-do-s.
   \item (Call): Suppose the form of $s$ is $\icall{x}{f}{(c_1, c_2,
@@ -1539,7 +1539,7 @@ To prove preservation, we need a couple of lemmas:
 
 \begin{lem}{[Preservation, instructions]}
   \label{lem:preservation-i}
-  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Gamma \tpbb \Psi : L / \tau$ and
+  Suppose $\Phi |- D : \Phi \;$, $\Phi;\Gamma \tpbb L : \Psi / \tau$ and
   $\; \Phi;\Psi;\Gamma |- s : \tau$. Then $D;L |- s -> s'$ implies
   $\Phi;\Psi;\Gamma |- s' : \tau$.
 \end{lem}
@@ -1604,11 +1604,10 @@ To prove preservation, we need a couple of lemmas:
     \bbtypes];\Gamma |- s' : \tau$ holds, then we can construct a
     Tp-letrec rule for $\iletrec{l}{\dbundle}{s'}$.
 
-    We now claim $\Phi;\Gamma \tpbb \Psi[l \mapsto \sbundle] :
-    L[l\mapsto \dbundle] / \tau$. To see this, note that for a $l \not
+    We now claim $\Phi;\Gamma \tpbb L[l\mapsto \dbundle] : \Psi[l \mapsto \sbundle] / \tau$. To see this, note that for a $l \not
     \in \dom{\Psi}$, we certainly have
-    $\Phi;\Gamma \tpbb \Psi : L[l\mapsto \dbundle] / \tau$ because of
-    the assumption $\Phi;\Gamma \tpbb \Psi : L / \tau$ and lemma
+    $\Phi;\Gamma \tpbb L[l\mapsto \dbundle] : \Psi / \tau$ because of
+    the assumption $\Phi;\Gamma \tpbb L : \Psi / \tau$ and lemma
     \ref{lem:tpbb-weaken-l}. We also have $L[l\mapsto \dbundle](l) =
     \dbundle$. And by the Tp-letrec rule for
     $\iletrec{x}{\dbundle}{s}$, we have the relation $\Phi;\Psi[l
@@ -1635,8 +1634,8 @@ To prove preservation, we need a couple of lemmas:
     |- s'_1 : \tau_1$. By the assumption $\Phi |- D : \Phi$, from the
     S-do-s premise $D;L |- s_1 -> s'_1$ and the Tp-do premise
     $\Phi;\cdot;\cdot |- s_1 : \tau$, we have most of the premises for
-    applying the IH. The only thing missing is $\Phi;\cdot \tpbb \cdot
-    : L / \tau_1$. But this holds because it is a construction of the
+    applying the IH. The only thing missing is $\Phi;\cdot \tpbb L :
+    \cdot / \tau_1$. But this holds because it is a construction of the
     Wf-bb/z rule. Thus we can apply the IH to obtain $\Phi;\cdot;\cdot
     |- s'_1 : \tau_1$ as wanted.
   \item (S-call):
@@ -1705,36 +1704,6 @@ To prove preservation, we need a couple of lemmas:
   $\Phi;\cdot;\cdot \tpbb \cdot : \cdot$ as a starting point for the
   helper-judgement.
 \end{proof}
-\section{Determinism}
-
-In this section we present the statement of determinism. The actual
-proof is only present in \twelf{}.
-
-\begin{lem}{[Determinism, operations]}
-  \label{lem:det-op}
-  Suppose $|- o \eop c_1$ and $|- o \eop c_2$. Then $c_1 = c_2$.
-\end{lem}
-\begin{proof}
-  In \twelf{}.
-\end{proof}
-
-\begin{lem}{[Determinism, instructions]}
-  \label{lem:det}
-  Suppose $\Phi;\Psi;\Gamma |- s : \tau$, $\Phi |- D : \Phi$ and
-  $\Phi;\Gamma \tpbb \Psi : L$. Then $D;L |- s -> s_1$ and $D;L |- s
-  -> s_2$ implies syntactic equality of $s_1$ and $s_2$.
-\end{lem}
-\begin{proof}
-  In \twelf{} by induction on $D;L |- s -> s_1$.
-\end{proof}
-\begin{thm}[Determinism]
-  \label{thm:det-pgm}
-  Suppose a program, $P$, is wellformed $|- P$. If $|- P --> P_1$
-  and $|- P --> P_2$; then $P_1$ and $P_2$ are syntactically equal.
-\end{thm}
-\begin{proof}
- Immediate consequence of lemma \ref{lem:det} due to the rule SP.
-\end{proof}
 
 \section{Twelf encoding}
 
@@ -1757,7 +1726,7 @@ easier.
 \paragraph{Missing work}
 Due to time constraints, the proof of preservation which is encoded in
 \twelf{} is currently wrong. There are several problems as is: first,
-the relation $\Phi;\Gamma \tpbb \Psi : L$ is not treated correctly
+the relation $\Phi;\Gamma \tpbb L : \Psi$ is not treated correctly
 which pose problems. Second, note that $\Psi$ is currently handled in
 the \twelf{}-context.
 

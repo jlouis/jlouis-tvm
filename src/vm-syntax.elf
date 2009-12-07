@@ -17,13 +17,13 @@ tp-list/nil : tp-list.
 tp-list/cons : tp -> tp-list -> tp-list.
 
 %% Basic-block types
-bb-tp : type. %name bb-tp BBTp.
+l-tp : type. %name l-tp LTp.
 %% There is only way to introduce a function type.
-bb-tp/ : tp-list -> tp -> bb-tp.
+l-tp/ : tp-list -> tp -> l-tp.
 
-bb-tp-list : type. %name bb-tp-list BBTpL.
-bb-tp-list/nil : bb-tp-list.
-bb-tp-list/cons : bb-tp -> bb-tp-list -> bb-tp-list.
+l-tp-list : type. %name l-tp-list LTpL.
+l-tp-list/nil : l-tp-list.
+l-tp-list/cons : l-tp -> l-tp-list -> l-tp-list.
 
 %{
 
@@ -64,26 +64,26 @@ Function bundles
 A pbundle is used a reference point in an letrec introduction,
 ie, letrec PB = (d, ...) in B.
 
-pbundle+ and bname is used to implement the bb^k notation.
+pbundle+ and bname is used to implement the l^k notation.
 }%
 
-bname : bb-tp -> type. %name bname Bname.
-pbundle : bb-tp-list -> type.
-pbundle+ : bb-tp-list -> type.
+bname : l-tp -> type. %name bname Bname.
+pbundle : l-tp-list -> type.
+pbundle+ : l-tp-list -> type.
 
 %{ This constant only exists to appease Twelfs splitter in the input coverage }%
-pbundle0 : pbundle bb-tp-list/nil.
+pbundle0 : pbundle l-tp-list/nil.
 
 
 %{ When referring to a given entry in a letrec, we utilize a
 construction of the form
-bb^k in the operational semantics notation. Here we define, e.g., bb^2 as
+l^k in the operational semantics notation. Here we define, e.g., l^2 as
 f-hd (f-tl/s (f-tl/s (f-tl/z FN))) for access to the second entry.
 This construction let us define a way to intrinsically define branches
 to other basic blocks }%
-f-hd : pbundle+ (bb-tp-list/cons FT FTL) -> bname FT.
+f-hd : pbundle+ (l-tp-list/cons FT FTL) -> bname FT.
 f-tl/z : pbundle FTL -> pbundle+ FTL.
-f-tl/s : pbundle+ (bb-tp-list/cons FT FTL) -> pbundle+ FTL.
+f-tl/s : pbundle+ (l-tp-list/cons FT FTL) -> pbundle+ FTL.
 
 
 %{ Operations }%
@@ -101,19 +101,19 @@ fun-id : tp -> tp-list -> type.
 fun-id/ : nat -> fun-id T TL.
 
 %{ Basic block definitions }%
-bb-def : bb-tp -> type.
+l-def : l-tp -> type.
 
 %{ HOAS encoding of phi-parameters to a basic block }%
-bb-def/body : insn T -> (bb-def (bb-tp/ tp-list/nil T)).
-bb-def/phi : (cst T0 -> bb-def (bb-tp/ TL T))
-              -> bb-def (bb-tp/ (tp-list/cons T0 TL) T).
+l-def/body : insn T -> (l-def (l-tp/ tp-list/nil T)).
+l-def/phi : (cst T0 -> l-def (l-tp/ TL T))
+              -> l-def (l-tp/ (tp-list/cons T0 TL) T).
 
 %{ Lists of basic block definitions. These are used in letrec-blocks }%
-bb-def-list : bb-tp-list -> type.
+l-def-list : l-tp-list -> type.
 
-bb-def-list/nil : bb-def-list bb-tp-list/nil.
-bb-def-list/cons : bb-def FT -> bb-def-list FTL
-                             -> bb-def-list (bb-tp-list/cons FT FTL).
+l-def-list/nil : l-def-list l-tp-list/nil.
+l-def-list/cons : l-def FT -> l-def-list FTL
+                             -> l-def-list (l-tp-list/cons FT FTL).
 
 %{ Operations. }%
 %{ Primitive constants }%
@@ -126,11 +126,11 @@ op/mone   : cst tp/nat -> cst tp/nat -> op tp/nat.
 
 insn/return : cst T -> insn T.
 
-insn/br : bname (bb-tp/ TL T) -> cst-list TL -> insn T.
-insn/brc : cst tp/bool -> bname (bb-tp/ TL T) -> cst-list TL
-                   -> bname (bb-tp/ TL1 T) -> cst-list TL1 -> insn T.
+insn/br : bname (l-tp/ TL T) -> cst-list TL -> insn T.
+insn/brc : cst tp/bool -> bname (l-tp/ TL T) -> cst-list TL
+                   -> bname (l-tp/ TL1 T) -> cst-list TL1 -> insn T.
 insn/let : op T1 -> (cst T1 -> insn T) -> insn T.
-insn/letrec : (pbundle FTL -> bb-def-list FTL)
+insn/letrec : (pbundle FTL -> l-def-list FTL)
                -> (pbundle FTL -> insn T) -> insn T.
 insn/do : insn T' -> (cst T' -> insn T) -> insn T. %% Only internally used
 insn/call : fun-id T TL -> cst-list TL -> (cst T -> insn T) -> insn T.

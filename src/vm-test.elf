@@ -11,35 +11,35 @@ recursive calls to ourselves.
 
 f  = fun-id/ z.
 
-gauss = fun-id/ z.
+tri = fun-id/ z.
 
 b0 = [pb] f-hd (f-tl/z pb).
 b1 = [pb] f-hd (f-tl/s (f-tl/z pb)).
 b2 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/z pb))).
 b3 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/s (f-tl/z pb)))).
 
-pgm_1 = pgm/ (defs/s gauss
+pgm_1 = pgm/ (defs/s tri
 		(fun-decl/parm ([n]
 				 fun-decl/body
 				 (insn/letrec
-				    ([pb] (bb-def-list/cons
-					     (bb-def/body (insn/let (op/cmp-lt n (cst/n 1))
+				    ([pb] (l-def-list/cons
+					     (l-def/body (insn/let (op/cmp-lt n (cst/n 1))
 							     ([r : cst tp/bool] (insn/brc r (b1 pb) cst-list/nil (b2 pb) cst-list/nil))))
-					  (bb-def-list/cons
-					     (bb-def/body (insn/br (b3 pb) (cst-list/cons (cst/n 0) cst-list/nil)))
-					  (bb-def-list/cons
-					     (bb-def/body
+					  (l-def-list/cons
+					     (l-def/body (insn/br (b3 pb) (cst-list/cons (cst/n 0) cst-list/nil)))
+					  (l-def-list/cons
+					     (l-def/body
 						(insn/let (op/mone n (cst/n 1))
-						   ([sub : cst tp/nat] (insn/call gauss (cst-list/cons sub cst-list/nil)
+						   ([sub : cst tp/nat] (insn/call tri (cst-list/cons sub cst-list/nil)
 									  ([call : cst tp/nat] insn/let (op/plus call n)
 									     ([plus] insn/br (b3 pb) (cst-list/cons plus cst-list/nil)))))))
-					  (bb-def-list/cons
-					     (bb-def/phi [retval]
-						(bb-def/body (insn/return retval)))
-					     bb-def-list/nil)))))
+					  (l-def-list/cons
+					     (l-def/phi [retval]
+						(l-def/body (insn/return retval)))
+					     l-def-list/nil)))))
 				    ([pb] insn/br (b0 pb) cst-list/nil))))
 		defs/z)
-	 (insn/call gauss (cst-list/cons (cst/n 3) cst-list/nil)
+	 (insn/call tri (cst-list/cons (cst/n 3) cst-list/nil)
 	    ([r] insn/return r)).
 
 pgm_2 = pgm/ (defs/s f

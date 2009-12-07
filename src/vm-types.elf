@@ -46,20 +46,20 @@ f-notin/s : f-notin F1 (defs/s F2 _ R)
 %{ Wellformedness of terms [ P |- t ] }%
 wf : phi -> insn T -> type.
 
-%{ Wellformedness of basic blocks [ P |- bb ] }%
-wf-bb : phi -> bb-def T -> type.
+%{ Wellformedness of basic blocks [ P |- l ] }%
+wf-l : phi -> l-def T -> type.
 
-wf-bb/phi  : wf-bb P (bb-def/phi PHI)
-	      <- ({r : cst T} wf-bb P (PHI r)).
-wf-bb/body : wf-bb P (bb-def/body Insn)
+wf-l/phi  : wf-l P (l-def/phi PHI)
+	      <- ({r : cst T} wf-l P (PHI r)).
+wf-l/body : wf-l P (l-def/body Insn)
 	      <- wf P Insn.
 
 %{ Wellformedness of pbundles [ P |- pb ] }%
-wf-pb : phi -> bb-def-list FTL -> type.
+wf-pb : phi -> l-def-list FTL -> type.
 
-wf-pb/nil  : wf-pb P bb-def-list/nil.
-wf-pb/cons : wf-pb P (bb-def-list/cons BBD R)
-	      <- wf-bb P BBD
+wf-pb/nil  : wf-pb P l-def-list/nil.
+wf-pb/cons : wf-pb P (l-def-list/cons LD R)
+	      <- wf-l P LD
 	      <- wf-pb P R.
 
 

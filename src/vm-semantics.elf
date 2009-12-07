@@ -24,37 +24,37 @@ value/return : value (insn/return _).
 
 }%
 
-bb-bind : pbundle FTL -> bb-def-list FTL -> type.
-%mode bb-bind +PB -BBDef.
+l-bind : pbundle FTL -> l-def-list FTL -> type.
+%mode l-bind +PB -LDef.
 
 def-bind : defs -> type.
 %mode def-bind +D.
 
 %{ This is to work around a bug in Twelfs splitter }%
-bb-bind0 : bb-bind pbundle0 bb-def-list/nil.
+l-bind0 : l-bind pbundle0 l-def-list/nil.
 
-%{ When referring to an internal bb, ie a phi node, we use this
-   relation to look up the relevant bb in the phi-bundle }%
-pbundle-lookup : pbundle+ FTL -> bb-def-list FTL -> type.
+%{ When referring to an internal l, ie a phi node, we use this
+   relation to look up the relevant l in the phi-bundle }%
+pbundle-lookup : pbundle+ FTL -> l-def-list FTL -> type.
 
 pbundle-lookup/ctx-hit : pbundle-lookup (f-tl/z PB) FL
-			  <- bb-bind PB FL.
+			  <- l-bind PB FL.
 
 pbundle-lookup/dig     : pbundle-lookup (f-tl/s PB) R
-			  <- pbundle-lookup PB (bb-def-list/cons _ R).
+			  <- pbundle-lookup PB (l-def-list/cons _ R).
 
 
-branch-lookup : pbundle+ (bb-tp-list/cons BBT _) -> bb-def BBT -> type.
+branch-lookup : pbundle+ (l-tp-list/cons LT _) -> l-def LT -> type.
 branch-lookup/ : branch-lookup PB D
-		  <- pbundle-lookup PB (bb-def-list/cons D _).
+		  <- pbundle-lookup PB (l-def-list/cons D _).
 
 
-bb-apply : bb-def (bb-tp/ TL T) -> cst-list TL -> insn T -> type.
+l-apply : l-def (l-tp/ TL T) -> cst-list TL -> insn T -> type.
 
-bb-apply/body : bb-apply (bb-def/body E) cst-list/nil E.
+l-apply/body : l-apply (l-def/body E) cst-list/nil E.
 
-bb-apply/phi  : bb-apply (bb-def/phi ([x] R x)) (cst-list/cons E EL) Q
-		 <- bb-apply (R E) EL Q.
+l-apply/phi  : l-apply (l-def/phi ([x] R x)) (cst-list/cons E EL) Q
+		 <- l-apply (R E) EL Q.
 
 
 function-lookup : fun-id R TL -> defs -> fun-decl R TL -> type.
@@ -68,7 +68,7 @@ function-lookup/miss : function-lookup (fun-id/ F) (defs/s (fun-id/ F') _ R) Q
 
 function-apply : fun-decl R TL -> cst-list TL -> insn R -> type.
 
-function-apply/body : function-apply (fun-decl/body BB) cst-list/nil BB.
+function-apply/body : function-apply (fun-decl/body L) cst-list/nil L.
 
 function-apply/parm : function-apply (fun-decl/parm [r] FD r)
 		                     (cst-list/cons R RL) Q
@@ -98,7 +98,7 @@ step/letrec-v : step D (insn/letrec ([pb] Defs pb) ([pb] V)) V
 
 step/letrec-s : step D (insn/letrec ([pb] Defs pb) ([pb] Body pb))
                      (insn/letrec ([pb] Defs pb) ([pb] Body' pb))
-		 <- ({pb} bb-bind pb (Defs pb) ->
+		 <- ({pb} l-bind pb (Defs pb) ->
 		         step D (Body pb) (Body' pb)).
 
 step/brc-t : step D (insn/brc (cst/b (s _)) L RL _ _) (insn/br L RL).
@@ -111,8 +111,8 @@ step/do-s : step D (insn/do T B) (insn/do T' B)
 step/do-v : step D (insn/do (insn/return R) B) (B R).
 
 step/br : step D (insn/br (f-hd PB) RL) E
-	   <- branch-lookup PB BBDef
-	   <- bb-apply BBDef RL E.
+	   <- branch-lookup PB LDef
+	   <- l-apply LDef RL E.
 
 step/call : step Defs (insn/call Fun-id RL ([r] Body r))
 	         (insn/do T ([r] Body r))

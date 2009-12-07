@@ -50,7 +50,10 @@
 \tableofcontents{}
 \newpage{}
 \section{Foreword}
-
+\fixme{Mention the deviation with the types in Mini-LLVM for function
+  definitions}
+\fixme{Analyze what parts gives problems in the \twelf{}-encoding}
+\fixme{Figure out what we do with the pesky Progress-proof}
 This report is meant to be read by people interested in the LLVM
 compiler infrastructure. The goal from the beginning was to shed
 light on the informal approach of LLVM. The basic premise was that
@@ -165,7 +168,7 @@ framework. The goal is that every computer scientific report is
 accompanied by a formal proof written such that the computer can
 verify its correctness. In this report we aim for this goal: every
 formal description has been encoded into the logical framework of
-\twelf{}\cite{schurmann.pfenning:twelf} for verification.
+\twelf{}\cite{schurmann.pfenning:1999:twelf} for verification.
 
 \section{Report structure}
 
@@ -887,7 +890,7 @@ any computable function. This might make the
 intrinsic encoding impossible for some typing relations.
 
 In our work, we sought to achieve an intrinsic encoding of as much of
-the semantics as possible. This we aimed for an intrinsic encoding of
+the semantics as possible. Thus we aimed for an intrinsic encoding of
 instructions, but adopted an extrinsic encoding for function
 definitions and programs.
 
@@ -1066,7 +1069,7 @@ central to \twelf{}-representations.
 
 The intrinsic parts of the type system is already encoded into the
 syntax. The extrinsic parts are encoded in a set of relations which are
-directly transcribed from the operational semantics given in chapter
+directly transcribed from the typing rules given in chapter
 \ref{chap:type-system}.
 
 The notation $f \not \in D$ is implemented by a simple scan over the
@@ -1641,11 +1644,11 @@ To prove preservation, we need a couple of lemmas:
     $\Phi;\cdot;\cdot |- s'[c_1/x_1,\dotsc,c_n/c_n] : \tau'$ and
     $\Phi;\Psi;\Gamma[x \mapsto  \tau'] |- s : \tau$.
 
-    We take the second rule first. By the Tp-call typing relation, we
+    We take the second premise first. By the Tp-call typing relation, we
     have a premise $\Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau$
     which is what we need.
 
-    To construct the first rule, we need to apply lemma
+    To construct the first premise, we need to apply lemma
     \ref{lem:preservation-lookup} to $D(f) = \dotsb$ from the
     S-call premises and $\Phi : D : \Phi$ from the assumptions. This
     yields $\Phi;\cdot;[x_1 \mapsto \tau_1 \; \dotsb ;\ x_n \mapsto
@@ -1759,15 +1762,16 @@ If we add relations to the \twelf{} context, we can not ``get rid'' of
 these relations again. We need to do this in the rule of Tp-do for the
 $\Psi$ context where the $\Psi$ is changed into $\cdot$ in the
 leftmost premise. One trick to do this is to \emph{version} additions
-to the context. We introduce a set $V := v_1, v_2, \dotsc$ of
-``versions'' and then alter bindings in $\Psi$ from $l \mapsto
-\sbundle$ into $l \mapsto^{v} \sbundle$, augmenting each binding with
-a version. With the versioning in place, we can consider bindings of a
-given version in isolation from bindings with differing versions. If
-we generate a new fresh version, $v$, then we effectively reset the
+to the context. We introduce a set $W := w_1, w_2, \dotsc$ of
+``worlds'' and then alter bindings in $\Psi$ from $l \mapsto
+\sbundle$ into $l \mapsto^{w} \sbundle$, augmenting each binding with
+a world. With this in place, we can consider bindings of a
+given version in isolation from bindings with differing worlds. If
+we generate a new fresh world, $w$, then we effectively reset the
 context. Utilizing this trick is thought to be necessary in order to
 prove preservation.
 
+\fixme{Analyze if the problem is the do-rule}
 We are fairly sure that the addition of the $\ido{x}{s_1}{s_2}$ rule
 is the culprit. A system built in the development process containing
 basic blocks, but without $\mathbf{do}$, admitted preservation.
@@ -1901,7 +1905,8 @@ LLVM in their work.
 
 \paragraph{Further work}
 
-Several extensions of the work are possible. We could extend the
+Several extensions of the work are possible. First and foremost, one
+should finish the \twelf{}-proof of preservation. We could extend the
 formalization, incorporating more of LLVM. The memory heap would be
 interesting to add; the most challenging part being the handling of
 pointer arithmetic. A possible path would be to see if Separation
@@ -1919,14 +1924,11 @@ is feasible and reduces the complexity of the semantics.
 All source code are available either upon request from the author, or
 by git revision control on github:
 \url{http://github.com/jlouis/jlouis-tvm/tree/master/src/}. We note
-that the final commit for the source is:\fixme{Update this commit id}
+that the commit for the source as presented in this report
+is:\fixme{Update this commit id}
 \begin{center}
   \texttt{cda8e7bb44a0168def492a313ff2d860db2d2889}.
 \end{center}
-Since this commit is an SHA-1 checksum, it is impossible for the
-author to change the source after the deadline\footnote{If I on the
-  contrary \emph{can} alter the source code, I have a paper to write
-  in cryptography.}.
 
 \section{Prelude}
 {\footnotesize

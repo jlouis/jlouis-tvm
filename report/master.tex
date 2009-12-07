@@ -3,8 +3,7 @@
 \chapterstyle{culver}
 \RequirePackage[english]{jlouis}
 
-\author{Jesper Louis
-  Andersen\\jesper.louis.andersen@gmail.com\\140280-2029}
+\author{Jesper Louis Andersen\\jesper.louis.andersen@gmail.com\\140280-2029}
 \title{Formalizing a Virtual Machine}
 \date{December 4, 2009}
 
@@ -50,7 +49,6 @@
 \tableofcontents{}
 \newpage{}
 \section{Foreword}
-\fixme{Analyze what parts gives problems in the \twelf{}-encoding}
 This report is meant to be read by people interested in the LLVM
 compiler infrastructure. The goal from the beginning was to shed
 light on the informal approach of LLVM. The basic premise was that
@@ -1758,7 +1756,6 @@ we generate a new fresh world, $w$, then we effectively reset the
 context. Utilizing this trick is thought to be necessary in order to
 prove preservation.
 
-\fixme{Analyze if the problem is the do-rule}
 We are fairly sure that the addition of the $\ido{x}{s_1}{s_2}$ rule
 is the culprit. A system built in the development process containing
 basic blocks, but without $\mathbf{do}$, admitted preservation.
@@ -1913,9 +1910,9 @@ All source code are available either upon request from the author, or
 by git revision control on github:
 \url{http://github.com/jlouis/jlouis-tvm/tree/master/src/}. We note
 that the commit for the source as presented in this report
-is:\fixme{Update this commit id}
+is:
 \begin{center}
-  \texttt{cda8e7bb44a0168def492a313ff2d860db2d2889}.
+  \texttt{7ed931d50f70f94faed0be9532f07809f1de6fc0}.
 \end{center}
 
 \section{Prelude}

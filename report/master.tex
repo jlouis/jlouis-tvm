@@ -417,8 +417,8 @@ targeting LLVM; in particular, the \clang{}-project was used.
                        & \bor \quad c < c \\
    \basicblocks \ni d  & ::= \lambda (x_1, x_2, \cdots, x_n) . s\\
    \instructions \ni s & ::= \iret{c} \\
-                       & \bor \quad \ibr{\lbl{n}}{(c_1, \dotsc, c_n)} \\
-                       & \bor \quad \ibrc{c}{\lbl{n}}{(c_1, \dotsc, c_n)}{\lbl{{n'}}}{(c'_1, \dotsc, c'_n)}\\
+                       & \bor \quad \ibr{\lbl{k}}{(c_1, \dotsc, c_n)} \\
+                       & \bor \quad \ibrc{c}{\lbl{k}}{(c_1, \dotsc, c_n)}{\lbl{{k'}}}{(c'_1, \dotsc, c'_{n'})}\\
                        & \bor \quad \ilet{x}{op}{s} \\
                        & \bor \quad \iletrec{l}{\dbundle}{s} \\
                        & \bor \quad \ido{x}{s_1}{s_2} &

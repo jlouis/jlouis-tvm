@@ -1373,6 +1373,21 @@ of the function as $\tau$.
   in the domain of $\Psi'$.
 \end{proof}
 
+\newcommand{\dbundlep}{(d'_1, \dotsc, d'_m)}
+\begin{lem}
+  \label{lem:tpbb-weaken-l}
+  Suppose $\Phi;\Gamma \tpbb \Psi : L / \tau$. Further let $l' \mapsto
+  \dbundlep$ be a binding where $l' \not \in \dom{\Psi}$. Then
+  $\Phi;\Gamma \tpbb \Psi : L[l' \mapsto \dbundlep] / \tau$.
+\end{lem}
+\begin{proof}
+  By induction on $\Phi;\Gamma \tpbb \Psi : L / \tau$. The Wf-bb/z
+  case is immediate. For the Wf-bb/s case we note that $\Phi;\Gamma
+  \tpbb \Psi' : L[l' \mapsto \dbundlep] / \tau$ holds by
+  induction. And certainly $L[l' \mapsto \dbundlep](l) = \dbundle$
+  since $l' \not \in \dom{\Psi}$. This means all premises are
+  fulfilled for the Wf-bb/s case.
+\end{proof}
 \section{Progress}
 
 \begin{lem}{[Effectiveness, operations]}
@@ -1584,14 +1599,16 @@ To prove preservation, we need a couple of lemmas:
     Tp-letrec rule for $\iletrec{l}{\dbundle}{s'}$.
 
     We now claim $\Phi;\Gamma \tpbb \Psi[l \mapsto \sbundle] :
-    L[l\mapsto \dbundle] / \tau$. To see this, note that for a fresh
-    $l \not \in \dom{\Psi}$, we \fixme{Consider lemmaing this}
-    certainly have $\Phi;\Gamma \tpbb \Psi : L[l\mapsto \dbundle] / \tau$
-    because of the assumption $\Phi;\Gamma \tpbb \Psi : L / \tau$. We also
-    have $L[l\mapsto \dbundle](l) = \dbundle$. And by the Tp-letrec
-    rule for $\iletrec{x}{\dbundle}{s}$, we have the relation $\Phi;\Psi[l \mapsto
-    \sbundle];\Gamma \tpb d_j : \sigma_j / \tau$ for $1 \leq j \leq
-    m$. Thus we have all the premises to show the claim.
+    L[l\mapsto \dbundle] / \tau$. To see this, note that for a $l \not
+    \in \dom{\Psi}$, we certainly have
+    $\Phi;\Gamma \tpbb \Psi : L[l\mapsto \dbundle] / \tau$ because of
+    the assumption $\Phi;\Gamma \tpbb \Psi : L / \tau$ and lemma
+    \ref{lem:tpbb-weaken-l}. We also have $L[l\mapsto \dbundle](l) =
+    \dbundle$. And by the Tp-letrec rule for
+    $\iletrec{x}{\dbundle}{s}$, we have the relation $\Phi;\Psi[l
+    \mapsto \sbundle];\Gamma \tpb d_j : \sigma_j / \tau$ for $1 \leq j
+    \leq m$. Thus we have all the premises to show the claim by the
+    Wf-bb/s rule.
 
     By the claim, the premise $D;L[l\mapsto \dbundle] |- s -> s'$
     from the S-letrec-s rule and the premise $\Phi;\Psi[l \mapsto

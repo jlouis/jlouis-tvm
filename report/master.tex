@@ -50,12 +50,7 @@
 \tableofcontents{}
 \newpage{}
 \section{Foreword}
-\fixme{Mention the deviation with the types in Mini-LLVM for function
-  definitions}
-\fixme{Carry out a translation into syntax}
-\fixme{Add syntax description to the Twelf Encoding chapter}
 \fixme{Analyze what parts gives problems in the \twelf{}-encoding}
-\fixme{Figure out what we do with the pesky Progress-proof}
 This report is meant to be read by people interested in the LLVM
 compiler infrastructure. The goal from the beginning was to shed
 light on the informal approach of LLVM. The basic premise was that
@@ -504,6 +499,15 @@ definitions, but we have chosen to deviate from LLVM here and allow
 the execution of an arbitrary instruction rather a call to main. We
 can simply limit valid programs to begin by a forced instruction
 call to a function ``\texttt{main}'', should we so desire.
+
+\paragraph{Function types}
+
+Mini-LLVM deviates from LLVM in the introduction of functions and
+their types. In LLVM a function is typed explicitly, so each parameter
+is annotated with a type; in addition to the function return type. Our
+system allows any valid typing for a function that fulfills the type
+system. In hindsight, this was probably the wrong decision -- we
+should have typed functions explicitly to follow the LLVM IL closer.
 
 \paragraph{Free variables and fresh names}
 \newcommand{\fv}{\mathrm{FV}}
@@ -1140,6 +1144,26 @@ return:
   ret i32 %retval.0
 }
 \end{verbatim}
+
+We hand-translate this into Mini-LLVM code The outer skeleton is of
+the form:
+\begin{equation*}
+  \ipgm{D}{\icall{x}{tri}{(3)}{\iret{x}}}
+\end{equation*}
+for a call to the $tri$ function with a value of 3. The definition
+list $D$ contains a single definition:
+\begin{equation*}
+  tri(n) = \iletrec{l}{(d_1, d_2, d_3, d_4)}{\ibr{\lbl{1}{()}}}
+\end{equation*}
+where we define the definitions as:
+\begin{align*}
+  d_1 \equiv &\lambda().\ilet{x_1}{n < 0}{\ibrc{x_1}{\lbl{2}}{()}{\lbl{3}}{()}}\\
+  d_2 \equiv &\lambda().\ibr{4}{(0)}\\
+  d_3 \equiv &\lambda().\ilet{x_2}{n - 1}{\\ & \quad \icall{x_3}{tri}{(x_2)}
+    {\\ & \qquad \ilet{x_4}{x_3 + n}{\\ & \qquad \quad \ibr{\lbl{4}}{(x_4)}}}}\\
+  d_4 \equiv &\lambda(y).\iret{y}
+\end{align*}
+
 By hand-translation of this into Twelf, we obtain the following
 twelf-function for the same fragment:
 \begin{verbatim}
@@ -1697,6 +1721,7 @@ To prove preservation, we need a couple of lemmas:
 
 \section{Twelf encoding}
 
+\fixme{Wrong, fix}
 We encode the proofs of progress and determinism in \twelf{} -- and
 get \twelf{} to verify their totality. This constitutes a verified
 proof of these theorems (see, for example,
@@ -1835,6 +1860,7 @@ report.
 
 \chapter{Conclusion}
 
+\fixme{Also wrong, fix}
 \paragraph{Summary}
 \begin{itemize}
 \item We present a formal semantics for Mini-LLVM, a subset of the

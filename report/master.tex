@@ -86,7 +86,6 @@ way.\\
 \newpage{}
 \chapter{Introduction}
 \newcommand{\dom}[1]{\mathrm{dom}(#1)}
-\fixme{Fresh variables --- think about the consequence}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -503,7 +502,8 @@ call to a function ``\texttt{main}'', should we so desire.
 \newcommand{\fv}{\mathrm{FV}}
 We define a function $\fv(s)$ which returns the set of free variables
 for a given instruction $s$. The function is defined inductively in
-the obvious way.
+the obvious way and is ``overloaded'' for operations and register
+lookups.
 
 For any class of names, we assume we can generate a new unique fresh
 name which has not been used before.
@@ -1215,7 +1215,7 @@ lemmas.
   \label{lem:weaken-psi}
   Instruction typing admits basic block weakening: if $\Phi;\Psi;\Gamma
   |- s : \tau$ and $l' \mapsto \sbundle$, then $\Phi;\Psi[l' \mapsto
-  \sbundle];\Gamma |- s : \tau$.
+  \sbundle];\Gamma |- s : \tau$ where $l \not \in \dom{\Psi}$.
 \end{lem}
 \begin{proof}
   By mutual induction on the relation $\Phi;\Psi;\Gamma |- s : \tau$
@@ -1233,8 +1233,9 @@ lemmas.
 \begin{lem}{[Weakening, Definitions, $\Psi$]}
   \label{lem:weaken-psi-d}
   Definitions admit basic block weakening: if $\Phi;\Psi;\Gamma \tpb d
-  : \sigma / \tau$ and for a fresh $l'$, $l' \mapsto \sbundle$, then
-  $\Phi;\Psi[l' \mapsto \sbundle];\Gamma \tpb d : \sigma / \tau$.
+  : \sigma / \tau$ and for $l' \mapsto \sbundle$, then
+  $\Phi;\Psi[l' \mapsto \sbundle];\Gamma \tpb d : \sigma / \tau$ where
+  $l' \not \in \dom{\Psi}$.
 \end{lem}
 \begin{proof}
   Immediate consequence of lemma \ref{lem:weaken-psi} and the rule
@@ -1247,17 +1248,18 @@ lemmas.
 \begin{lem}{[Weakening, $\Gamma$, registers]}
   \label{lem:weaken-registers}
   If $\Gamma \tpr x : \tau$ then it implies $\Gamma[x' \mapsto \tau']
-  \tpr x : \tau$
+  \tpr x : \tau$ if $x' \neq x$.
 \end{lem}
 \begin{proof}
   Since $\Gamma \tpr x : \tau$, we must have $\Gamma(x) = \tau$. And
   then $\Gamma[x' \mapsto \tau'](x) = \tau$ for $x' \neq x$, which we
-  can assume is the case.
+  assume is the case.
 \end{proof}
 \begin{lem}{[Weakening, $\Gamma$, constants]}
   \label{lem:weaken-constants}
   Constants admits weakening of the variable context: $\Gamma \tpc c :
-  \tau$ implies $\Gamma[x' \mapsto \tau'] \tpc c : \tau$.
+  \tau$ implies $\Gamma[x' \mapsto \tau'] \tpc c : \tau$ for $x' \not
+  \in \fv(c)$.
 \end{lem}
 \begin{proof}
   Case analysis: Immediate consequence or by use of lemma \ref{lem:weaken-registers}.
@@ -1265,7 +1267,7 @@ lemmas.
 \begin{lem}{[Weakening, $\Gamma$, operations]}
   \label{lem:weaken-operations}
   Suppose $\Gamma \tpc o : \tau$. Then we have $\Gamma[x' \mapsto
-  \tau'] \tpc o : \tau$.
+  \tau'] \tpc o : \tau$ where $x; \not \in \fv(o)$.
 \end{lem}
 \begin{proof}
   All cases are either congruences or can be discharged by use of
@@ -1275,7 +1277,8 @@ lemmas.
   \label{lem:weaken-gamma}
   Instruction typing admits weakening in the variable context: Suppose
   we have $\Phi;\Psi;\Gamma |- s : \tau$ for contexts $\Phi, \Psi$ and
-  $\Gamma$. Then $\Phi;\Psi;\Gamma[x' \mapsto \tau'] |- s : \tau$.
+  $\Gamma$. Then $\Phi;\Psi;\Gamma[x' \mapsto \tau'] |- s : \tau$
+  where $x' \not \in \fv(s)$.
 \end{lem}
 \begin{proof}
   We run mutual induction on $\Phi;\Psi;\Gamma |- s : \tau$ and the
@@ -1324,7 +1327,7 @@ idea is the same.
   \Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_m : \sigma_m / \tau\\
   \Phi;\Gamma \tpbb \Psi' : L / \tau\\
   L(l) = \dbundle}
-  {\Phi;\Gamma \tpbb (l \mapsto \sbundle, \Psi') : L / \tau}
+  {\Phi;\Gamma \tpbb (l \mapsto \sbundle, \Psi') : L / \tau}(l \not \in \dom{\Psi'})
 \end{gather*}
 There are two rules for this relation. The first rule state that any
 environment of basic blocks relates to the empty context. This is
@@ -1366,7 +1369,8 @@ of the function as $\tau$.
   $\Phi;\Gamma \tpbb \Psi' : L / \tau$. This yields a proof of
   $\Phi;\Psi';\Gamma \tpb d_k : \sigma_k / \tau$. We now apply lemma
   \ref{lem:weaken-psi-d} on this to weaken it to $\Phi;\Psi;\Gamma
-  \tpb d_k : \sigma_k / \tau$ as wanted.
+  \tpb d_k : \sigma_k / \tau$ since we have ensured that $l'$ can't be
+  in the domain of $\Psi'$.
 \end{proof}
 
 \section{Progress}

@@ -89,6 +89,7 @@ way.\\
 \newpage{}
 \chapter{Introduction}
 \newcommand{\dom}[1]{\mathrm{dom}(#1)}
+\newcommand{\lbl}[1]{l[#1]} 
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -416,8 +417,8 @@ targeting LLVM; in particular, the \clang{}-project was used.
                        & \bor \quad c < c \\
    \basicblocks \ni d  & ::= \lambda (x_1, x_2, \cdots, x_n) . s\\
    \instructions \ni s & ::= \iret{c} \\
-                       & \bor \quad \ibr{l^n}{(c_1, \dotsc, c_n)} \\
-                       & \bor \quad \ibrc{c}{l^n}{(c_1, \dotsc, c_n)}{l^{n'}}{(c'_1, \dotsc, c'_n)}\\
+                       & \bor \quad \ibr{\lbl{n}}{(c_1, \dotsc, c_n)} \\
+                       & \bor \quad \ibrc{c}{\lbl{n}}{(c_1, \dotsc, c_n)}{\lbl{{n'}}}{(c'_1, \dotsc, c'_n)}\\
                        & \bor \quad \ilet{x}{op}{s} \\
                        & \bor \quad \iletrec{l}{\dbundle}{s} \\
                        & \bor \quad \ido{x}{s_1}{s_2} &
@@ -453,14 +454,14 @@ available in the context of the instruction $s$. We will often in the
 following call a basic block mapping $l \mapsto \dbundle$
 for a Basic block \emph{bundle}.
 
-The instruction $\ibr{l^k}{(c_1, \dotsc, c_n)}$ designates an
+The instruction $\ibr{\lbl{k}}{(c_1, \dotsc, c_n)}$ designates an
 unconditional branch to the $k$th projection in the basic block bundle
 represented by the name $l$. The parameters $c_1$ through $c_n$ are
 formal $\phi$-node parameters to the given basic block. In LLVM, the
 projections are named explicitly by identifier names, but we felt that
 a projection is easier to handle from a formal viewpoint.
 
-The $\ibrc{x}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c_1, \dotsc, c_n)'}$ represents a conditional
+The $\ibrc{x}{\lbl{k}}{(c_1, \dotsc, c_n)}{\lbl{{k'}}}{(c_1, \dotsc, c_n)'}$ represents a conditional
 branch. It will, depending on the value of $x$ transfer control to
 either the first or second basic block projection, injecting the
 corresponding set of $\phi$-node parameters. In LLVM both
@@ -623,7 +624,7 @@ type $\tau$. These rules are rather straightforward.
     \inference[Tp-br]{\Psi(l) = \bbtypes{} \quad \sigma_k = \ntypes -> \bullet\\
       \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
       \quad \Gamma |- c_n : \tau_n}
-    {\Phi;\Psi;\Gamma |- \ibr{l^k}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
+    {\Phi;\Psi;\Gamma |- \ibr{\lbl{k}}(c_1, c_2, \dotsc, c_n) : \tau}\\\\
     \inference[Tp-brc]{\Gamma \tpc x : \tbool\\
       \Psi(l) = \bbtypes{}\\
       \sigma_k = \ntypes -> \bullet\\
@@ -632,11 +633,11 @@ type $\tau$. These rules are rather straightforward.
       \sigma_{k'} = \ntypesp -> \bullet\\
       \Gamma |- c'_1 : \tau'_1 \quad \dotsb \quad \Gamma |- c'_n :
       \tau'_n}
-    {\Phi;\Psi;\Gamma |- \ibrc{x}{l^k}{(c_1, \dotsc,
-        c_n)}{l^{k'}}{(c'_1, \dotsc, c'_{n'})} : \tau}\\\\
+    {\Phi;\Psi;\Gamma |- \ibrc{x}{\lbl{k}}{(c_1, \dotsc,
+        c_n)}{\lbl{{k'}}}{(c'_1, \dotsc, c'_{n'})} : \tau}\\\\
     \inference[Tp-letrec]{\Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb
       d_1 : \sigma_1 / \tau\\
-      \dotsb\\
+      \vdots\\
       \Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
       \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- s : \tau}
        {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{s} : \tau}(l \not
@@ -781,11 +782,11 @@ the proper mathematical arithmetic operation.
     \inference[S-letrec-s]{D;L[l \mapsto \dbundle] |- s -> s'}
     {D;L |- \iletrec{l}{\dbundle}{s} -> \iletrec{l}{\dbundle}{s'}}(l \not \in \dom{L})\\\\
     \inference[S-brc-t]{}{D;L |-
-      \ibrc{\btrue}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c'_1, \dotsc,
-        c'_n)} -> \ibr{l^k}{(c_1, \dotsc, c_n)}}\\\\
+      \ibrc{\btrue}{\lbl{k}}{(c_1, \dotsc, c_n)}{\lbl{{k'}}}{(c'_1, \dotsc,
+        c'_n)} -> \ibr{\lbl{k}}{(c_1, \dotsc, c_n)}}\\\\
     \inference[S-brc-f]{}{D;L |-
-      \ibrc{\bfalse}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c'_1, \dotsc, c'_n)} ->
-      \ibr{l^{k'}}{(c'_1, \dotsc, c'_n)}}\\\\
+      \ibrc{\bfalse}{\lbl{k}}{(c_1, \dotsc, c_n)}{\lbl{{k'}}}{(c'_1, \dotsc, c'_n)} ->
+      \ibr{\lbl{{k'}}}{(c'_1, \dotsc, c'_n)}}\\\\
     \inference[S-do-s]{D;L |- s_1 -> s'_1}{D;L |-
       \ido{x}{s_1}{s_2} -> \ido{x}{s'_1}{s_2}}\\\\
     \inference[S-do-v]{}{D;L |- \ido{x}{\iret{c}}{s_2} -> s_2[c/x]}\\\\
@@ -793,7 +794,7 @@ the proper mathematical arithmetic operation.
       \icall{x}{f}{(c_1, c_2, \dotsc, c_n)}{s} -> \ido{x}{s'[c_1/x_1, c_2/x_2,
         \dotsc, c_n/x_n]}{s}}\\\\
     \inference[S-br]{L(l) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
-      x_n).s}{D;L |- \ibr{l^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
+      x_n).s}{D;L |- \ibr{\lbl{k}}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
  \end{gather*}
  \begin{gather*}
    \text{Programs:} \quad \boxed{|- P --> P'}\\
@@ -1004,10 +1005,10 @@ in the \texttt{pb} variable to the definitions. Note that the type of
 
 The above construction let us define a basic block bundle, but it does
 not tell the whole story: how to project and call. In a branch
-instruction $\ibr{l^k}{(c_1, \dotsc, c_n)}$, we need to encode the
-call $l^k$. We define this by the means of the constants
+instruction $\ibr{\lbl{k}}{(c_1, \dotsc, c_n)}$, we need to encode the
+call $\lbl{k}$. We define this by the means of the constants
 \texttt{f-hd, f-tl/s} and \texttt{f-tl/z}. If $l$ is a
-\texttt{bname}, we define $l^k$ as:
+\texttt{bname}, we define $\lbl{k}$ as:
 \newcommand{\fhd}{\mathtt{f\!\!-\!\!hd}}
 \newcommand{\ftls}{\mathtt{f\!\!-\!\!tl/s}\; }
 \newcommand{\ftlz}[1]{(\mathtt{f\!\!-\!\!tl/z} \; #1)}
@@ -1326,7 +1327,7 @@ idea is the same.
     \Psi : L / \tau}\\\\
   \inference[Wf-bb/z]{}{\Phi;\Gamma \tpbb \cdot : L / \tau}\\\\
   \inference[Wf-bb/s]{\Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_1 :  \sigma_1 / \tau\\
-  \dotsb\\
+  \vdots\\
   \Phi;\Psi[l\mapsto \sbundle];\Gamma \tpb d_m : \sigma_m / \tau\\
   \Phi;\Gamma \tpbb \Psi' : L / \tau\\
   L(l) = \dbundle}
@@ -1395,7 +1396,8 @@ of the function as $\tau$.
 
 \begin{lem}{[Effectiveness, operations]}
   \label{lem:can-step-op}
-  For all operations $o$ there exists a derivation, $|- o \eop c$.
+  For all operations $o$ such that $\cdot |- o : \tau$ there exists a
+  derivation, $|- o \eop c$.
 \end{lem}
 \begin{proof}
   Straightforward case analysis. We use basic facts of the
@@ -1423,8 +1425,8 @@ of the function as $\tau$.
 
 \begin{lem}{[Progress, instructions]}
   \label{lem:progress-instructions}
-  For all instructions $s$ with $\Phi;\Psi;\Gamma |- s : \tau$, $\Phi
-  |- D : \Phi$ and $\Phi;\Gamma \tpbb \Psi : L / \tau$; $s$ is either
+  For all instructions $s$ with $\Phi;\Psi;\cdot |- s : \tau$, $\Phi
+  |- D : \Phi$ and $\Phi;\cdot \tpbb \Psi : L / \tau$; $s$ is either
   of the form $\iret{c}$ or $D;L |- s -> s'$.
 \end{lem}
 \begin{proof}
@@ -1452,17 +1454,18 @@ of the function as $\tau$.
 
     Because the claim holds, we can apply the rule S-letrec-s with the
     claim as a premise so the $\mathbf{letrec}$ rule steps.
-  \item (Branch, unconditional): Suppose $s$ has the form $\ibr{l^k}{(c_1, \dotsc,
+  \item (Branch, unconditional): Suppose $s$ has the form $\ibr{\lbl{k}}{(c_1, \dotsc,
       c_n)}$. We want to show that the S-br rule applies; which means
     we must show that $L(l) = \dbundle$.
 
-    Since $\Phi;\Psi;\Gamma |- \ibr{l^k}{(c_1, dotsc, c_n)}$, we have
+    Since $\Phi;\Psi;\Gamma |- \ibr{\lbl{k}}{(c_1, dotsc, c_n)}$, we have
     $\Psi(l) = \sbundle$ from the premises. Because $\Phi;\Gamma \tpbb
     \Psi : L / \tau$ and we can apply lemma
     \ref{lem:tpbb-lookup} which gives that $L(l) = \dbundle$.
 
   \item (Branch, conditional): These two cases can step by the cases
-    S-brc-t and S-brc-f respectively.
+    S-brc-t and S-brc-f respectively. This works because the constant
+    $c$ must be closed.
   \item (Let): We show that the expression $\ilet{x}{o}{s}$ can step
     by the S-let rule. By lemma \ref{lem:can-step-op} used on $o$,
     there exists a derivation $|- o \eop c$. Using this as the premise
@@ -1507,7 +1510,7 @@ To prove preservation, we need a couple of lemmas:
 
 \begin{lem}{[Preservation, constants]}
   \label{lem:preservation-c}
-  Suppose $\Gamma \tpop o : \tau$ and $o \eop c$ then $\Gamma \tpc
+  Suppose $\cdot \tpop o : \tau$ and $o \eop c$ then $\cdot \tpc
   c : \tau$.
 \end{lem}
 \begin{proof}
@@ -1567,7 +1570,7 @@ To prove preservation, we need a couple of lemmas:
     \begin{equation*}
     \inference{\Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_1 :
       \sigma_1 / \tau\\
-      \dotsb\\
+      \vdots\\
       \Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
       \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- \iret{c} : \tau}
        {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{\iret{c}} : \tau}
@@ -1590,7 +1593,7 @@ To prove preservation, we need a couple of lemmas:
           \label{eq:preserv-tp-letrec-s}
           \inference{\Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_1 :
             \sigma_1 / \tau\\
-            \dotsb\\
+            \vdots\\
             \Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m
             / \tau\\
             \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- s : \tau}
@@ -1664,7 +1667,7 @@ To prove preservation, we need a couple of lemmas:
     \begin{equation*}
       \inference{L(l) = \dbundle \quad d_k = \lambda(x_1, \dotsc,
         x_n).s}
-      {D;L |- \ibr{l^k}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
+      {D;L |- \ibr{\lbl{k}}{(c_1, \dotsc, c_n)} -> s[c_1/x_1, \dotsc, c_n/x_n]}
     \end{equation*}
     and the typing is
     \begin{equation*}
@@ -1672,7 +1675,7 @@ To prove preservation, we need a couple of lemmas:
         \ntypes -> \bullet\\
         \Gamma |- c_1 : \tau_1 \quad \Gamma |- c_2 : \tau_2 \quad \dotsb
         \quad \Gamma |- c_n : \tau_n}
-      {\Phi;\Psi;\Gamma |- \ibr{l^k}(c_1, c_2, \dotsc, c_n) : \tau}
+      {\Phi;\Psi;\Gamma |- \ibr{\lbl{k}}(c_1, c_2, \dotsc, c_n) : \tau}
     \end{equation*}
     To solve this case, we must show that $\Phi;\Psi;\Gamma |-
     s[c_1/x_1,\dotsc,c_n/x_n] : \tau$. We first show $\Phi;\Psi;\Gamma
@@ -1688,7 +1691,7 @@ To prove preservation, we need a couple of lemmas:
     $\Phi;\Psi;\Gamma |- s[c_1/x_1,\dotsc,c_n/x_n] : \tau$ as wanted.
   \item (S-brc-t), (S-brc-f):
     In the conditional branch cases, we immediately construct
-    $\Phi;\Psi;\Gamma |- \ibr{l^k}{(c_1, \dotsc, c_n)}$ from the
+    $\Phi;\Psi;\Gamma |- \ibr{\lbl{k}}{(c_1, \dotsc, c_n)}$ from the
     premises.
   \end{itemize}
 \end{proof}

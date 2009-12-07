@@ -87,8 +87,6 @@ way.\\
 \chapter{Introduction}
 \newcommand{\dom}[1]{\mathrm{dom}(#1)}
 \fixme{Fresh variables --- think about the consequence}
-\fixme{In the lemmas, make sure we mention something to the like of
-  $l' \not \in \dom{\Psi}$}
 It is well known in compiler construction, that intermediate languages
 are a useful and beneficial abstraction\cite{appel:1998:modern,
   mogensen:2008:basics}. Rather than targeting the instruction set
@@ -638,7 +636,8 @@ type $\tau$. These rules are rather straightforward.
       \dotsb\\
       \Phi;\Psi[l \mapsto \bbtypes];\Gamma \tpb d_m : \sigma_m / \tau\\
       \Phi;\Psi[l \mapsto \bbtypes];\Gamma |- s : \tau}
-       {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{s} : \tau}\\\\
+       {\Phi;\Psi;\Gamma |- \iletrec{l}{\dbundle}{s} : \tau}(l \not
+       \in \dom{\Psi})\\\\
     \inference[Tp-call]{\Phi(f) = \ntypes -> \tau'\\
       \Gamma |- c_1 : \tau_1 \quad \dotsb \quad \Gamma |- c_n : \tau_n\\
   \Phi;\Psi;\Gamma[x \mapsto \tau'] |- s : \tau}
@@ -777,9 +776,10 @@ the proper mathematical arithmetic operation.
     \inference[S-letrec-v]{}{D;L |- \iletrec{l}{\dbundle}
       {\iret{c}} -> \iret{c}}\\\\
     \inference[S-letrec-s]{D;L[l \mapsto \dbundle] |- s -> s'}
-    {D;L |- \iletrec{l}{\dbundle}{s} -> \iletrec{l}{\dbundle}{s'}}\\\\
+    {D;L |- \iletrec{l}{\dbundle}{s} -> \iletrec{l}{\dbundle}{s'}}(l \not \in \dom{L})\\\\
     \inference[S-brc-t]{}{D;L |-
-      \ibrc{\btrue}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c'_1, \dotsc, c'_n)} -> \ibr{l^k}{(c_1, \dotsc, c_n)}}\\\\
+      \ibrc{\btrue}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c'_1, \dotsc,
+        c'_n)} -> \ibr{l^k}{(c_1, \dotsc, c_n)}}\\\\
     \inference[S-brc-f]{}{D;L |-
       \ibrc{\bfalse}{l^k}{(c_1, \dotsc, c_n)}{l^{k'}}{(c'_1, \dotsc, c'_n)} ->
       \ibr{l^{k'}}{(c'_1, \dotsc, c'_n)}}\\\\

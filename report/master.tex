@@ -1,4 +1,4 @@
-\documentclass[a4paper, oneside, 10pt, draft]{memoir}
+\documentclass[a4paper, oneside, 10pt, final]{memoir}
 
 \chapterstyle{culver}
 \RequirePackage[english]{jlouis}
@@ -72,10 +72,13 @@ logic is that if you are struggling with a proof, you do not want to
 be struggling with \twelf{} at the same time.
 
 Of course, since this is a learning process as well as a presentation,
-it is very possible that the treatment contains errors and
-omissions --- they are all mine. I am of the belief that you learn
-more by trying and failing than by standing on secure ground all the
-way.\\
+it is very possible that the treatment contains errors and omissions
+--- they are all mine and nobody else can be held responsible for
+them. I am of the belief that you learn more by trying and failing
+than by standing on secure ground all the way. This belief is
+certainly true for the work herein: as a project you may question and
+discuss its completeness; as a learning process it fulfilled
+its goals.\\
 
 \begin{flushright}
   Jesper Louis Andersen, December 2009.
@@ -1269,7 +1272,7 @@ lemmas.
 \begin{lem}{[Weakening, Definitions, $\Psi$]}
   \label{lem:weaken-psi-d}
   Definitions admit basic block weakening: if $\Phi;\Psi;\Gamma \tpb d
-  : \sigma / \tau$ and for $l' \mapsto \sbundle$, then
+  : \sigma / \tau$ and for $l' \mapsto \sbundle$, then it implies
   $\Phi;\Psi[l' \mapsto \sbundle];\Gamma \tpb d : \sigma / \tau$ where
   $l' \not \in \dom{\Psi}$.
 \end{lem}
@@ -1717,48 +1720,25 @@ To prove preservation, we need a couple of lemmas:
   helper-judgement.
 \end{proof}
 
-\section{Twelf encoding}
+\section{Twelf Encoding}
 
-\fixme{Wrong, fix}
-We encode the proofs of progress and determinism in \twelf{} -- and
-get \twelf{} to verify their totality. This constitutes a verified
-proof of these theorems (see, for example,
-\cite{harper.crary:2005:how}). The formalization exploits that the
-\twelf{} encoding gives substitution and weakening ``for free'' - but
-it also deviates from the paper proof due to the need for \emph{output
-  factoring}. The coverage checker in \twelf{} can only consider each
-rule in isolation and thus, it can not see that all outputs are
-covered in certain cases.
+We would have liked to formalize this system in \twelf{} -- but the
+deadline came too close. Instead, we have a \emph{different} system in
+\twelf{} which is the one we present an encoding of. This system
+admits progress and determinism -- with the totality verified by
+\twelf{}. It constitutes a verified proof of these theorems (see, for
+example, \cite{harper.crary:2005:how}). The formalization exploits
+that the \twelf{} encoding gives substitution and weakening ``for
+free'' - but it also deviates from the paper proof due to the need for
+\emph{output factoring}. The coverage checker in \twelf{} can only
+consider each rule in isolation and thus, it can not see that all
+outputs are covered in certain cases.
 
 For the proof of determinism, we make good use of the \twelf{}-keyword
 \texttt{\%{}unique} which automatically determine that certain
 relations are unique. By giving \twelf{} enough knowledge through
 these uniqueness hints, the main proof of determinism becomes much
 easier.
-
-\paragraph{Missing work}
-Due to time constraints, the proof of preservation which is encoded in
-\twelf{} is currently wrong. There are several problems as is: first,
-the relation $\Phi;\Gamma \tpbb L : \Psi$ is not treated correctly
-which pose problems. Second, note that $\Psi$ is currently handled in
-the \twelf{}-context.
-
-If we add relations to the \twelf{} context, we can not ``get rid'' of
-these relations again. We need to do this in the rule of Tp-do for the
-$\Psi$ context where the $\Psi$ is changed into $\cdot$ in the
-leftmost premise. One trick to do this is to \emph{version} additions
-to the context. We introduce a set $W := w_1, w_2, \dotsc$ of
-``worlds'' and then alter bindings in $\Psi$ from $l \mapsto
-\sbundle$ into $l \mapsto^{w} \sbundle$, augmenting each binding with
-a world. With this in place, we can consider bindings of a
-given version in isolation from bindings with differing worlds. If
-we generate a new fresh world, $w$, then we effectively reset the
-context. Utilizing this trick is thought to be necessary in order to
-prove preservation.
-
-We are fairly sure that the addition of the $\ido{x}{s_1}{s_2}$ rule
-is the culprit. A system built in the development process containing
-basic blocks, but without $\mathbf{do}$, admitted preservation.
 
 \chapter{Development Process}
 
@@ -1823,9 +1803,8 @@ in \twelf{}, which further complicates the task but also lifts it
 above most formal work.
 
 In practice, we needed to carry out several attempts in formalizing
-Mini-LLVM before we arrived at the current formalization. In certain
-ways even this formalization is incomplete; lacking any kind of memory
-instructions and exceptions.
+Mini-LLVM before we arrived at the current formalization. Even this
+formalization is incomplete; being different from the paper formalization.
 
 The formalization is built up from two simpler systems, both
 formalized in \twelf{}. The first system is a first-order
@@ -1849,33 +1828,82 @@ is a small toy language for the function call semantics. It is
 separately proven that this language has progress, preservation and
 determinism and this result has been formalized in \twelf{}.
 
-The Mini-LLVM formalization was then built by stratifying the first
-language from (functional) terms into registers, constants, operations
-and instructions syntactically; and then adding the second language on
-top of it. The result is the Mini-LLVM formalization presented in this
-report.
+The Mini-LLVM formalization attempt in \twelf{} was then built by
+stratifying the first language from (functional) terms into registers,
+constants, operations and instructions syntactically; and then adding
+the second language on top of it.
+
+The somewhat haphazard merging of the two systems turned out to be a
+bit of a Frankensteining. It was possible to show the properties of
+progress and determinism for the system, but not preservation. To
+understand the problems, we constructed the current
+paper-formalization --- but it is different in the way it handles
+basic block typing. In the \twelf{} system a basic block type is of
+the form $\tau_1 \times \dotsb \tau_n -> \tau$ whereas in the paper
+version it is of the form $\tau_1 \times \dotsb \tau_n -> \bullet$. It
+turns out that trying to make this change in \twelf{} will destroy the
+progress-property.
+
+Furthermore, the relation $\Phi;\Gamma \tpbb \Psi : L / \tau$ is not
+treated correctly which pose problems. Second, note that $\Psi$ is
+currently handled in the \twelf{}-context.
+
+If we add things to the \twelf{} context, we can not ``get rid'' of
+these relations again. We need to do this in the rule of Tp-do for the
+$\Psi$ context where the $\Psi$ is changed into $\cdot$ in the
+leftmost premise. One trick to do this is to \emph{version} additions
+to the context. We introduce a set $W := w_1, w_2, \dotsc$ of
+``worlds'' and then alter bindings in $\Psi$ from $l \mapsto
+\sbundle$ into $l \mapsto^{w} \sbundle$, augmenting each binding with
+a world. With this in place, we can consider bindings of a
+given version in isolation from bindings with differing worlds. If
+we generate a new fresh world, $w$, then we effectively reset the
+context. Utilizing this trick is thought to be necessary in order to
+prove preservation.
+
+We stress that this is \emph{at least} what needs to be done. To
+correct the \twelf{}-encoding, we probably need many more changes, but
+we hope it can be guided by the formalization on paper.
+
+\paragraph{A retrospective view}
+
+In retrospect, several mistakes were made. First, the focus on the
+report should have had started much earlier in the process. It would
+have caught and eliminated many problems in the development
+process. Second, too much focus on \twelf{} from the beginning
+side-tracked the work. We should probably have scribbled down rough
+paper versions before trying to put them into \twelf{}.
 
 \chapter{Conclusion}
 
-\fixme{Also wrong, fix}
 \paragraph{Summary}
+
+Since the state is somewhat confusing, we here present a summary which
+clearly conveys the current state:
 \begin{itemize}
 \item We present a formal semantics for Mini-LLVM, a subset of the
   LLVM IL language with a functional inspiration. We provide syntax,
   semantics and a type system for Mini-LLVM. We believe it can be used
   as a starting point for a formalization of the full LLVM syntax and
   semantics.
-\item We encode the semantics in the logical framework \twelf{},
-  utilizing HOAS and \emph{regular worlds} in the formalization where
-  possible. We show that the encoding can correctly evaluate a small
-  number of test programs.
+\item We formulate and prove the properties of \emph{progress} and
+  \emph{preservation} on paper.
+\item We provide an encoding of a \emph{different} system in the
+  logical framework \twelf{}, utilizing HOAS and \emph{regular worlds}
+  in the formalization where possible. We show that the encoding can
+  correctly evaluate a small number of test programs.
+
+  The reason this encoding is different is due to the development
+  process: since we were not able to prove \emph{preservation} for the
+  system, we converted it into a paper proof and system, which is what
+  we present in this report. In the course of the conversion, we
+  altered the system enough to make it non-isomorphic to the paper
+  version.
 \item We provide an alternative method by which to implement mutually
   recursive functions in \twelf{} for first-order languages in an
   intrinsically typed syntax.
 \item We formulate and prove the meta-theoretic properties of
   \emph{progress} and \emph{determinism} in \twelf{}.
-\item We formulate and prove the properties of \emph{progress} and
-  \emph{preservation} on paper.
 \end{itemize}
 
 The work should be of interest to anyone who work with the LLVM
@@ -1890,11 +1918,12 @@ LLVM in their work.
 
 \paragraph{Further work}
 
-Several extensions of the work are possible. First and foremost, one
-should finish the \twelf{}-proof of preservation. We could extend the
-formalization, incorporating more of LLVM. The memory heap would be
-interesting to add; the most challenging part being the handling of
-pointer arithmetic. A possible path would be to see if Separation
+First and foremost, one should finish the \twelf{} portion of this
+work. We need an encoding into \twelf{} which admit the meta-theoretic
+properties. We could extend the formalization, incorporating more of
+LLVM. The memory heap would be interesting to add; the most
+challenging part being the handling of pointer arithmetic. A possible
+path would be to see if Separation
 Logic\cite{reynolds:2002:separationlogic} can be used to understand
 the heap.
 

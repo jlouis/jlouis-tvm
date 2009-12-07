@@ -52,6 +52,8 @@
 \section{Foreword}
 \fixme{Mention the deviation with the types in Mini-LLVM for function
   definitions}
+\fixme{Carry out a translation into syntax}
+\fixme{Add syntax description to the Twelf Encoding chapter}
 \fixme{Analyze what parts gives problems in the \twelf{}-encoding}
 \fixme{Figure out what we do with the pesky Progress-proof}
 This report is meant to be read by people interested in the LLVM
@@ -1141,7 +1143,14 @@ return:
 By hand-translation of this into Twelf, we obtain the following
 twelf-function for the same fragment:
 \begin{verbatim}
-pgm_1 = pgm/ (defs/s gauss
+tri = fun-id/ z.
+
+b0 = [pb] f-hd (f-tl/z pb).
+b1 = [pb] f-hd (f-tl/s (f-tl/z pb)).
+b2 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/z pb))).
+b3 = [pb] f-hd (f-tl/s (f-tl/s (f-tl/s (f-tl/z pb)))).
+
+pgm_1 = pgm/ (defs/s tri
   (fun-decl/parm ([n]
     fun-decl/body
       (insn/letrec ([pb]
@@ -1158,7 +1167,7 @@ pgm_1 = pgm/ (defs/s gauss
           (bb-def/body
     	    (insn/let (op/mone n (cst/n 1))
     	       ([sub : cst tp/nat]
-                   (insn/call gauss (cst-list/cons sub
+                   (insn/call tri (cst-list/cons sub
                                             cst-list/nil)
                         ([call : cst tp/nat]
                               insn/let (op/plus call n)
@@ -1171,7 +1180,7 @@ pgm_1 = pgm/ (defs/s gauss
          bb-def-list/nil)))))
     ([pb] insn/br (b0 pb) cst-list/nil))))
      defs/z)
-  (insn/call gauss (cst-list/cons (cst/n 3) cst-list/nil)
+  (insn/call tri (cst-list/cons (cst/n 3) cst-list/nil)
      ([r] insn/return r)).
 \end{verbatim}
 
@@ -1345,37 +1354,18 @@ of the function as $\tau$.
 \begin{lem}
   \label{lem:tpbb-lookup}
   Suppose $\Phi;\Gamma \tpbb L : \Psi / \tau$ and $\Psi(l) =
-  \sbundle$. Then $L(l) = \dbundle$.
+  \sbundle$. Then $L(l) = \dbundle$, for some $d_1, \dotsc, d_m$; and
+  for all $1 \leq k \leq m$ we have $\Phi;\Psi;\Gamma
+  \tpb d_k : \sigma_k / \tau$.
 \end{lem}
 \begin{proof}
   Induction on the structure of $\Phi;\Gamma \tpbb L : \Psi / \tau$:
   If we have $\Psi = l \mapsto \sbundle, \Phi'$ then by the rule Wf-bb/s, we
-  have $L(l) = \dbundle$ as a premise. If on the other hand $\Psi = l'
+  have $L(l) = \dbundle$ and $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k /
+  \tau$ as a premise. If on the other hand $\Psi = l'
   \mapsto \dotsb, \Phi'$ then, $\Phi'(l) = \sbundle$. By induction on
   the Wf-bb/s premise $\Phi;\Gamma \tpbb L : \Psi' / \tau$ we can get $L(l) =
-  \dbundle$ as wanted.
-\end{proof}
-
-\begin{lem}
-  \label{lem:preservation-lookup}
-  Support $\Phi;\Gamma \tpbb L : \Psi / \tau$ and $\Psi(l) =
-  \sbundle$. Then for all $1 \leq k \leq m$ we have $\Phi;\Psi;\Gamma
-  \tpb d_k : \sigma_k / \tau$.
-\end{lem}
-\begin{proof}
-  Induction on the derivation $\Phi;\Gamma \tpbb L : \Psi /
-  \tau$. Either we have a Wf-bb/s rule with a conclusion of the form
-  $\Phi;\Gamma \tpbb L : (l \mapsto \sbundle, \Psi') / \tau$ then the
-  premises of that rule is exactly what we seek.
-
-  Otherwise, the conclusion is of the form $\Phi;\Gamma \tpbb L : (l'
-  \mapsto \dotsb, \Psi') / \tau$ with $l \neq l'$. In that case, we must have
-  $\Psi'(l) = \sbundle$, so we can apply the induction hypothesis with
-  $\Phi;\Gamma \tpbb L : \Psi' / \tau$. This yields a proof of
-  $\Phi;\Psi';\Gamma \tpb d_k : \sigma_k / \tau$. We now apply lemma
-  \ref{lem:weaken-psi-d} on this to weaken it to $\Phi;\Psi;\Gamma
-  \tpb d_k : \sigma_k / \tau$ since we have ensured that $l'$ can't be
-  in the domain of $\Psi'$.
+  \dbundle$ and $\Phi;\Psi;\Gamma \tpb d_k : \sigma_k / \tau$ as wanted.
 \end{proof}
 
 \newcommand{\dbundlep}{(d'_1, \dotsc, d'_m)}
